@@ -89,6 +89,6 @@ Los contratos TypeScript y esquemas Zod comunes al frontend y al backend residir
 
 ## Calidad y análisis estático
 
-SonarLint se recomienda en VS Code para obtener feedback inmediato. Cada PR ejecuta ESLint, Prettier, TypeScript, pruebas, validación del changelog y, cuando se configura `SONAR_TOKEN`, SonarCloud.
+SonarLint se recomienda en VS Code para obtener feedback inmediato. Cada PR ejecuta ESLint, Prettier, comprobación de tipos, pruebas, compilación, validación del changelog y, cuando se configura `SONAR_TOKEN`, SonarCloud.
 
 Para activar SonarCloud en GitHub hay que definir el secreto `SONAR_TOKEN` y las variables `SONAR_PROJECT_KEY` y `SONAR_ORGANIZATION`. Sin ellas, el análisis Sonar se omite sin bloquear los demás controles.

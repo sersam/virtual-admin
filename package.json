@@ -12,11 +12,13 @@
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --test scripts/*.test.mjs",
-    "build": "tsc -p tsconfig.json",
+    "test": "npm run test:root && node scripts/run-workspace-script.mjs test",
+    "test:root": "node --test scripts/*.test.mjs",
+    "build": "npm run build:root && node scripts/run-workspace-script.mjs build",
+    "build:root": "tsc -p tsconfig.json",
     "changes:validate": "node scripts/validate-changes.mjs",
     "changes:consume": "node scripts/consume-changes.mjs",
-    "quality": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run changes:validate"
+    "quality": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run changes:validate"
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",

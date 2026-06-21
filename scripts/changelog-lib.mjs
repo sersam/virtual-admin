@@ -1,6 +1,22 @@
 import { readFile } from 'node:fs/promises';
 
 export const validTypes = ['Added', 'Changed', 'Fixed', 'Removed', 'Security'];
+export const unreleasedAnchor = '## [Unreleased]\n';
+
+export function assertSingleFragment(files) {
+  if (files.length !== 1) {
+    throw new Error(
+      `La rama debe incluir exactamente un fragmento en .changes/; encontrados: ${files.length}.`,
+    );
+  }
+}
+
+export function insertChangelogEntry(changelog, entry) {
+  if (!changelog.includes(unreleasedAnchor)) {
+    throw new Error('CHANGELOG.md no contiene la sección requerida "## [Unreleased]".');
+  }
+  return changelog.replace(unreleasedAnchor, `${unreleasedAnchor}\n${entry}`);
+}
 
 export function parseFragment(content, filename = 'fragmento') {
   const match = content.match(/^---\s*\ntype:\s*(\w+)\s*\n---\s*\n([\s\S]+)$/);

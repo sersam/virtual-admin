@@ -5,7 +5,7 @@
     "moduleResolution": "NodeNext",
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "noEmit": true,
+    "outDir": "dist/tooling",
     "skipLibCheck": true
   },
   "include": ["tooling/**/*.ts"]

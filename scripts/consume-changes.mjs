@@ -1,6 +1,6 @@
 import { readdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { readFragment, validTypes } from './changelog-lib.mjs';
+import { insertChangelogEntry, readFragment, validTypes } from './changelog-lib.mjs';
 
 const args = Object.fromEntries(
   process.argv.slice(2).map((arg) => {
@@ -32,10 +32,7 @@ const entry = [
   '',
 ].join('\n');
 const changelog = await readFile('CHANGELOG.md', 'utf8');
-await writeFile(
-  'CHANGELOG.md',
-  changelog.replace('## [Unreleased]\n', `## [Unreleased]\n\n${entry}`),
-);
+await writeFile('CHANGELOG.md', insertChangelogEntry(changelog, entry));
 await Promise.all(
   fragments.filter(({ file }) => file).map(({ file }) => unlink(join('.changes', file))),
 );
