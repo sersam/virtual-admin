@@ -29,6 +29,15 @@ Construir el MVP por historias de usuario pequeñas, demostrables e integrables 
 - Datos ficticios y sesiones aisladas.
 - El RAG siempre muestra las fuentes realmente recuperadas.
 
+## Pruebas obligatorias
+
+- Todo código de producción nuevo o modificado debe incluir pruebas unitarias que cubran su comportamiento y casos límite.
+- Cada caso de uso debe contar con pruebas de integración para sus límites relevantes, como API, persistencia, proveedores de IA o contratos compartidos.
+- Cada flujo visible para el usuario debe incluir una prueba end-to-end con Playwright siempre que la funcionalidad pueda ejecutarse en navegador.
+- Las correcciones de errores deben incorporar una prueba de regresión que falle antes del arreglo.
+- Si una prueba de integración o E2E no es técnicamente aplicable, la PR debe explicar el motivo y aportar la verificación automatizada más cercana posible.
+- No se considera completa una historia si sus pruebas no se ejecutan desde `npm run quality`.
+
 ## Restricciones
 
 - Sin autenticación, roles ni integraciones externas en el MVP.
