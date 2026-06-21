@@ -1,0 +1,14 @@
+import { describe, expect, it } from 'vitest';
+import { navigationItems, navigationPathsAreUnique } from './navigation';
+
+describe('navigationItems', () => {
+  it('define una única ruta por herramienta', () => {
+    expect(navigationPathsAreUnique(navigationItems)).toBe(true);
+  });
+
+  it('mantiene inicio como única herramienta disponible en US-001', () => {
+    expect(navigationItems.filter(({ available }) => available).map(({ label }) => label)).toEqual([
+      'Inicio',
+    ]);
+  });
+});

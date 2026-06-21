@@ -3,3 +3,5 @@ dist
 coverage
 package-lock.json
 CHANGELOG.md
+playwright-report
+test-results
