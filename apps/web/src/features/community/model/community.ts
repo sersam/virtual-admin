@@ -57,6 +57,10 @@ export const community: CommunitySummary = {
 };
 
 export function communityStats(summary: CommunitySummary) {
+  if (summary.buildings <= 0) {
+    throw new RangeError('El número de bloques debe ser mayor que cero');
+  }
+
   return {
     documents: summary.documents.length,
     homesPerBuilding: summary.homes / summary.buildings,

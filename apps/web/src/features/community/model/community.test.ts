@@ -10,4 +10,10 @@ describe('communityStats', () => {
     const ids = community.documents.map(({ id }) => id);
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  it('rechaza comunidades sin bloques para evitar métricas infinitas', () => {
+    expect(() => communityStats({ ...community, buildings: 0 })).toThrow(
+      'El número de bloques debe ser mayor que cero',
+    );
+  });
 });

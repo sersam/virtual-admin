@@ -1,6 +1,8 @@
 import { X } from 'lucide-react';
 import { NavLink } from 'react-router';
+import type { NavLinkRenderProps } from 'react-router';
 import { navigationItems } from '../../shared/config/navigation';
+import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { Brand } from '../../shared/ui/Brand';
 
 interface SidebarProps {
@@ -9,6 +11,9 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open, onClose }: SidebarProps) {
+  const desktopNavigation = useMediaQuery('(min-width: 1024px)');
+  const interactive = open || desktopNavigation;
+
   return (
     <>
       {open && (
@@ -20,6 +25,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         />
       )}
       <aside
+        aria-hidden={!interactive}
+        inert={!interactive}
         className={`fixed inset-y-0 left-0 z-50 flex w-[18rem] flex-col overflow-y-auto bg-navy-950 px-5 py-6 shadow-2xl transition-transform duration-200 lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="mb-8 flex items-center justify-between">
@@ -41,7 +48,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               to={path}
               end={path === '/'}
               onClick={onClose}
-              className={({ isActive }) =>
+              className={({ isActive }: NavLinkRenderProps) =>
                 `group flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
                   isActive
                     ? 'bg-white text-navy-950 shadow-lg shadow-slate-950/20'

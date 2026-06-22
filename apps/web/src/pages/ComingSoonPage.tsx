@@ -27,8 +27,9 @@ export function ComingSoonPage() {
             {item?.label ?? 'Herramienta'}
           </h1>
           <p className="mt-3 max-w-xl leading-7 text-slate-500">
-            {item?.description}. Esta pantalla ya forma parte del shell navegable y se activará en
-            su historia de usuario correspondiente.
+            {item?.description ?? 'Esta herramienta estará disponible próximamente'}. Esta pantalla
+            ya forma parte del shell navegable y se activará en su historia de usuario
+            correspondiente.
           </p>
         </div>
         <div className="p-8 md:p-10">

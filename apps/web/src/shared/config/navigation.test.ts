@@ -11,4 +11,10 @@ describe('navigationItems', () => {
       'Inicio',
     ]);
   });
+
+  it('detecta rutas duplicadas', () => {
+    const firstItem = navigationItems[0];
+    expect(firstItem).toBeDefined();
+    expect(navigationPathsAreUnique([firstItem!, firstItem!])).toBe(false);
+  });
 });
