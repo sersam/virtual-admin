@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-06-22 · PR [#3](https://github.com/sersam/virtual-admin/pull/3)
+
+### Fixed
+
+- Permite que la automatización del changelog actualice la rama protegida `main` mediante un token administrativo de alcance limitado.
+
 ## 2026-06-22 · PR [#2](https://github.com/sersam/virtual-admin/pull/2)
 
 ### Added
