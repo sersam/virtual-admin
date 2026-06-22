@@ -1,6 +1,10 @@
 import { Building2 } from 'lucide-react';
 
-export function Brand({ compact = false }: { compact?: boolean }) {
+interface BrandProps {
+  readonly compact?: boolean;
+}
+
+export function Brand({ compact = false }: BrandProps) {
   return (
     <div className="flex items-center gap-3">
       <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-white/12 text-white ring-1 ring-white/15">

@@ -10,7 +10,7 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-export function Sidebar({ open, onClose }: SidebarProps) {
+export function Sidebar({ open, onClose }: Readonly<SidebarProps>) {
   const desktopNavigation = useMediaQuery('(min-width: 1024px)');
   const interactive = open || desktopNavigation;
 
@@ -65,7 +65,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <div className="mt-6 rounded-2xl border border-white/10 bg-white/6 p-4 text-sm">
           <div className="mb-2 flex items-center gap-2 font-bold text-white">
             <span className="size-2 rounded-full bg-emerald-400" aria-hidden="true" />
-            Entorno de demostración
+            <span>Entorno de demostración</span>
           </div>
           <p className="text-xs leading-5 text-sky-200">
             Datos ficticios · Sin registro · Acceso público
