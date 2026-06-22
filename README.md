@@ -16,7 +16,7 @@ Será una demo pública sin autenticación, con datos precargados y un modo loca
 
 ## Estado del proyecto
 
-Actualmente está completada la **US-000**, que establece la arquitectura, las normas de contribución, el control de calidad y la automatización del changelog. La interfaz y la API se incorporarán en las siguientes historias de usuario.
+Actualmente está implementada la **US-001**, que incorpora el shell responsive de la aplicación, la portada institucional y los datos ficticios de **Residencial Sierra Nevada**. Las funciones del menú se habilitarán mediante incrementos verticales en las siguientes historias.
 
 - [Backlog del MVP](docs/backlog.md)
 - [Arquitectura detallada](docs/architecture.md)
@@ -38,13 +38,19 @@ cd administrador-virtual-inteligente
 npm install
 ```
 
-En el estado actual todavía no existe un servidor de aplicación. Para verificar que el entorno está correctamente preparado, ejecuta:
+Arranca el frontend en modo desarrollo:
+
+```bash
+npm run dev
+```
+
+La aplicación estará disponible en [http://localhost:5173](http://localhost:5173). Para verificar que el entorno está correctamente preparado, ejecuta:
 
 ```bash
 npm run quality
 ```
 
-Este comando comprueba formato, lint, tipos, pruebas y el fragmento de changelog. Cuando se incorporen el frontend y la API, esta sección incluirá los comandos de desarrollo y las variables de entorno necesarias.
+Este comando comprueba formato, lint, tipos, pruebas unitarias y de integración, compilación, pruebas end-to-end con Playwright y el fragmento de changelog.
 
 Comandos disponibles actualmente:
 
@@ -54,6 +60,7 @@ npm run lint          # Ejecuta ESLint
 npm run typecheck     # Comprueba TypeScript
 npm test              # Ejecuta las pruebas
 npm run build         # Verifica la compilación
+npm run test:e2e      # Ejecuta los flujos end-to-end en Chromium
 npm run quality       # Ejecuta el conjunto completo de controles
 ```
 
@@ -82,6 +89,8 @@ flowchart LR
 - `pages`: composición de pantallas.
 - `features`: flujos funcionales organizados por historia de usuario.
 - `shared`: componentes UI, cliente HTTP, hooks y utilidades reutilizables.
+
+La US-001 se encuentra en `apps/web`. La composición y el enrutamiento viven en `app`, la portada en `pages`, los datos y componentes de comunidad en `features/community`, y los elementos reutilizables en `shared`.
 
 ### Paquetes compartidos
 

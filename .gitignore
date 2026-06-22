@@ -6,3 +6,5 @@ coverage
 .DS_Store
 *.log
 .sonar
+playwright-report
+test-results
