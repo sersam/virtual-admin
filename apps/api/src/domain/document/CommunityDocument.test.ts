@@ -20,4 +20,13 @@ describe('CommunityDocument', () => {
   it('recorta extractos largos con elipsis', () => {
     expect(buildDocumentExcerpt(document, 18)).toBe('Texto con espacio…');
   });
+
+  it('limita extractos con longitudes no positivas', () => {
+    expect(buildDocumentExcerpt(document, 0)).toBe('…');
+    expect(buildDocumentExcerpt(document, -10)).toBe('…');
+  });
+
+  it('permite extractos de longitud uno como elipsis', () => {
+    expect(buildDocumentExcerpt(document, 1)).toBe('…');
+  });
 });

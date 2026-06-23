@@ -48,4 +48,47 @@ describe('document contracts', () => {
       }),
     ).toThrow();
   });
+
+  it('valida límites de longitud de las preguntas', () => {
+    const boundaryQuestion = 'a'.repeat(300);
+
+    expect(DocumentQueryRequestSchema.parse({ question: boundaryQuestion })).toEqual({
+      question: boundaryQuestion,
+    });
+    expect(() => DocumentQueryRequestSchema.parse({ question: 'a'.repeat(301) })).toThrow();
+  });
+
+  it('rechaza enums y enlaces de fuente inválidos', () => {
+    const validResponse = {
+      answer: 'Respuesta',
+      mode: 'lexical-demo',
+      sources: [
+        {
+          id: 'fuente',
+          title: 'Documento',
+          type: 'acta',
+          section: 'Sección',
+          excerpt: 'Fragmento',
+          documentUrl: '/documents/acta-marzo-2026.pdf',
+          score: 0.5,
+        },
+      ],
+    };
+
+    expect(() =>
+      DocumentQueryResponseSchema.parse({ ...validResponse, mode: 'demo-desconocido' }),
+    ).toThrow();
+    expect(() =>
+      DocumentQueryResponseSchema.parse({
+        ...validResponse,
+        sources: [{ ...validResponse.sources[0], type: 'factura' }],
+      }),
+    ).toThrow();
+    expect(() =>
+      DocumentQueryResponseSchema.parse({
+        ...validResponse,
+        sources: [{ ...validResponse.sources[0], documentUrl: '/documents/acta.txt' }],
+      }),
+    ).toThrow();
+  });
 });

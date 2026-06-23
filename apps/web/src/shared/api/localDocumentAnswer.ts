@@ -1,36 +1,15 @@
-import type { DocumentQueryResponse, DocumentSource } from '@admin/contracts';
+import {
+  demoCommunityDocuments,
+  type DemoCommunityDocument,
+  type DocumentQueryResponse,
+  type DocumentSource,
+} from '@admin/contracts';
 
-const localSources: DocumentSource[] = [
-  {
-    id: 'normas-piscina',
-    title: 'Normas de uso de zonas comunes',
-    type: 'normas',
-    section: 'Piscina',
-    documentUrl: '/documents/normas-zonas-comunes.pdf',
-    excerpt:
-      'La piscina comunitaria abre de 10:00 a 21:00 durante la temporada de verano. Los menores de 12 años deben estar acompañados por una persona adulta.',
-    score: 0.9,
-  },
-  {
-    id: 'acta-ascensor',
-    title: 'Acta ordinaria de marzo de 2026',
-    type: 'acta',
-    section: 'Ascensor portal B',
-    documentUrl: '/documents/acta-marzo-2026.pdf',
-    excerpt:
-      'La junta aprueba solicitar tres presupuestos para renovar el cuadro de maniobra del ascensor del portal B.',
-    score: 0.82,
-  },
-  {
-    id: 'normas-ruido',
-    title: 'Normas de convivencia',
-    type: 'normas',
-    section: 'Ruidos y descanso',
-    documentUrl: '/documents/normas-convivencia.pdf',
-    excerpt: 'No se permiten obras ni actividades ruidosas entre las 22:00 y las 8:00.',
-    score: 0.78,
-  },
-];
+const localSourceIds = new Set(['normas-piscina', 'acta-ascensor', 'normas-ruido']);
+
+const localSources: DocumentSource[] = demoCommunityDocuments
+  .filter(({ id }) => localSourceIds.has(id))
+  .map(toLocalSource);
 
 const stopWords = new Set(['cual', 'que', 'del', 'las', 'los', 'una', 'por', 'con', 'para']);
 
@@ -74,4 +53,16 @@ function normalize(text: string): string {
     .toLowerCase()
     .replaceAll(/[^a-z0-9]+/gu, ' ')
     .trim();
+}
+
+function toLocalSource(document: DemoCommunityDocument): DocumentSource {
+  return {
+    id: document.id,
+    title: document.title,
+    type: document.type,
+    section: document.section,
+    documentUrl: document.documentUrl,
+    excerpt: document.content,
+    score: 0,
+  };
 }

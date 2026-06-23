@@ -53,6 +53,17 @@ describe('useDocumentQuery', () => {
     await act(() => result.current.submit('  '));
 
     expect(result.current.status).toBe('error');
-    expect(result.current.error).toContain('al menos tres caracteres');
+    expect(result.current.error).toContain('entre 3 y 300 caracteres');
+  });
+
+  it('rechaza consultas demasiado largas sin activar fallback', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const { result } = renderHook(() => useDocumentQuery());
+
+    await act(() => result.current.submit('a'.repeat(301)));
+
+    expect(result.current.status).toBe('error');
+    expect(result.current.error).toContain('entre 3 y 300 caracteres');
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

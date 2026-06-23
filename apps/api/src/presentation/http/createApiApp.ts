@@ -8,7 +8,6 @@ import {
   HealthResponseSchema,
   SessionResponseSchema,
 } from '@admin/contracts';
-import { ZodError } from 'zod';
 import {
   EnsureDemoSession,
   SessionUsageLimitReachedError,
@@ -76,8 +75,13 @@ export function createApiApp(options: ApiAppOptions) {
   app.post('/api/documents/query', async (request: Request, response: Response, next) => {
     try {
       const session = await ensureSession.execute(readSignedSessionId(request));
-      const payload = DocumentQueryRequestSchema.parse(request.body);
-      const answer = await answerDocumentQuestion.execute(payload.question);
+      const payloadResult = DocumentQueryRequestSchema.safeParse(request.body);
+      if (!payloadResult.success) {
+        sendError(response, 400, 'VALIDATION_ERROR', 'La petición no tiene un formato válido.');
+        return;
+      }
+
+      const answer = await answerDocumentQuestion.execute(payloadResult.data.question);
 
       attachSessionCookie(response, session.id, options);
       response.json(DocumentQueryResponseSchema.parse(answer));
@@ -123,11 +127,6 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
       'SESSION_LIMIT_REACHED',
       'Has alcanzado el límite de uso de esta sesión demo.',
     );
-    return;
-  }
-
-  if (error instanceof ZodError) {
-    sendError(response, 400, 'VALIDATION_ERROR', 'La petición no tiene un formato válido.');
     return;
   }
 

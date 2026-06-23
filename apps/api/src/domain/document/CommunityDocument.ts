@@ -14,7 +14,9 @@ export interface RetrievedDocument extends CommunityDocument {
 }
 
 export function buildDocumentExcerpt(document: CommunityDocument, maxLength = 220): string {
+  const safeMaxLength = Math.max(1, maxLength);
   const normalizedContent = document.content.replaceAll(/\s+/g, ' ').trim();
-  if (normalizedContent.length <= maxLength) return normalizedContent;
-  return `${normalizedContent.slice(0, maxLength - 1).trim()}…`;
+  if (normalizedContent.length <= safeMaxLength) return normalizedContent;
+  if (safeMaxLength === 1) return '…';
+  return `${normalizedContent.slice(0, safeMaxLength - 1).trim()}…`;
 }

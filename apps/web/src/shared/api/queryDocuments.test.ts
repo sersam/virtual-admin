@@ -42,4 +42,20 @@ describe('queryDocuments', () => {
 
     await expect(queryDocuments('¿Qué dice el acta del ascensor?')).rejects.toThrow('HTTP 500');
   });
+
+  it('rechaza consultas inválidas sin llamar a la API', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+    await expect(queryDocuments('  ')).rejects.toThrow();
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('rechaza respuestas 200 que no cumplen el contrato', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ answer: 'ok', mode: 'lexical-demo' }), { status: 200 }),
+    );
+
+    await expect(queryDocuments('horario piscina')).rejects.toThrow();
+  });
 });

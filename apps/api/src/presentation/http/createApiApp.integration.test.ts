@@ -103,6 +103,37 @@ describe('createApiApp', () => {
     expect(response.body.error.code).toBe('VALIDATION_ERROR');
   });
 
+  it('trata fallos del contrato de respuesta como errores internos', async () => {
+    const app = createApiApp({
+      clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
+      cookieSecret: 'test-secret',
+      documentRetriever: {
+        retrieve: async () => [
+          {
+            id: 'documento-invalido',
+            title: 'Documento inválido',
+            type: 'normas',
+            section: 'Sección',
+            content: 'Contenido recuperado con enlace inválido.',
+            documentUrl: '/documents/documento.txt',
+            score: 0.9,
+          },
+        ],
+      },
+      ids: { randomId: () => '00000000-0000-4000-8000-000000000001' },
+      repository: new InMemorySessionRepository(),
+      requestsLimit: 3,
+      ttlMs: 60_000,
+      version: 'test',
+    });
+    const response = await request(app)
+      .post('/api/documents/query')
+      .send({ question: 'documento inválido' });
+
+    expect(response.status).toBe(500);
+    expect(response.body.error.code).toBe('INTERNAL_ERROR');
+  });
+
   it('normaliza rutas no encontradas y errores inesperados', async () => {
     const notFound = await request(buildApp()).get('/api/desconocida');
     const failingApp = createApiApp({

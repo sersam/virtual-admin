@@ -37,4 +37,19 @@ describe('AnswerDocumentQuestion', () => {
     expect(response.sources).toEqual([]);
     expect(response.answer).toContain('No he encontrado fuentes suficientes');
   });
+
+  it('propaga errores del recuperador documental', async () => {
+    const retrieverError = new Error('vector index unavailable');
+    const useCase = new AnswerDocumentQuestion({
+      retriever: {
+        retrieve: async () => {
+          throw retrieverError;
+        },
+      },
+    });
+
+    await expect(useCase.execute('¿Cuál es el horario de piscina?')).rejects.toThrow(
+      retrieverError,
+    );
+  });
 });
