@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-06-23 · PR [#6](https://github.com/sersam/virtual-admin/pull/6)
+
+### Added
+
+- Añade la consulta documental RAG determinista con corpus ficticio, endpoint API, pantalla de documentos, fuentes trazables y biblioteca de PDFs consultable sin pregunta previa.
+
 ## 2026-06-23 · PR [#4](https://github.com/sersam/virtual-admin/pull/4)
 
 ### Added
