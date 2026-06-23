@@ -24,7 +24,7 @@ Como visitante, quiero usar la demo sin registro y sin compartir mi estado con o
 
 Como propietario, quiero preguntar por estatutos, normas y actas viendo las fuentes utilizadas.
 
-**Aceptación:** documentos precargados, recuperación léxica de fallback, pgvector, embeddings, respuesta con fragmentos y pruebas de relevancia.
+**Aceptación:** documentos precargados, recuperación léxica de fallback, pgvector, embeddings, respuesta con fragmentos, fuentes enlazadas a PDF completo en nueva pestaña y pruebas de relevancia.
 
 ## US-004 · Coordinador y chat multiagente
 

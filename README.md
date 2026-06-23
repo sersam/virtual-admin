@@ -16,7 +16,7 @@ Será una demo pública sin autenticación, con datos precargados y un modo loca
 
 ## Estado del proyecto
 
-Actualmente están implementadas la **US-001**, que incorpora el shell responsive de la aplicación, y la **US-002**, que añade la API base Express con sesiones demo aisladas y fallback local para conservar la demo operativa sin servicios externos.
+Actualmente están implementadas la **US-001**, que incorpora el shell responsive de la aplicación, la **US-002**, que añade la API base Express con sesiones demo aisladas, y la **US-003**, que habilita la consulta documental RAG determinista con fuentes trazables.
 
 - [Backlog del MVP](docs/backlog.md)
 - [Arquitectura detallada](docs/architecture.md)
@@ -52,7 +52,7 @@ En otra terminal puedes arrancar la API:
 npm run dev:api
 ```
 
-La API quedará disponible en [http://localhost:3000](http://localhost:3000), con healthcheck en `/health` y sesión demo en `/api/session`. Si la API no está levantada, el frontend usa un fallback local determinista.
+La API quedará disponible en [http://localhost:3000](http://localhost:3000), con healthcheck en `/health`, sesión demo en `/api/session` y consulta documental en `/api/documents/query`. Si la API no está levantada, el frontend usa fallbacks locales deterministas.
 
 Para verificar que el entorno está correctamente preparado, ejecuta:
 
@@ -108,12 +108,16 @@ flowchart LR
 
 La aplicación web se encuentra en `apps/web`. La composición y el enrutamiento viven en `app`, la portada en `pages`, los datos y componentes de comunidad en `features/community`, el estado de sesión en `features/session`, y los elementos reutilizables en `shared`.
 
+La consulta documental vive en `features/documents`: la pantalla `/documentos` permite preguntar por estatutos, normas, actas y contratos ficticios, muestra los fragmentos recuperados como fuentes, permite abrir el PDF completo de cada documento en una pestaña nueva y ofrece una biblioteca directa de PDFs sin consulta previa.
+
 La API se encuentra en `apps/api` y separa las capas en:
 
 - `domain/session`: reglas puras de sesión demo.
 - `application`: caso de uso `EnsureDemoSession` y puertos.
 - `infrastructure`: reloj del sistema, generador UUID y repositorio en memoria.
 - `presentation/http`: Express, cookies firmadas, controladores y presentadores.
+
+La US-003 añade el caso de uso `AnswerDocumentQuestion`, el puerto `DocumentRetriever` y un recuperador léxico en memoria. Este adaptador mantiene la demo determinista y prepara la sustitución futura por embeddings y pgvector sin cambiar la capa de aplicación.
 
 ### Paquetes compartidos
 

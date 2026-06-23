@@ -1,11 +1,20 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { type ErrorRequestHandler, type Request, type Response } from 'express';
-import { ErrorResponseSchema, HealthResponseSchema, SessionResponseSchema } from '@admin/contracts';
+import {
+  DocumentQueryRequestSchema,
+  DocumentQueryResponseSchema,
+  ErrorResponseSchema,
+  HealthResponseSchema,
+  SessionResponseSchema,
+} from '@admin/contracts';
+import { ZodError } from 'zod';
 import {
   EnsureDemoSession,
   SessionUsageLimitReachedError,
 } from '../../application/use-cases/EnsureDemoSession.js';
+import { AnswerDocumentQuestion } from '../../application/use-cases/AnswerDocumentQuestion.js';
+import type { DocumentRetriever } from '../../application/ports/DocumentRetriever.js';
 import type { SessionRepository } from '../../application/ports/SessionRepository.js';
 import type { Clock } from '../../application/ports/Clock.js';
 import type { IdGenerator } from '../../application/ports/IdGenerator.js';
@@ -17,6 +26,7 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 interface ApiAppOptions {
   readonly clock: Clock;
   readonly cookieSecret: string;
+  readonly documentRetriever: DocumentRetriever;
   readonly ids: IdGenerator;
   readonly repository: SessionRepository;
   readonly requestsLimit?: number;
@@ -27,6 +37,9 @@ interface ApiAppOptions {
 
 export function createApiApp(options: ApiAppOptions) {
   const app = express();
+  const answerDocumentQuestion = new AnswerDocumentQuestion({
+    retriever: options.documentRetriever,
+  });
   const ensureSession = new EnsureDemoSession({
     clock: options.clock,
     ids: options.ids,
@@ -53,14 +66,21 @@ export function createApiApp(options: ApiAppOptions) {
   app.get('/api/session', async (request: Request, response: Response, next) => {
     try {
       const session = await ensureSession.execute(readSignedSessionId(request));
-      response.cookie(SESSION_COOKIE, session.id, {
-        httpOnly: true,
-        maxAge: options.ttlMs ?? ONE_DAY_MS,
-        sameSite: 'lax',
-        secure: options.secureCookies ?? false,
-        signed: true,
-      });
+      attachSessionCookie(response, session.id, options);
       response.json(SessionResponseSchema.parse({ session: presentSession(session), mode: 'api' }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post('/api/documents/query', async (request: Request, response: Response, next) => {
+    try {
+      const session = await ensureSession.execute(readSignedSessionId(request));
+      const payload = DocumentQueryRequestSchema.parse(request.body);
+      const answer = await answerDocumentQuestion.execute(payload.question);
+
+      attachSessionCookie(response, session.id, options);
+      response.json(DocumentQueryResponseSchema.parse(answer));
     } catch (error) {
       next(error);
     }
@@ -80,6 +100,16 @@ function readSignedSessionId(request: Request): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
+function attachSessionCookie(response: Response, sessionId: string, options: ApiAppOptions): void {
+  response.cookie(SESSION_COOKIE, sessionId, {
+    httpOnly: true,
+    maxAge: options.ttlMs ?? ONE_DAY_MS,
+    sameSite: 'lax',
+    secure: options.secureCookies ?? false,
+    signed: true,
+  });
+}
+
 const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
   if (response.headersSent) {
     next(error);
@@ -93,6 +123,11 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
       'SESSION_LIMIT_REACHED',
       'Has alcanzado el límite de uso de esta sesión demo.',
     );
+    return;
+  }
+
+  if (error instanceof ZodError) {
+    sendError(response, 400, 'VALIDATION_ERROR', 'La petición no tiene un formato válido.');
     return;
   }
 

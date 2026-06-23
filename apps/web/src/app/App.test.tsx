@@ -31,7 +31,9 @@ describe('rutas de App', () => {
 
   it('genera las rutas de herramientas excluyendo la raíz', () => {
     renderAt('/documentos');
-    expect(screen.getByRole('heading', { level: 1, name: 'Documentos' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Pregunta a los documentos de la comunidad' }),
+    ).toBeInTheDocument();
   });
 
   it('usa una pantalla segura para rutas desconocidas', () => {
