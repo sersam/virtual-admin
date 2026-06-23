@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+import type { DemoSession } from '../../domain/session/DemoSession.js';
 import { InMemorySessionRepository } from '../../infrastructure/session/InMemorySessionRepository.js';
 import { createApiApp } from './createApiApp.js';
 
@@ -54,5 +55,30 @@ describe('createApiApp', () => {
 
     expect(limited.status).toBe(429);
     expect(limited.body.error.code).toBe('SESSION_LIMIT_REACHED');
+  });
+
+  it('normaliza rutas no encontradas y errores inesperados', async () => {
+    const notFound = await request(buildApp()).get('/api/desconocida');
+    const failingApp = createApiApp({
+      clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
+      cookieSecret: 'test-secret',
+      ids: { randomId: () => '00000000-0000-4000-8000-000000000001' },
+      repository: {
+        findById: async () => undefined,
+        save: async (session: DemoSession) => {
+          void session;
+          throw new Error('database unavailable');
+        },
+      },
+      requestsLimit: 3,
+      ttlMs: 60_000,
+      version: 'test',
+    });
+    const failed = await request(failingApp).get('/api/session');
+
+    expect(notFound.status).toBe(404);
+    expect(notFound.body.error.code).toBe('NOT_FOUND');
+    expect(failed.status).toBe(500);
+    expect(failed.body.error.code).toBe('INTERNAL_ERROR');
   });
 });
