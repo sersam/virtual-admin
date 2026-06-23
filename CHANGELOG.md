@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-06-23 · PR [#5](https://github.com/sersam/virtual-admin/pull/5)
+
+### Added
+
+- Añade Husky con hooks de pre-commit y pre-push para ejecutar controles automáticos antes de confirmar y subir cambios.
+
 ## 2026-06-22 · PR [#3](https://github.com/sersam/virtual-admin/pull/3)
 
 ### Fixed
