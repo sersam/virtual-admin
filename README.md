@@ -62,12 +62,16 @@ npm run quality
 
 Este comando comprueba formato, lint, tipos, pruebas unitarias y de integración, compilación, pruebas end-to-end con Playwright y el fragmento de changelog.
 
+El repositorio instala hooks de Git con Husky mediante `npm install`. Antes de cada commit se ejecuta `npm run precommit:check`; antes de cada push se ejecuta `npm run prepush:check`, que delega en la quality gate completa.
+
 Comandos disponibles actualmente:
 
 ```bash
 npm run format        # Aplica Prettier
 npm run dev:api       # Arranca la API Express
 npm run dev:web       # Arranca el frontend Vite
+npm run precommit:check # Ejecuta los controles rápidos del pre-commit
+npm run prepush:check # Ejecuta la quality gate del pre-push
 npm run lint          # Ejecuta ESLint
 npm run typecheck     # Comprueba TypeScript
 npm test              # Ejecuta las pruebas

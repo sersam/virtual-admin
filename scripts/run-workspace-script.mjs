@@ -29,11 +29,23 @@ const directories = [
 ];
 
 for (const directory of directories) {
-  const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'));
+  const manifestContent = await readManifest(directory);
+  if (!manifestContent) continue;
+
+  const manifest = JSON.parse(manifestContent);
   if (!manifest.scripts?.[script]) continue;
   const result = spawnSync(process.execPath, [npmCli, 'run', script, '--workspace', directory], {
     env: childEnvironment,
     stdio: 'inherit',
   });
   if (result.status !== 0) process.exit(result.status ?? 1);
+}
+
+async function readManifest(directory) {
+  try {
+    return await readFile(join(directory, 'package.json'), 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return undefined;
+    throw error;
+  }
 }
