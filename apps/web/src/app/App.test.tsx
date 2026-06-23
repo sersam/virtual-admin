@@ -1,9 +1,15 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 
+const fallbackFetch = () => {
+  vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network'));
+  vi.spyOn(console, 'error').mockImplementation(() => undefined);
+};
+
 function renderAt(path: string) {
+  fallbackFetch();
   return render(
     <MemoryRouter initialEntries={[path]}>
       <App />
@@ -12,6 +18,10 @@ function renderAt(path: string) {
 }
 
 describe('rutas de App', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('muestra la portada únicamente en la ruta índice', () => {
     renderAt('/');
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(

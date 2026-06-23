@@ -21,8 +21,9 @@ export function useDemoSession(): DemoSessionState {
 
     fetchSession(abortController.signal)
       .then((data) => setState({ status: 'ready', data }))
-      .catch(() => {
+      .catch((error: unknown) => {
         if (abortController.signal.aborted) return;
+        console.error('[useDemoSession] La API no está disponible; se usa fallback local.', error);
         setState({ status: 'fallback', data: createLocalDemoSession() });
       });
 

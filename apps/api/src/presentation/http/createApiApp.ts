@@ -1,7 +1,7 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { type ErrorRequestHandler, type Request, type Response } from 'express';
-import { HealthResponseSchema, SessionResponseSchema } from '@admin/contracts';
+import { ErrorResponseSchema, HealthResponseSchema, SessionResponseSchema } from '@admin/contracts';
 import {
   EnsureDemoSession,
   SessionUsageLimitReachedError,
@@ -20,6 +20,7 @@ interface ApiAppOptions {
   readonly ids: IdGenerator;
   readonly repository: SessionRepository;
   readonly requestsLimit?: number;
+  readonly secureCookies?: boolean;
   readonly ttlMs?: number;
   readonly version: string;
 }
@@ -56,7 +57,7 @@ export function createApiApp(options: ApiAppOptions) {
         httpOnly: true,
         maxAge: options.ttlMs ?? ONE_DAY_MS,
         sameSite: 'lax',
-        secure: false,
+        secure: options.secureCookies ?? false,
         signed: true,
       });
       response.json(SessionResponseSchema.parse({ session: presentSession(session), mode: 'api' }));
@@ -66,7 +67,7 @@ export function createApiApp(options: ApiAppOptions) {
   });
 
   app.use((_request: Request, response: Response) => {
-    response.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ruta no encontrada.' } });
+    sendError(response, 404, 'NOT_FOUND', 'Ruta no encontrada.');
   });
 
   app.use(errorHandler);
@@ -86,19 +87,18 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
   }
 
   if (error instanceof SessionUsageLimitReachedError) {
-    response.status(429).json({
-      error: {
-        code: 'SESSION_LIMIT_REACHED',
-        message: 'Has alcanzado el límite de uso de esta sesión demo.',
-      },
-    });
+    sendError(
+      response,
+      429,
+      'SESSION_LIMIT_REACHED',
+      'Has alcanzado el límite de uso de esta sesión demo.',
+    );
     return;
   }
 
-  response.status(500).json({
-    error: {
-      code: 'INTERNAL_ERROR',
-      message: 'No se pudo procesar la petición.',
-    },
-  });
+  sendError(response, 500, 'INTERNAL_ERROR', 'No se pudo procesar la petición.');
 };
+
+function sendError(response: Response, status: number, code: string, message: string): void {
+  response.status(status).json(ErrorResponseSchema.parse({ error: { code, message } }));
+}

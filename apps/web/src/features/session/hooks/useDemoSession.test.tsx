@@ -32,10 +32,24 @@ describe('useDemoSession', () => {
 
   it('usa fallback local cuando la API falla', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network'));
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
     const { result } = renderHook(() => useDemoSession());
 
     await waitFor(() => expect(result.current.status).toBe('fallback'));
     expect(result.current.data.mode).toBe('local-demo');
+  });
+
+  it('cancela la petición cuando el componente se desmonta', async () => {
+    let abortSignal: AbortSignal | undefined;
+    vi.spyOn(globalThis, 'fetch').mockImplementation((_, options) => {
+      abortSignal = options?.signal ?? undefined;
+      return new Promise(() => undefined);
+    });
+
+    const { unmount } = renderHook(() => useDemoSession());
+    unmount();
+
+    await waitFor(() => expect(abortSignal?.aborted).toBe(true));
   });
 });

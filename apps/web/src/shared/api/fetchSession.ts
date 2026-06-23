@@ -7,7 +7,7 @@ export async function fetchSession(signal?: AbortSignal): Promise<SessionRespons
     signal,
   });
 
-  if (!response.ok) throw new Error('No se pudo obtener la sesión demo.');
+  if (!response.ok) throw new Error(`No se pudo obtener la sesión demo (HTTP ${response.status}).`);
 
   return SessionResponseSchema.parse(await response.json());
 }

@@ -40,6 +40,24 @@ describe('createApiApp', () => {
     expect(second.body.session.requestsUsed).toBe(2);
   });
 
+  it('marca la cookie como segura cuando se configura para producción', async () => {
+    let idSequence = 0;
+    const app = createApiApp({
+      clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
+      cookieSecret: 'test-secret',
+      ids: { randomId: () => `00000000-0000-4000-8000-${String(++idSequence).padStart(12, '0')}` },
+      repository: new InMemorySessionRepository(),
+      requestsLimit: 3,
+      secureCookies: true,
+      ttlMs: 60_000,
+      version: 'test',
+    });
+
+    const response = await request(app).get('/api/session');
+
+    expect(response.headers['set-cookie']?.[0]).toContain('Secure');
+  });
+
   it('mantiene aisladas dos sesiones sin cookie compartida', async () => {
     const app = buildApp();
     const first = await request(app).get('/api/session');
@@ -64,10 +82,12 @@ describe('createApiApp', () => {
       cookieSecret: 'test-secret',
       ids: { randomId: () => '00000000-0000-4000-8000-000000000001' },
       repository: {
+        consumeRequest: async () => {
+          throw new Error('database unavailable');
+        },
         findById: async () => undefined,
         save: async (session: DemoSession) => {
           void session;
-          throw new Error('database unavailable');
         },
       },
       requestsLimit: 3,

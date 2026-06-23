@@ -1,10 +1,4 @@
-import {
-  createDemoSession,
-  sessionHasReachedLimit,
-  sessionIsExpired,
-  touchDemoSession,
-  type DemoSession,
-} from '../../domain/session/DemoSession.js';
+import type { DemoSession } from '../../domain/session/DemoSession.js';
 import type { Clock } from '../ports/Clock.js';
 import type { IdGenerator } from '../ports/IdGenerator.js';
 import type { SessionRepository } from '../ports/SessionRepository.js';
@@ -27,30 +21,16 @@ export class EnsureDemoSession {
   constructor(private readonly dependencies: EnsureDemoSessionDependencies) {}
 
   async execute(sessionId?: string): Promise<DemoSession> {
-    const now = this.dependencies.clock.now();
-    const existingSession = sessionId
-      ? await this.dependencies.repository.findById(sessionId)
-      : undefined;
-    const session = this.reusableSession(existingSession, now) ?? this.createSession(now);
-
-    if (sessionHasReachedLimit(session)) throw new SessionUsageLimitReachedError();
-
-    const touched = touchDemoSession(session, now);
-    await this.dependencies.repository.save(touched);
-    return touched;
-  }
-
-  private reusableSession(session: DemoSession | undefined, now: Date): DemoSession | undefined {
-    if (!session) return undefined;
-    return sessionIsExpired(session, now) ? undefined : session;
-  }
-
-  private createSession(now: Date): DemoSession {
-    return createDemoSession({
-      id: this.dependencies.ids.randomId(),
-      now,
+    const consumed = await this.dependencies.repository.consumeRequest({
+      sessionId,
+      now: this.dependencies.clock.now(),
       ttlMs: this.dependencies.ttlMs,
       requestsLimit: this.dependencies.requestsLimit,
+      createSessionId: () => this.dependencies.ids.randomId(),
     });
+
+    if (consumed === 'limit_reached') throw new SessionUsageLimitReachedError();
+
+    return consumed;
   }
 }
