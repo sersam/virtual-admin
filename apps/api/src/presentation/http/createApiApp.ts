@@ -80,7 +80,10 @@ function readSignedSessionId(request: Request): string | undefined {
 }
 
 const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
-  void next;
+  if (response.headersSent) {
+    next(error);
+    return;
+  }
 
   if (error instanceof SessionUsageLimitReachedError) {
     response.status(429).json({

@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
-export const SessionIdSchema = z.string().uuid();
+export const SessionIdSchema = z.uuid();
 
 export const DemoSessionSchema = z.object({
   id: SessionIdSchema,
-  createdAt: z.string().datetime(),
-  lastSeenAt: z.string().datetime(),
-  expiresAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
+  lastSeenAt: z.iso.datetime(),
+  expiresAt: z.iso.datetime(),
   requestsUsed: z.number().int().min(0),
   requestsLimit: z.number().int().positive(),
 });
