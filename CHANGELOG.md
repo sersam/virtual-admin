@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-06-23 · PR [#4](https://github.com/sersam/virtual-admin/pull/4)
+
+### Added
+
+- Incorpora la API base Express con sesiones demo aisladas por cookie firmada, contratos Zod compartidos y fallback local de sesión en el frontend.
+
 ## 2026-06-23 · PR [#5](https://github.com/sersam/virtual-admin/pull/5)
 
 ### Added
