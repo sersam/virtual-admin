@@ -9,6 +9,8 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace @admin/web",
+    "dev:api": "npm run dev --workspace @admin/api",
+    "dev:web": "npm run dev --workspace @admin/web",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings=0",

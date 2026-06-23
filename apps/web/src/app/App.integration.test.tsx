@@ -12,6 +12,9 @@ describe('App', () => {
     );
     expect(screen.getAllByText('Residencial Sierra Nevada').length).toBeGreaterThan(0);
     expect(screen.getByText('72')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Demo sin registro y sin estado compartido' }),
+    ).toBeInTheDocument();
   });
 
   it('navega a una herramienta futura y permite volver', async () => {
