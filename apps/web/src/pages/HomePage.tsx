@@ -4,6 +4,7 @@ import { CommunityMetrics } from '../features/community/components/CommunityMetr
 import { DocumentPreview } from '../features/community/components/DocumentPreview';
 import { ToolGrid } from '../features/community/components/ToolGrid';
 import { community } from '../features/community/model/community';
+import { SessionCard } from '../features/session/components/SessionCard';
 
 export function HomePage() {
   return (
@@ -48,6 +49,8 @@ export function HomePage() {
         <ToolGrid />
         <DocumentPreview />
       </div>
+
+      <SessionCard />
     </div>
   );
 }

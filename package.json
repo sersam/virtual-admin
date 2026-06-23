@@ -8,7 +8,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @admin/web",
+    "dev": "npm run dev:web",
+    "dev:api": "npm run dev --workspace @admin/api",
+    "dev:web": "npm run dev --workspace @admin/web",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky",

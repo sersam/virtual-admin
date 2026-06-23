@@ -8,6 +8,9 @@ test('muestra la portada institucional y navega entre herramientas', async ({ pa
   await expect(
     page.getByRole('main').getByText('Residencial Sierra Nevada', { exact: false }),
   ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Demo sin registro y sin estado compartido' }),
+  ).toBeVisible();
 
   if (testInfo.project.name === 'mobile') {
     await page.getByRole('button', { name: 'Abrir menú' }).click();
