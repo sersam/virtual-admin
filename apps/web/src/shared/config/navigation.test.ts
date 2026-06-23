@@ -6,9 +6,10 @@ describe('navigationItems', () => {
     expect(navigationPathsAreUnique(navigationItems)).toBe(true);
   });
 
-  it('mantiene inicio como única herramienta disponible en US-001', () => {
+  it('activa inicio y documentos tras la US-003', () => {
     expect(navigationItems.filter(({ available }) => available).map(({ label }) => label)).toEqual([
       'Inicio',
+      'Documentos',
     ]);
   });
 

@@ -1,14 +1,19 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import type { DemoSession } from '../../domain/session/DemoSession.js';
+import { LexicalDocumentRetriever } from '../../infrastructure/document/LexicalDocumentRetriever.js';
+import { residencialSierraNevadaDocuments } from '../../infrastructure/document/residencialSierraNevadaDocuments.js';
 import { InMemorySessionRepository } from '../../infrastructure/session/InMemorySessionRepository.js';
 import { createApiApp } from './createApiApp.js';
+
+const documentRetriever = new LexicalDocumentRetriever(residencialSierraNevadaDocuments);
 
 function buildApp(requestsLimit = 3) {
   let idSequence = 0;
   return createApiApp({
     clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
     cookieSecret: 'test-secret',
+    documentRetriever,
     ids: { randomId: () => `00000000-0000-4000-8000-${String(++idSequence).padStart(12, '0')}` },
     repository: new InMemorySessionRepository(),
     requestsLimit,
@@ -45,6 +50,7 @@ describe('createApiApp', () => {
     const app = createApiApp({
       clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
       cookieSecret: 'test-secret',
+      documentRetriever,
       ids: { randomId: () => `00000000-0000-4000-8000-${String(++idSequence).padStart(12, '0')}` },
       repository: new InMemorySessionRepository(),
       requestsLimit: 3,
@@ -75,11 +81,95 @@ describe('createApiApp', () => {
     expect(limited.body.error.code).toBe('SESSION_LIMIT_REACHED');
   });
 
+  it('responde consultas documentales con fuentes recuperadas', async () => {
+    const agent = request.agent(buildApp());
+    const response = await agent
+      .post('/api/documents/query')
+      .send({ question: '¿Cuál es el horario de la piscina?' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.answer).toContain('piscina comunitaria');
+    expect(response.body.sources[0]).toMatchObject({
+      id: 'normas-piscina',
+      section: 'Piscina',
+      documentUrl: '/documents/normas-zonas-comunes.pdf',
+    });
+  });
+
+  it('valida el formato de consultas documentales', async () => {
+    const response = await request(buildApp()).post('/api/documents/query').send({ question: '' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('no crea sesión demo para consultas documentales con formato inválido', async () => {
+    let consumeRequestCount = 0;
+    const app = createApiApp({
+      clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
+      cookieSecret: 'test-secret',
+      documentRetriever,
+      ids: { randomId: () => '00000000-0000-4000-8000-000000000001' },
+      repository: {
+        consumeRequest: async () => {
+          consumeRequestCount += 1;
+          return 'limit_reached';
+        },
+        findById: async () => undefined,
+        save: async () => {
+          /* no-op */
+        },
+      },
+      requestsLimit: 3,
+      ttlMs: 60_000,
+      version: 'test',
+    });
+
+    const response = await request(app).post('/api/documents/query').send({ question: '' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    expect(consumeRequestCount).toBe(0);
+    expect(response.headers['set-cookie']).toBeUndefined();
+  });
+
+  it('trata fallos del contrato de respuesta como errores internos', async () => {
+    const app = createApiApp({
+      clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
+      cookieSecret: 'test-secret',
+      documentRetriever: {
+        retrieve: async () => [
+          {
+            id: 'documento-invalido',
+            title: 'Documento inválido',
+            type: 'normas',
+            section: 'Sección',
+            content: 'Contenido recuperado con enlace inválido.',
+            documentUrl: '/documents/documento.txt',
+            score: 0.9,
+          },
+        ],
+      },
+      ids: { randomId: () => '00000000-0000-4000-8000-000000000001' },
+      repository: new InMemorySessionRepository(),
+      requestsLimit: 3,
+      ttlMs: 60_000,
+      version: 'test',
+    });
+    const response = await request(app)
+      .post('/api/documents/query')
+      .send({ question: 'documento inválido' });
+
+    expect(response.status).toBe(500);
+    expect(response.body.error.code).toBe('INTERNAL_ERROR');
+  });
+
   it('normaliza rutas no encontradas y errores inesperados', async () => {
     const notFound = await request(buildApp()).get('/api/desconocida');
     const failingApp = createApiApp({
       clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
       cookieSecret: 'test-secret',
+      documentRetriever,
       ids: { randomId: () => '00000000-0000-4000-8000-000000000001' },
       repository: {
         consumeRequest: async () => {

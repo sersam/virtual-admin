@@ -37,7 +37,7 @@ export const navigationItems: NavigationItem[] = [
     label: 'Documentos',
     description: 'Consulta normativa y acuerdos',
     icon: Files,
-    available: false,
+    available: true,
   },
   {
     path: '/comunicados',

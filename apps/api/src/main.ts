@@ -2,6 +2,8 @@ import { createApiApp } from './presentation/http/createApiApp.js';
 import { SystemClock } from './infrastructure/runtime/SystemClock.js';
 import { UuidGenerator } from './infrastructure/runtime/UuidGenerator.js';
 import { InMemorySessionRepository } from './infrastructure/session/InMemorySessionRepository.js';
+import { LexicalDocumentRetriever } from './infrastructure/document/LexicalDocumentRetriever.js';
+import { residencialSierraNevadaDocuments } from './infrastructure/document/residencialSierraNevadaDocuments.js';
 
 const port = Number(process.env.PORT ?? 3000);
 const cookieSecret = readRequiredEnvironmentVariable('COOKIE_SECRET');
@@ -9,6 +11,7 @@ const cookieSecret = readRequiredEnvironmentVariable('COOKIE_SECRET');
 const app = createApiApp({
   clock: new SystemClock(),
   cookieSecret,
+  documentRetriever: new LexicalDocumentRetriever(residencialSierraNevadaDocuments),
   ids: new UuidGenerator(),
   repository: new InMemorySessionRepository(),
   secureCookies: process.env.NODE_ENV === 'production',
