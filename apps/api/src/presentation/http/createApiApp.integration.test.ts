@@ -103,6 +103,36 @@ describe('createApiApp', () => {
     expect(response.body.error.code).toBe('VALIDATION_ERROR');
   });
 
+  it('no crea sesión demo para consultas documentales con formato inválido', async () => {
+    let consumeRequestCount = 0;
+    const app = createApiApp({
+      clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
+      cookieSecret: 'test-secret',
+      documentRetriever,
+      ids: { randomId: () => '00000000-0000-4000-8000-000000000001' },
+      repository: {
+        consumeRequest: async () => {
+          consumeRequestCount += 1;
+          return 'limit_reached';
+        },
+        findById: async () => undefined,
+        save: async () => {
+          /* no-op */
+        },
+      },
+      requestsLimit: 3,
+      ttlMs: 60_000,
+      version: 'test',
+    });
+
+    const response = await request(app).post('/api/documents/query').send({ question: '' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    expect(consumeRequestCount).toBe(0);
+    expect(response.headers['set-cookie']).toBeUndefined();
+  });
+
   it('trata fallos del contrato de respuesta como errores internos', async () => {
     const app = createApiApp({
       clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },

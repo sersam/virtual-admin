@@ -74,13 +74,13 @@ export function createApiApp(options: ApiAppOptions) {
 
   app.post('/api/documents/query', async (request: Request, response: Response, next) => {
     try {
-      const session = await ensureSession.execute(readSignedSessionId(request));
       const payloadResult = DocumentQueryRequestSchema.safeParse(request.body);
       if (!payloadResult.success) {
         sendError(response, 400, 'VALIDATION_ERROR', 'La petición no tiene un formato válido.');
         return;
       }
 
+      const session = await ensureSession.execute(readSignedSessionId(request));
       const answer = await answerDocumentQuestion.execute(payloadResult.data.question);
 
       attachSessionCookie(response, session.id, options);
