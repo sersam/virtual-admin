@@ -38,7 +38,12 @@ export class InMemorySessionRepository implements SessionRepository {
     const session = this.sessions.get(input.sessionId);
     if (!session) return undefined;
 
-    return sessionIsExpired(session, input.now) ? undefined : session;
+    if (sessionIsExpired(session, input.now)) {
+      this.sessions.delete(input.sessionId);
+      return undefined;
+    }
+
+    return session;
   }
 
   private createSession(input: ConsumeSessionInput): DemoSession {

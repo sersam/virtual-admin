@@ -65,4 +65,23 @@ describe('InMemorySessionRepository', () => {
     expect(first).toMatchObject({ id: baseSession.id, requestsUsed: 1 });
     expect(second).toBe('limit_reached');
   });
+
+  it('expulsa sesiones expiradas al intentar consumirlas', async () => {
+    const repository = new InMemorySessionRepository();
+    await repository.save(baseSession);
+
+    const renewed = await repository.consumeRequest({
+      createSessionId: () => '00000000-0000-4000-8000-000000000002',
+      now: new Date('2026-06-23T08:01:01.000Z'),
+      requestsLimit: 3,
+      sessionId: baseSession.id,
+      ttlMs: 60_000,
+    });
+
+    await expect(repository.findById(baseSession.id)).resolves.toBeUndefined();
+    expect(renewed).toMatchObject({
+      id: '00000000-0000-4000-8000-000000000002',
+      requestsUsed: 1,
+    });
+  });
 });
