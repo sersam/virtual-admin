@@ -1,10 +1,12 @@
-export function draftCommunityNotice(message: string): string {
+export interface CommunityNoticeDraftContent {
+  readonly subject: string;
+  readonly body: string;
+}
+
+export function createCommunityNoticeDraft(message: string): CommunityNoticeDraftContent {
   const topic = extractTopic(message);
   const subject = toSentenceCase(removeLeadingArticle(topic));
-
-  return [
-    `Asunto: ${subject}`,
-    '',
+  const body = [
     'Estimados vecinos:',
     '',
     `Les informamos sobre ${topic}. Rogamos que tengan en cuenta este aviso y que sigan las indicaciones de la administración de la comunidad.`,
@@ -13,6 +15,14 @@ export function draftCommunityNotice(message: string): string {
     '',
     'La administración de la comunidad',
   ].join('\n');
+
+  return { subject, body };
+}
+
+export function draftCommunityNotice(message: string): string {
+  const draft = createCommunityNoticeDraft(message);
+
+  return [`Asunto: ${draft.subject}`, '', draft.body].join('\n');
 }
 
 function extractTopic(message: string): string {

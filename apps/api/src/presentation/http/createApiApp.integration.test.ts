@@ -135,6 +135,33 @@ describe('createApiApp', () => {
     expect(response.body.sources).toEqual([]);
   });
 
+  it('redacta comunicados desde el endpoint dedicado', async () => {
+    const agent = request.agent(buildApp());
+    const response = await agent
+      .post('/api/communications/draft')
+      .send({ message: 'Redacta un comunicado sobre la limpieza del garaje.' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      draft: {
+        subject: 'Limpieza del garaje',
+        body: expect.stringContaining('Estimados vecinos:'),
+      },
+      mode: 'deterministic-demo',
+    });
+    expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
+  });
+
+  it('valida el formato del endpoint de comunicados antes de consumir sesión', async () => {
+    const response = await request(buildApp()).post('/api/communications/draft').send({
+      message: 'ok',
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    expect(response.headers['set-cookie']).toBeUndefined();
+  });
+
   it('consulta PDFs subidos como fuentes RAG de la sesión demo', async () => {
     const agent = request.agent(buildApp());
     await agent
