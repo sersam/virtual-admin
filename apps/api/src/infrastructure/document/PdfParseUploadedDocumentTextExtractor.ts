@@ -16,10 +16,11 @@ export class PdfParseUploadedDocumentTextExtractor implements UploadedDocumentTe
 }
 
 async function ensurePdfJsNodePolyfills(): Promise<void> {
-  if (globalThis.DOMMatrix && globalThis.ImageData && globalThis.Path2D) return;
+  const globalScope = globalThis as Record<string, unknown>;
+  if (globalScope.DOMMatrix && globalScope.ImageData && globalScope.Path2D) return;
 
   const { DOMMatrix, ImageData, Path2D } = await import('@napi-rs/canvas');
-  globalThis.DOMMatrix ??= DOMMatrix;
-  globalThis.ImageData ??= ImageData;
-  globalThis.Path2D ??= Path2D;
+  globalScope.DOMMatrix ??= DOMMatrix;
+  globalScope.ImageData ??= ImageData;
+  globalScope.Path2D ??= Path2D;
 }

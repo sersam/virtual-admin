@@ -204,9 +204,20 @@ export function createApiApp(options: ApiAppOptions) {
     async (request: Request, response: Response, next) => {
       try {
         const session = await ensureSession.execute(readSignedSessionId(request));
+        const { documentId } = request.params;
+        if (typeof documentId !== 'string') {
+          sendError(
+            response,
+            404,
+            'UPLOADED_DOCUMENT_NOT_FOUND',
+            'No se ha encontrado el PDF adjunto.',
+          );
+          return;
+        }
+
         const document = await getUploadedDocument.execute({
           sessionId: session.id,
-          documentId: request.params.documentId,
+          documentId,
         });
 
         attachSessionCookie(response, session.id, options);

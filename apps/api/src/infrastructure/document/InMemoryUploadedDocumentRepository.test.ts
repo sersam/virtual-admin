@@ -12,7 +12,9 @@ describe('InMemoryUploadedDocumentRepository', () => {
       contentType: 'application/pdf',
       sizeBytes: 1024,
       uploadedAt: new Date('2026-06-24T08:00:00.000Z'),
+      documentUrl: '/api/documents/uploads/pdf-0001/ascensor.pdf',
       content: Buffer.from('pdf'),
+      textContent: 'Contenido del PDF del ascensor.',
     });
 
     await expect(repository.listBySession('session-a')).resolves.toHaveLength(1);
