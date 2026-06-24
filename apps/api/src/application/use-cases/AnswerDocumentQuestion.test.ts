@@ -12,6 +12,16 @@ const poolDocument: RetrievedDocument = {
   score: 0.9,
 };
 
+const uploadedDocument: RetrievedDocument = {
+  id: 'pdf-0001',
+  title: 'Contrato ascensor',
+  type: 'adjunto',
+  section: 'Documento adjunto',
+  content: 'El contrato de mantenimiento del ascensor del portal B vence el 30 de septiembre.',
+  documentUrl: '/api/documents/uploads/pdf-0001/contrato-ascensor.pdf',
+  score: 1,
+};
+
 describe('AnswerDocumentQuestion', () => {
   it('responde siempre con fuentes recuperadas reales', async () => {
     const useCase = new AnswerDocumentQuestion({
@@ -27,9 +37,35 @@ describe('AnswerDocumentQuestion', () => {
     ]);
   });
 
+  it('incluye PDFs subidos de la sesión cuando aportan evidencia', async () => {
+    const useCase = new AnswerDocumentQuestion({
+      retriever: { retrieve: async () => [] },
+      sessionRetriever: {
+        retrieveForSession: async (sessionId) =>
+          sessionId === 'session-1' ? [uploadedDocument] : [],
+      },
+    });
+
+    const response = await useCase.execute('¿Cuándo vence el contrato del ascensor?', {
+      sessionId: 'session-1',
+    });
+
+    expect(response.answer).toContain('contrato de mantenimiento');
+    expect(response.sources).toEqual([
+      expect.objectContaining({
+        id: 'pdf-0001',
+        type: 'adjunto',
+        section: 'Documento adjunto',
+      }),
+    ]);
+  });
+
   it('declara falta de evidencia cuando no recupera fuentes', async () => {
     const useCase = new AnswerDocumentQuestion({
       retriever: { retrieve: async () => [] },
+      sessionRetriever: {
+        retrieveForSession: async () => [uploadedDocument],
+      },
     });
 
     const response = await useCase.execute('¿Hay servicio de conserjería nocturna?');

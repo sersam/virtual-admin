@@ -6,11 +6,11 @@ import type {
 } from '@admin/contracts';
 import { ChatMessageResponseSchema } from '@admin/contracts';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
-import type { ChatWorkflow } from '../../application/ports/ChatWorkflow.js';
+import type { ChatWorkflow, ChatWorkflowContext } from '../../application/ports/ChatWorkflow.js';
 import { classifyIntent } from '../../domain/agent/IntentClassifier.js';
 
 interface DocumentAnswerer {
-  execute(question: string): Promise<DocumentQueryResponse>;
+  execute(question: string, context?: ChatWorkflowContext): Promise<DocumentQueryResponse>;
 }
 
 interface LangGraphChatWorkflowDependencies {
@@ -21,6 +21,7 @@ const ChatState = Annotation.Root({
   agent: Annotation<ChatAgent | undefined>(),
   answer: Annotation<string | undefined>(),
   message: Annotation<string>(),
+  sessionId: Annotation<string | undefined>(),
   sources: Annotation<DocumentSource[]>({
     reducer: (_current, next) => next,
     default: () => [],
@@ -35,15 +36,17 @@ export class LangGraphChatWorkflow implements ChatWorkflow {
       .addNode('classify', async (state) => ({
         agent: classifyIntent(state.message),
       }))
-      .addNode('respond', async (state) => this.answer(state.message, state.agent ?? 'general'))
+      .addNode('respond', async (state) =>
+        this.answer(state.message, state.agent ?? 'general', state.sessionId),
+      )
       .addEdge(START, 'classify')
       .addEdge('classify', 'respond')
       .addEdge('respond', END)
       .compile();
   }
 
-  async run(message: string): Promise<ChatMessageResponse> {
-    const state = await this.graph.invoke({ message });
+  async run(message: string, context: ChatWorkflowContext = {}): Promise<ChatMessageResponse> {
+    const state = await this.graph.invoke({ message, sessionId: context.sessionId });
 
     return ChatMessageResponseSchema.parse({
       agent: state.agent ?? 'general',
@@ -56,9 +59,10 @@ export class LangGraphChatWorkflow implements ChatWorkflow {
   private async answer(
     message: string,
     agent: ChatAgent,
+    sessionId: string | undefined,
   ): Promise<Pick<ChatMessageResponse, 'answer' | 'sources'>> {
     if (agent === 'documentos') {
-      const response = await this.dependencies.documentAnswerer.execute(message);
+      const response = await this.dependencies.documentAnswerer.execute(message, { sessionId });
       return { answer: response.answer, sources: response.sources };
     }
 

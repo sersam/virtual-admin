@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { DocumentQueryRequestSchema, DocumentQueryResponseSchema } from './documents.js';
+import {
+  DocumentQueryRequestSchema,
+  DocumentQueryResponseSchema,
+  PdfUploadConstraints,
+  UploadedDocumentResponseSchema,
+  UploadedDocumentsResponseSchema,
+} from './documents.js';
 
 describe('document contracts', () => {
   it('valida consultas y respuestas RAG con fuentes', () => {
@@ -90,5 +96,29 @@ describe('document contracts', () => {
         sources: [{ ...validResponse.sources[0], documentUrl: '/documents/acta.txt' }],
       }),
     ).toThrow();
+  });
+
+  it('valida documentos PDF adjuntos a la sesión demo', () => {
+    const document = {
+      id: 'pdf-0001',
+      title: 'Factura ascensor junio',
+      type: 'adjunto',
+      filename: 'factura-ascensor.pdf',
+      sizeBytes: 1024,
+      uploadedAt: '2026-06-24T08:00:00.000Z',
+      documentUrl: '/api/documents/uploads/pdf-0001/factura-ascensor.pdf',
+    };
+
+    expect(UploadedDocumentResponseSchema.parse({ document })).toEqual({ document });
+    expect(UploadedDocumentsResponseSchema.parse({ documents: [document] })).toEqual({
+      documents: [document],
+    });
+  });
+
+  it('declara el límite de adjuntos PDF de sesión', () => {
+    expect(PdfUploadConstraints).toEqual({
+      maxSizeBytes: 5 * 1024 * 1024,
+      mimeType: 'application/pdf',
+    });
   });
 });

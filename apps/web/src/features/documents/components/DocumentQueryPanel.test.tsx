@@ -10,26 +10,28 @@ describe('DocumentQueryPanel', () => {
 
   it('consulta documentos y muestra respuesta con fuentes', async () => {
     const user = userEvent.setup();
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          answer: 'La piscina abre de 10:00 a 21:00.',
-          mode: 'lexical-demo',
-          sources: [
-            {
-              id: 'normas-piscina',
-              title: 'Normas de uso de zonas comunes',
-              type: 'normas',
-              section: 'Piscina',
-              excerpt: 'La piscina comunitaria abre de 10:00 a 21:00.',
-              documentUrl: '/documents/normas-zonas-comunes.pdf',
-              score: 0.9,
-            },
-          ],
-        }),
-        { status: 200 },
-      ),
-    );
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ documents: [] }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            answer: 'La piscina abre de 10:00 a 21:00.',
+            mode: 'lexical-demo',
+            sources: [
+              {
+                id: 'normas-piscina',
+                title: 'Normas de uso de zonas comunes',
+                type: 'normas',
+                section: 'Piscina',
+                excerpt: 'La piscina comunitaria abre de 10:00 a 21:00.',
+                documentUrl: '/documents/normas-zonas-comunes.pdf',
+                score: 0.9,
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
 
     render(<DocumentQueryPanel />);
     await user.click(screen.getByRole('button', { name: 'Consultar documentación' }));
@@ -44,10 +46,17 @@ describe('DocumentQueryPanel', () => {
   });
 
   it('muestra la biblioteca de PDFs sin consultar', () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ documents: [] }), { status: 200 }),
+    );
+
     render(<DocumentQueryPanel />);
 
     expect(screen.getByRole('heading', { name: 'Documentos disponibles' })).toBeInTheDocument();
     expect(screen.getByText('Contrato de mantenimiento de jardines')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'PDFs subidos en esta sesión' }),
+    ).toBeInTheDocument();
   });
 
   it('muestra fallback local con fuentes cuando falla la API', async () => {

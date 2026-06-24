@@ -14,22 +14,30 @@ const poolSource: DocumentSource = {
 
 describe('LangGraphChatWorkflow', () => {
   it('clasifica consultas documentales y reutiliza el RAG existente', async () => {
+    let receivedSessionId: string | undefined;
     const workflow = new LangGraphChatWorkflow({
       documentAnswerer: {
-        execute: async () => ({
-          answer: 'La piscina comunitaria abre de 10:00 a 21:00.',
-          mode: 'lexical-demo',
-          sources: [poolSource],
-        }),
+        execute: async (_question, context) => {
+          receivedSessionId = context?.sessionId;
+
+          return {
+            answer: 'La piscina comunitaria abre de 10:00 a 21:00.',
+            mode: 'lexical-demo',
+            sources: [poolSource],
+          };
+        },
       },
     });
 
-    await expect(workflow.run('¿Qué dicen las normas de la piscina?')).resolves.toEqual({
+    await expect(
+      workflow.run('¿Qué dicen las normas de la piscina?', { sessionId: 'session-1' }),
+    ).resolves.toEqual({
       agent: 'documentos',
       answer: 'La piscina comunitaria abre de 10:00 a 21:00.',
       mode: 'langgraph-demo',
       sources: [poolSource],
     });
+    expect(receivedSessionId).toBe('session-1');
   });
 
   it('orienta al agente futuro sin simular acciones no implementadas', async () => {

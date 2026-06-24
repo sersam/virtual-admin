@@ -4,16 +4,25 @@ import {
   type RetrievedDocument,
 } from '../../domain/document/CommunityDocument.js';
 import type { DocumentRetriever } from '../ports/DocumentRetriever.js';
+import type { SessionDocumentRetriever } from '../ports/SessionDocumentRetriever.js';
 
 interface AnswerDocumentQuestionDependencies {
   readonly retriever: DocumentRetriever;
+  readonly sessionRetriever?: SessionDocumentRetriever;
+}
+
+interface AnswerDocumentQuestionContext {
+  readonly sessionId?: string;
 }
 
 export class AnswerDocumentQuestion {
   constructor(private readonly dependencies: AnswerDocumentQuestionDependencies) {}
 
-  async execute(question: string): Promise<DocumentQueryResponse> {
-    const documents = await this.dependencies.retriever.retrieve(question, 3);
+  async execute(
+    question: string,
+    context: AnswerDocumentQuestionContext = {},
+  ): Promise<DocumentQueryResponse> {
+    const documents = await this.retrieveDocuments(question, context.sessionId);
     const sources = documents.map(toSource);
 
     return {
@@ -21,6 +30,22 @@ export class AnswerDocumentQuestion {
       mode: 'lexical-demo',
       sources,
     };
+  }
+
+  private async retrieveDocuments(
+    question: string,
+    sessionId: string | undefined,
+  ): Promise<RetrievedDocument[]> {
+    const [baseDocuments, sessionDocuments] = await Promise.all([
+      this.dependencies.retriever.retrieve(question, 3),
+      sessionId && this.dependencies.sessionRetriever
+        ? this.dependencies.sessionRetriever.retrieveForSession(sessionId, question, 3)
+        : Promise.resolve([]),
+    ]);
+
+    return [...sessionDocuments, ...baseDocuments]
+      .sort((left, right) => right.score - left.score)
+      .slice(0, 3);
   }
 }
 
