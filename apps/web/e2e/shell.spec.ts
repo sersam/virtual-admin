@@ -67,6 +67,28 @@ test('consulta documentos y muestra fuentes recuperadas', async ({ page }, testI
   await pdfPage.close();
 });
 
+test('chat coordinador permite probar todas las áreas del MVP', async ({ page }, testInfo) => {
+  await page.route('**/api/chat/messages', (route) => route.abort());
+  await page.goto('/chat');
+
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Incidencias' }).scrollIntoViewIfNeeded();
+  }
+
+  await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Comunicados' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Actas' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Incidencias' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Juntas' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Incidencias' }).click();
+  await page.getByRole('button', { name: 'Enviar mensaje' }).click();
+
+  const answerRegion = page.getByLabel('Respuesta del coordinador');
+  await expect(answerRegion.getByText('Agente de incidencias', { exact: true })).toBeVisible();
+  await expect(answerRegion.getByText('Modo demo local')).toBeVisible();
+});
+
 test('adapta la navegación al viewport', async ({ page }, testInfo) => {
   await page.goto('/');
 
