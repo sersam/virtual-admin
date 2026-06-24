@@ -47,6 +47,14 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
       sources: answer.sources,
     };
   }
+  if (agent === 'comunicados') {
+    return {
+      agent,
+      answer: draftLocalCommunityNotice(message),
+      mode: 'local-demo',
+      sources: [],
+    };
+  }
 
   return {
     agent,
@@ -74,11 +82,9 @@ function normalize(text: string): string {
     .trim();
 }
 
-const localAgentAnswers: Record<Exclude<ChatAgent, 'documentos'>, string> = {
+const localAgentAnswers: Record<Exclude<ChatAgent, 'documentos' | 'comunicados'>, string> = {
   actas:
     'Soy el agente de actas. En esta demo local puedo clasificar tu petición; la generación completa llegará en la US-006.',
-  comunicados:
-    'Soy el agente de comunicados. En esta demo local puedo clasificar tu petición; la redacción completa llegará en la US-005.',
   general:
     'Soy el coordinador local. Puedo derivar peticiones sobre documentos, comunicados, actas, incidencias y juntas.',
   incidencias:
@@ -86,3 +92,29 @@ const localAgentAnswers: Record<Exclude<ChatAgent, 'documentos'>, string> = {
   juntas:
     'Soy el agente de juntas. En esta demo local puedo clasificar tu petición; la preparación completa llegará en la US-008.',
 };
+
+function draftLocalCommunityNotice(message: string): string {
+  const topic = extractTopic(message);
+  const topicWithoutArticle = topic.replace(/^(el|la|los|las)\s+/u, '');
+  const subject = `${topicWithoutArticle.charAt(0).toUpperCase()}${topicWithoutArticle.slice(1)}`;
+
+  return [
+    `Asunto: ${subject}`,
+    '',
+    'Estimados vecinos:',
+    '',
+    `Les informamos sobre ${topic}. Rogamos que tengan en cuenta este aviso y que sigan las indicaciones de la administración de la comunidad.`,
+    '',
+    'Gracias por vuestra colaboración.',
+    '',
+    'La administración de la comunidad',
+  ].join('\n');
+}
+
+function extractTopic(message: string): string {
+  const normalized = normalize(message);
+  const match = /(?:sobre|del|de la|de los|de las) (.+)$/u.exec(normalized);
+  const topic = match?.[1]?.replaceAll(/\.$/gu, '').trim();
+
+  return topic && topic.length > 0 ? topic : 'el aviso de la comunidad';
+}

@@ -121,6 +121,20 @@ describe('createApiApp', () => {
     });
   });
 
+  it('coordina mensajes libres de chat hacia el agente de comunicados', async () => {
+    const agent = request.agent(buildApp());
+    const response = await agent
+      .post('/api/chat/messages')
+      .send({ message: 'Redacta un comunicado sobre la limpieza del garaje.' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.agent).toBe('comunicados');
+    expect(response.body.mode).toBe('langgraph-demo');
+    expect(response.body.answer).toContain('Asunto: Limpieza del garaje');
+    expect(response.body.answer).toContain('Estimados vecinos:');
+    expect(response.body.sources).toEqual([]);
+  });
+
   it('consulta PDFs subidos como fuentes RAG de la sesión demo', async () => {
     const agent = request.agent(buildApp());
     await agent
