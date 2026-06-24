@@ -2,6 +2,8 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { type ErrorRequestHandler, type Request, type Response } from 'express';
 import {
+  ChatMessageRequestSchema,
+  ChatMessageResponseSchema,
   DocumentQueryRequestSchema,
   DocumentQueryResponseSchema,
   ErrorResponseSchema,
@@ -13,10 +15,12 @@ import {
   SessionUsageLimitReachedError,
 } from '../../application/use-cases/EnsureDemoSession.js';
 import { AnswerDocumentQuestion } from '../../application/use-cases/AnswerDocumentQuestion.js';
+import { CoordinateChatMessage } from '../../application/use-cases/CoordinateChatMessage.js';
 import type { DocumentRetriever } from '../../application/ports/DocumentRetriever.js';
 import type { SessionRepository } from '../../application/ports/SessionRepository.js';
 import type { Clock } from '../../application/ports/Clock.js';
 import type { IdGenerator } from '../../application/ports/IdGenerator.js';
+import { LangGraphChatWorkflow } from '../../infrastructure/agent/LangGraphChatWorkflow.js';
 import { presentSession } from './sessionPresenter.js';
 
 const SESSION_COOKIE = 'va_session';
@@ -38,6 +42,11 @@ export function createApiApp(options: ApiAppOptions) {
   const app = express();
   const answerDocumentQuestion = new AnswerDocumentQuestion({
     retriever: options.documentRetriever,
+  });
+  const coordinateChatMessage = new CoordinateChatMessage({
+    workflow: new LangGraphChatWorkflow({
+      documentAnswerer: answerDocumentQuestion,
+    }),
   });
   const ensureSession = new EnsureDemoSession({
     clock: options.clock,
@@ -85,6 +94,24 @@ export function createApiApp(options: ApiAppOptions) {
 
       attachSessionCookie(response, session.id, options);
       response.json(DocumentQueryResponseSchema.parse(answer));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post('/api/chat/messages', async (request: Request, response: Response, next) => {
+    try {
+      const payloadResult = ChatMessageRequestSchema.safeParse(request.body);
+      if (!payloadResult.success) {
+        sendError(response, 400, 'VALIDATION_ERROR', 'La petición no tiene un formato válido.');
+        return;
+      }
+
+      const session = await ensureSession.execute(readSignedSessionId(request));
+      const answer = await coordinateChatMessage.execute(payloadResult.data.message);
+
+      attachSessionCookie(response, session.id, options);
+      response.json(ChatMessageResponseSchema.parse(answer));
     } catch (error) {
       next(error);
     }

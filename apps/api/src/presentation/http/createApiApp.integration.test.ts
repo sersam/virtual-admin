@@ -96,6 +96,30 @@ describe('createApiApp', () => {
     });
   });
 
+  it('coordina mensajes libres de chat hacia el agente documental', async () => {
+    const agent = request.agent(buildApp());
+    const response = await agent
+      .post('/api/chat/messages')
+      .send({ message: '¿Qué dicen las normas sobre el horario de la piscina?' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.agent).toBe('documentos');
+    expect(response.body.mode).toBe('langgraph-demo');
+    expect(response.body.answer).toContain('piscina comunitaria');
+    expect(response.body.sources[0]).toMatchObject({
+      id: 'normas-piscina',
+      documentUrl: '/documents/normas-zonas-comunes.pdf',
+    });
+  });
+
+  it('valida el formato de mensajes de chat antes de consumir sesión', async () => {
+    const response = await request(buildApp()).post('/api/chat/messages').send({ message: 'ok' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    expect(response.headers['set-cookie']).toBeUndefined();
+  });
+
   it('valida el formato de consultas documentales', async () => {
     const response = await request(buildApp()).post('/api/documents/query').send({ question: '' });
 
