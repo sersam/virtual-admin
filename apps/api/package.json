@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@admin/contracts": "0.1.0",
+    "@langchain/core": "^1.2.1",
+    "@langchain/langgraph": "^1.4.5",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^5.2.1",
