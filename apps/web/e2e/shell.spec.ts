@@ -89,6 +89,29 @@ test('chat coordinador permite probar todas las áreas del MVP', async ({ page }
   await expect(answerRegion.getByText('Modo demo local')).toBeVisible();
 });
 
+test('redacta comunicados para vecinos', async ({ page }, testInfo) => {
+  await page.route('**/api/communications/draft', (route) => route.abort());
+  await page.goto('/comunicados');
+
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Redactar comunicado' }).scrollIntoViewIfNeeded();
+  }
+
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Redacta comunicados para vecinos' }),
+  ).toBeVisible();
+
+  await page
+    .getByLabel('Necesidad del comunicado')
+    .fill('Redacta un comunicado sobre el corte de agua.');
+  await page.getByRole('button', { name: 'Redactar comunicado' }).click();
+
+  const draftRegion = page.getByLabel('Comunicado generado');
+  await expect(draftRegion.getByRole('heading', { name: 'Corte de agua' })).toBeVisible();
+  await expect(draftRegion.getByText(/Estimados vecinos:/)).toBeVisible();
+  await expect(draftRegion.getByText('Demo determinista')).toBeVisible();
+});
+
 test('adapta la navegación al viewport', async ({ page }, testInfo) => {
   await page.goto('/');
 
