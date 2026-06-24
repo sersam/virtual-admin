@@ -26,7 +26,7 @@ export function searchDocuments(
   question: string,
   maxSources: number,
 ): RetrievedDocument[] {
-  const terms = tokenize(question);
+  const terms = [...new Set(tokenize(question))];
   if (terms.length === 0) return [];
 
   return documents

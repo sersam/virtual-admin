@@ -280,10 +280,22 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
     return;
   }
 
-  if (
-    error instanceof UploadedDocumentTooLargeError ||
-    (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE')
-  ) {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      sendError(response, 413, 'UPLOAD_TOO_LARGE', 'El PDF no puede superar 5 MB.');
+      return;
+    }
+
+    sendError(
+      response,
+      400,
+      'INVALID_UPLOADED_DOCUMENT',
+      'Debes adjuntar un único archivo PDF en el campo "document".',
+    );
+    return;
+  }
+
+  if (error instanceof UploadedDocumentTooLargeError) {
     sendError(response, 413, 'UPLOAD_TOO_LARGE', 'El PDF no puede superar 5 MB.');
     return;
   }

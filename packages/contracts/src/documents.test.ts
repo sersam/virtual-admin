@@ -115,6 +115,22 @@ describe('document contracts', () => {
     });
   });
 
+  it('rechaza documentos adjuntos con enlaces que no son PDF', () => {
+    expect(() =>
+      UploadedDocumentResponseSchema.parse({
+        document: {
+          id: 'pdf-0001',
+          title: 'Factura ascensor junio',
+          type: 'adjunto',
+          filename: 'factura-ascensor.pdf',
+          sizeBytes: 1024,
+          uploadedAt: '2026-06-24T08:00:00.000Z',
+          documentUrl: '/api/documents/uploads/pdf-0001/factura-ascensor.txt',
+        },
+      }),
+    ).toThrow();
+  });
+
   it('declara el límite de adjuntos PDF de sesión', () => {
     expect(PdfUploadConstraints).toEqual({
       maxSizeBytes: 5 * 1024 * 1024,

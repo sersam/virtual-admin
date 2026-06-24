@@ -35,7 +35,12 @@ export class StoreUploadedDocument {
   constructor(private readonly dependencies: StoreUploadedDocumentDependencies) {}
 
   async execute(input: StoreUploadedDocumentInput): Promise<UploadedDocument> {
-    if (input.contentType !== PdfUploadConstraints.mimeType || !input.filename.endsWith('.pdf')) {
+    const filename = input.filename.trim();
+    if (
+      input.contentType !== PdfUploadConstraints.mimeType ||
+      !filename.toLowerCase().endsWith('.pdf') ||
+      !hasPdfSignature(input.content)
+    ) {
       throw new InvalidUploadedDocumentError();
     }
     if (input.sizeBytes > PdfUploadConstraints.maxSizeBytes) {
@@ -44,7 +49,6 @@ export class StoreUploadedDocument {
 
     const textContent = await this.dependencies.textExtractor.extractText(input.content);
     const id = this.dependencies.ids.randomId();
-    const filename = input.filename.trim();
     const document = {
       id,
       sessionId: input.sessionId,
@@ -85,4 +89,14 @@ export function presentUploadedDocument(document: {
 
 function titleFromFilename(filename: string): string {
   return filename.replace(/\.pdf$/iu, '').trim() || 'Documento adjunto';
+}
+
+function hasPdfSignature(content: Uint8Array): boolean {
+  return (
+    content[0] === 0x25 &&
+    content[1] === 0x50 &&
+    content[2] === 0x44 &&
+    content[3] === 0x46 &&
+    content[4] === 0x2d
+  );
 }

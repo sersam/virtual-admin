@@ -5,6 +5,17 @@ import {
 } from '@admin/contracts';
 import { apiBaseUrl } from './apiConfig';
 
+export class PartialUploadError extends Error {
+  constructor(
+    message: string,
+    readonly uploadedDocuments: UploadedDocument[],
+    readonly failedFilenames: string[],
+  ) {
+    super(message);
+    this.name = 'PartialUploadError';
+  }
+}
+
 export async function listUploadedDocuments(signal?: AbortSignal): Promise<UploadedDocument[]> {
   const response = await fetch(`${apiBaseUrl}/api/documents/uploads`, {
     credentials: 'include',
@@ -24,6 +35,7 @@ export async function uploadPdfDocuments(
   signal?: AbortSignal,
 ): Promise<UploadedDocument[]> {
   const uploadedDocuments: UploadedDocument[] = [];
+  const failedFilenames: string[] = [];
 
   for (const file of files) {
     const formData = new FormData();
@@ -37,10 +49,19 @@ export async function uploadPdfDocuments(
     });
 
     if (!response.ok) {
-      throw new Error(`No se pudo subir el PDF "${file.name}" (HTTP ${response.status}).`);
+      failedFilenames.push(file.name);
+      continue;
     }
 
     uploadedDocuments.push(UploadedDocumentResponseSchema.parse(await response.json()).document);
+  }
+
+  if (failedFilenames.length > 0) {
+    throw new PartialUploadError(
+      'No se pudieron subir todos los PDFs.',
+      uploadedDocuments,
+      failedFilenames,
+    );
   }
 
   return uploadedDocuments;

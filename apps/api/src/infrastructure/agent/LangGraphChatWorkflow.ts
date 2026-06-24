@@ -17,6 +17,14 @@ interface LangGraphChatWorkflowDependencies {
   readonly documentAnswerer: DocumentAnswerer;
 }
 
+interface ChatGraph {
+  invoke(input: { readonly message: string; readonly sessionId?: string }): Promise<{
+    readonly agent?: ChatAgent;
+    readonly answer?: string;
+    readonly sources?: DocumentSource[];
+  }>;
+}
+
 const ChatState = Annotation.Root({
   agent: Annotation<ChatAgent | undefined>(),
   answer: Annotation<string | undefined>(),
@@ -29,7 +37,7 @@ const ChatState = Annotation.Root({
 });
 
 export class LangGraphChatWorkflow implements ChatWorkflow {
-  private readonly graph;
+  private readonly graph: ChatGraph;
 
   constructor(private readonly dependencies: LangGraphChatWorkflowDependencies) {
     this.graph = new StateGraph(ChatState)
@@ -42,7 +50,7 @@ export class LangGraphChatWorkflow implements ChatWorkflow {
       .addEdge(START, 'classify')
       .addEdge('classify', 'respond')
       .addEdge('respond', END)
-      .compile();
+      .compile() as ChatGraph;
   }
 
   async run(message: string, context: ChatWorkflowContext = {}): Promise<ChatMessageResponse> {

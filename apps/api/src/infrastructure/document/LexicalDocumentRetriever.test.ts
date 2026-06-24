@@ -24,4 +24,21 @@ describe('LexicalDocumentRetriever', () => {
 
     await expect(retriever.retrieve('¿Hay pista de pádel cubierta?', 3)).resolves.toEqual([]);
   });
+
+  it('calcula el score con términos únicos de la pregunta', async () => {
+    const retriever = new LexicalDocumentRetriever([
+      {
+        id: 'contrato-ascensor',
+        title: 'Contrato ascensor',
+        type: 'contrato',
+        section: 'Ascensor',
+        content: 'Mantenimiento del ascensor.',
+        documentUrl: '/documents/contrato-ascensor.pdf',
+      },
+    ]);
+
+    const [first] = await retriever.retrieve('ascensor ascensor garaje', 1);
+
+    expect(first?.score).toBe(0.5);
+  });
 });

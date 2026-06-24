@@ -10,6 +10,7 @@ const intentKeywords: ReadonlyArray<{
   readonly intent: AgentIntent;
   readonly keywords: readonly string[];
 }> = [
+  // El orden expresa prioridad cuando una petición encaja en varias áreas del MVP.
   {
     intent: 'incidencias',
     keywords: ['averia', 'fuga', 'incidencia', 'prioridad', 'reparacion', 'responsable', 'urgente'],
@@ -28,7 +29,18 @@ const intentKeywords: ReadonlyArray<{
   },
   {
     intent: 'documentos',
-    keywords: ['contrato', 'documento', 'estatuto', 'estatutos', 'norma', 'normas', 'pdf'],
+    keywords: [
+      'adjunto',
+      'adjuntos',
+      'contrato',
+      'documento',
+      'documentos',
+      'estatuto',
+      'estatutos',
+      'norma',
+      'normas',
+      'pdf',
+    ],
   },
 ];
 

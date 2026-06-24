@@ -1,6 +1,10 @@
 import { PdfUploadConstraints, type UploadedDocument } from '@admin/contracts';
 import { useEffect, useState } from 'react';
-import { listUploadedDocuments, uploadPdfDocuments } from '../../../shared/api/uploadedDocuments';
+import {
+  PartialUploadError,
+  listUploadedDocuments,
+  uploadPdfDocuments,
+} from '../../../shared/api/uploadedDocuments';
 
 export type UploadedDocumentsStatus =
   | 'idle'
@@ -59,6 +63,14 @@ export function useUploadedDocuments() {
       }));
     } catch (error) {
       console.error('[useUploadedDocuments] No se pudieron subir los PDFs.', error);
+      if (error instanceof PartialUploadError) {
+        setState((current) => ({
+          documents: [...current.documents, ...error.uploadedDocuments],
+          error: `No se pudieron subir: ${error.failedFilenames.join(', ')}.`,
+          status: 'error',
+        }));
+        return;
+      }
       setState((current) => ({
         ...current,
         error: 'No se pudieron subir los PDFs. Inténtalo de nuevo.',
@@ -73,7 +85,10 @@ export function useUploadedDocuments() {
 function validateFiles(files: readonly File[]): string | undefined {
   if (files.length === 0) return undefined;
   if (
-    files.some((file) => file.type !== PdfUploadConstraints.mimeType || !file.name.endsWith('.pdf'))
+    files.some(
+      (file) =>
+        file.type !== PdfUploadConstraints.mimeType || !file.name.toLowerCase().endsWith('.pdf'),
+    )
   ) {
     return 'Los adjuntos solo pueden ser PDF.';
   }

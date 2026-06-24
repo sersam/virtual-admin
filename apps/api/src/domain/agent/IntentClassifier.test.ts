@@ -19,6 +19,12 @@ describe('classifyIntent', () => {
     ).toBe('incidencias');
   });
 
+  it('reconoce documentos en plural y consultas explícitas sobre adjuntos', () => {
+    expect(classifyIntent('Consulta los documentos adjuntos sobre el contrato del ascensor.')).toBe(
+      'documentos',
+    );
+  });
+
   it('reconoce mensajes sin tildes ni mayúsculas exactas', () => {
     expect(classifyIntent('necesito preparar una convocatoria para la junta')).toBe('juntas');
   });

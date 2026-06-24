@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { listUploadedDocuments, uploadPdfDocuments } from './uploadedDocuments';
+import { PartialUploadError, listUploadedDocuments, uploadPdfDocuments } from './uploadedDocuments';
 
 const uploadedDocument = {
   id: 'pdf-0001',
@@ -52,6 +52,28 @@ describe('uploadedDocuments api', () => {
     const [, firstOptions] = vi.mocked(globalThis.fetch).mock.calls[0]!;
     expect(firstOptions).toMatchObject({ method: 'POST', credentials: 'include' });
     expect(firstOptions?.body).toBeInstanceOf(FormData);
+  });
+
+  it('conserva los PDFs subidos antes de un fallo parcial', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ document: uploadedDocument }), { status: 201 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: { code: 'INTERNAL_ERROR' } }), { status: 500 }),
+      );
+    const files = [
+      new File(['pdf'], 'presupuesto-ascensor.pdf', { type: 'application/pdf' }),
+      new File(['pdf'], 'factura-jardines.pdf', { type: 'application/pdf' }),
+    ];
+
+    const promise = uploadPdfDocuments(files);
+
+    await expect(promise).rejects.toBeInstanceOf(PartialUploadError);
+    await expect(promise).rejects.toMatchObject({
+      failedFilenames: ['factura-jardines.pdf'],
+      uploadedDocuments: [uploadedDocument],
+    });
   });
 
   it('rechaza respuestas inválidas', async () => {

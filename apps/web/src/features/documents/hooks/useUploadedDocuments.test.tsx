@@ -55,6 +55,49 @@ describe('useUploadedDocuments', () => {
     expect(result.current.documents).toEqual([uploadedDocument, secondUploadedDocument]);
   });
 
+  it('acepta PDFs con extensión en mayúsculas antes de llamar a la API', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ documents: [] }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ document: uploadedDocument }), { status: 201 }),
+      );
+    const { result } = renderHook(() => useUploadedDocuments());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await act(() =>
+      result.current.upload([
+        new File(['pdf'], 'PRESUPUESTO-ASCENSOR.PDF', { type: 'application/pdf' }),
+      ]),
+    );
+
+    expect(result.current.status).toBe('ready');
+    expect(result.current.documents).toEqual([uploadedDocument]);
+  });
+
+  it('mantiene los PDFs subidos cuando una subida múltiple falla parcialmente', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ documents: [] }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ document: uploadedDocument }), { status: 201 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: { code: 'INTERNAL_ERROR' } }), { status: 500 }),
+      );
+    const { result } = renderHook(() => useUploadedDocuments());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await act(() =>
+      result.current.upload([
+        new File(['pdf'], 'presupuesto-ascensor.pdf', { type: 'application/pdf' }),
+        new File(['pdf'], 'factura-jardines.pdf', { type: 'application/pdf' }),
+      ]),
+    );
+
+    expect(result.current.status).toBe('error');
+    expect(result.current.documents).toEqual([uploadedDocument]);
+    expect(result.current.error).toContain('factura-jardines.pdf');
+  });
+
   it('rechaza archivos que no son PDF antes de llamar a la API', async () => {
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')

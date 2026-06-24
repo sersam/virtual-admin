@@ -17,7 +17,7 @@ describe('ListUploadedDocuments', () => {
       filename: 'presupuesto.pdf',
       contentType: 'application/pdf',
       sizeBytes: 2048,
-      content: Buffer.from('pdf'),
+      content: Buffer.from('%PDF-1.4 contenido'),
     });
 
     const useCase = new ListUploadedDocuments({ repository });

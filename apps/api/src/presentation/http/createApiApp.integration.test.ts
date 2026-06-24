@@ -220,6 +220,34 @@ describe('createApiApp', () => {
     expect(response.body.error.code).toBe('INVALID_UPLOADED_DOCUMENT');
   });
 
+  it('rechaza adjuntos PDF enviados en un campo inesperado', async () => {
+    const response = await request(buildApp())
+      .post('/api/documents/uploads')
+      .attach('archivo', Buffer.from('%PDF-1.4 contenido'), {
+        filename: 'presupuesto.pdf',
+        contentType: 'application/pdf',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('INVALID_UPLOADED_DOCUMENT');
+  });
+
+  it('rechaza subidas con más de un PDF en la misma petición', async () => {
+    const response = await request(buildApp())
+      .post('/api/documents/uploads')
+      .attach('document', Buffer.from('%PDF-1.4 contenido'), {
+        filename: 'presupuesto.pdf',
+        contentType: 'application/pdf',
+      })
+      .attach('document', Buffer.from('%PDF-1.4 contenido'), {
+        filename: 'factura.pdf',
+        contentType: 'application/pdf',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('INVALID_UPLOADED_DOCUMENT');
+  });
+
   it('rechaza PDFs que superan 5 MB', async () => {
     const response = await request(buildApp())
       .post('/api/documents/uploads')
