@@ -32,7 +32,7 @@ describe('queryDocuments', () => {
 
     expect(response.sources[0]?.id).toBe('normas-piscina');
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      'http://127.0.0.1:3000/api/documents/query',
+      'http://localhost:3000/api/documents/query',
       expect.objectContaining({ method: 'POST' }),
     );
   });

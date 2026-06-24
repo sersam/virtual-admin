@@ -6,9 +6,10 @@ describe('navigationItems', () => {
     expect(navigationPathsAreUnique(navigationItems)).toBe(true);
   });
 
-  it('activa inicio y documentos tras la US-003', () => {
+  it('activa inicio, chat y documentos tras la US-004', () => {
     expect(navigationItems.filter(({ available }) => available).map(({ label }) => label)).toEqual([
       'Inicio',
+      'Chat inteligente',
       'Documentos',
     ]);
   });

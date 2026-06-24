@@ -30,7 +30,7 @@ export const navigationItems: NavigationItem[] = [
     label: 'Chat inteligente',
     description: 'Habla con el coordinador',
     icon: MessageSquareText,
-    available: false,
+    available: true,
   },
   {
     path: '/documentos',

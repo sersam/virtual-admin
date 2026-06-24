@@ -36,6 +36,13 @@ describe('rutas de App', () => {
     ).toBeInTheDocument();
   });
 
+  it('activa la ruta del chat coordinador', () => {
+    renderAt('/chat');
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Chat coordinador multiagente' }),
+    ).toBeInTheDocument();
+  });
+
   it('usa una pantalla segura para rutas desconocidas', () => {
     renderAt('/ruta-desconocida');
     expect(screen.getByRole('heading', { level: 1, name: 'Herramienta' })).toBeInTheDocument();

@@ -3,6 +3,7 @@ import { ExternalLink, Search, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { useDocumentQuery } from '../hooks/useDocumentQuery';
 import { DocumentLibrary } from './DocumentLibrary';
+import { UploadedDocumentManager } from './UploadedDocumentManager';
 
 const suggestedQuestions = [
   '¿Cuál es el horario de la piscina?',
@@ -129,6 +130,7 @@ export function DocumentQueryPanel() {
           )}
         </section>
       </div>
+      <UploadedDocumentManager />
       <DocumentLibrary />
     </div>
   );

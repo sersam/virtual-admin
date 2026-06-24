@@ -4,6 +4,8 @@ import { UuidGenerator } from './infrastructure/runtime/UuidGenerator.js';
 import { InMemorySessionRepository } from './infrastructure/session/InMemorySessionRepository.js';
 import { LexicalDocumentRetriever } from './infrastructure/document/LexicalDocumentRetriever.js';
 import { residencialSierraNevadaDocuments } from './infrastructure/document/residencialSierraNevadaDocuments.js';
+import { InMemoryUploadedDocumentRepository } from './infrastructure/document/InMemoryUploadedDocumentRepository.js';
+import { PdfParseUploadedDocumentTextExtractor } from './infrastructure/document/PdfParseUploadedDocumentTextExtractor.js';
 
 const port = Number(process.env.PORT ?? 3000);
 const cookieSecret = readRequiredEnvironmentVariable('COOKIE_SECRET');
@@ -16,6 +18,8 @@ const app = createApiApp({
   repository: new InMemorySessionRepository(),
   secureCookies: process.env.NODE_ENV === 'production',
   version: '0.1.0',
+  uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
+  uploadedDocumentTextExtractor: new PdfParseUploadedDocumentTextExtractor(),
 });
 
 app.listen(port, () => {

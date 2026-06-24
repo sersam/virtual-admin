@@ -3,10 +3,15 @@ import { describe, expect, it } from 'vitest';
 import type { DemoSession } from '../../domain/session/DemoSession.js';
 import { LexicalDocumentRetriever } from '../../infrastructure/document/LexicalDocumentRetriever.js';
 import { residencialSierraNevadaDocuments } from '../../infrastructure/document/residencialSierraNevadaDocuments.js';
+import { InMemoryUploadedDocumentRepository } from '../../infrastructure/document/InMemoryUploadedDocumentRepository.js';
 import { InMemorySessionRepository } from '../../infrastructure/session/InMemorySessionRepository.js';
 import { createApiApp } from './createApiApp.js';
 
 const documentRetriever = new LexicalDocumentRetriever(residencialSierraNevadaDocuments);
+const uploadedDocumentTextExtractor = {
+  extractText: async () =>
+    'El contrato de mantenimiento del ascensor del portal B vence el 30 de septiembre.',
+};
 
 function buildApp(requestsLimit = 3) {
   let idSequence = 0;
@@ -18,6 +23,8 @@ function buildApp(requestsLimit = 3) {
     repository: new InMemorySessionRepository(),
     requestsLimit,
     ttlMs: 60_000,
+    uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
+    uploadedDocumentTextExtractor,
     version: 'test',
   });
 }
@@ -56,6 +63,8 @@ describe('createApiApp', () => {
       requestsLimit: 3,
       secureCookies: true,
       ttlMs: 60_000,
+      uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
+      uploadedDocumentTextExtractor,
       version: 'test',
     });
 
@@ -96,6 +105,161 @@ describe('createApiApp', () => {
     });
   });
 
+  it('coordina mensajes libres de chat hacia el agente documental', async () => {
+    const agent = request.agent(buildApp());
+    const response = await agent
+      .post('/api/chat/messages')
+      .send({ message: '¿Qué dicen las normas sobre el horario de la piscina?' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.agent).toBe('documentos');
+    expect(response.body.mode).toBe('langgraph-demo');
+    expect(response.body.answer).toContain('piscina comunitaria');
+    expect(response.body.sources[0]).toMatchObject({
+      id: 'normas-piscina',
+      documentUrl: '/documents/normas-zonas-comunes.pdf',
+    });
+  });
+
+  it('consulta PDFs subidos como fuentes RAG de la sesión demo', async () => {
+    const agent = request.agent(buildApp());
+    await agent
+      .post('/api/documents/uploads')
+      .attach('document', Buffer.from('%PDF-1.4 contrato'), {
+        filename: 'contrato-ascensor.pdf',
+        contentType: 'application/pdf',
+      });
+
+    const response = await agent
+      .post('/api/documents/query')
+      .send({ question: '¿Cuándo vence el contrato del ascensor?' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.answer).toContain('contrato de mantenimiento');
+    expect(response.body.sources[0]).toMatchObject({
+      title: 'contrato-ascensor',
+      type: 'adjunto',
+      documentUrl: expect.stringContaining('/api/documents/uploads/'),
+    });
+  });
+
+  it('consulta PDFs subidos desde el chat documental de la sesión demo', async () => {
+    const agent = request.agent(buildApp());
+    await agent
+      .post('/api/documents/uploads')
+      .attach('document', Buffer.from('%PDF-1.4 contrato'), {
+        filename: 'contrato-ascensor.pdf',
+        contentType: 'application/pdf',
+      });
+
+    const response = await agent
+      .post('/api/chat/messages')
+      .send({ message: '¿Qué dice el contrato del ascensor?' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.agent).toBe('documentos');
+    expect(response.body.sources[0]).toMatchObject({
+      title: 'contrato-ascensor',
+      type: 'adjunto',
+    });
+  });
+
+  it('valida el formato de mensajes de chat antes de consumir sesión', async () => {
+    const response = await request(buildApp()).post('/api/chat/messages').send({ message: 'ok' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    expect(response.headers['set-cookie']).toBeUndefined();
+  });
+
+  it('sube y lista PDFs asociados a la sesión demo', async () => {
+    const agent = request.agent(buildApp());
+    const upload = await agent
+      .post('/api/documents/uploads')
+      .attach('document', Buffer.from('%PDF-1.4 contenido'), {
+        filename: 'presupuesto ascensor.pdf',
+        contentType: 'application/pdf',
+      });
+    const list = await agent.get('/api/documents/uploads');
+
+    expect(upload.status).toBe(201);
+    expect(upload.body.document).toMatchObject({
+      filename: 'presupuesto ascensor.pdf',
+      title: 'presupuesto ascensor',
+      type: 'adjunto',
+    });
+    expect(list.status).toBe(200);
+    expect(list.body.documents).toEqual([upload.body.document]);
+  });
+
+  it('descarga un PDF subido desde su URL dentro de la sesión demo', async () => {
+    const agent = request.agent(buildApp());
+    const pdfContent = Buffer.from('%PDF-1.4 presupuesto');
+    const upload = await agent.post('/api/documents/uploads').attach('document', pdfContent, {
+      filename: 'presupuesto ascensor.pdf',
+      contentType: 'application/pdf',
+    });
+
+    const download = await agent.get(upload.body.document.documentUrl);
+
+    expect(download.status).toBe(200);
+    expect(download.headers['content-type']).toContain('application/pdf');
+    expect(download.headers['content-disposition']).toContain('presupuesto ascensor.pdf');
+    expect(download.body).toEqual(pdfContent);
+  });
+
+  it('rechaza adjuntos que no son PDF', async () => {
+    const response = await request(buildApp())
+      .post('/api/documents/uploads')
+      .attach('document', Buffer.from('texto'), {
+        filename: 'notas.txt',
+        contentType: 'text/plain',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('INVALID_UPLOADED_DOCUMENT');
+  });
+
+  it('rechaza adjuntos PDF enviados en un campo inesperado', async () => {
+    const response = await request(buildApp())
+      .post('/api/documents/uploads')
+      .attach('archivo', Buffer.from('%PDF-1.4 contenido'), {
+        filename: 'presupuesto.pdf',
+        contentType: 'application/pdf',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('INVALID_UPLOADED_DOCUMENT');
+  });
+
+  it('rechaza subidas con más de un PDF en la misma petición', async () => {
+    const response = await request(buildApp())
+      .post('/api/documents/uploads')
+      .attach('document', Buffer.from('%PDF-1.4 contenido'), {
+        filename: 'presupuesto.pdf',
+        contentType: 'application/pdf',
+      })
+      .attach('document', Buffer.from('%PDF-1.4 contenido'), {
+        filename: 'factura.pdf',
+        contentType: 'application/pdf',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('INVALID_UPLOADED_DOCUMENT');
+  });
+
+  it('rechaza PDFs que superan 5 MB', async () => {
+    const response = await request(buildApp())
+      .post('/api/documents/uploads')
+      .attach('document', Buffer.alloc(5 * 1024 * 1024 + 1), {
+        filename: 'demasiado-grande.pdf',
+        contentType: 'application/pdf',
+      });
+
+    expect(response.status).toBe(413);
+    expect(response.body.error.code).toBe('UPLOAD_TOO_LARGE');
+  });
+
   it('valida el formato de consultas documentales', async () => {
     const response = await request(buildApp()).post('/api/documents/query').send({ question: '' });
 
@@ -122,6 +286,8 @@ describe('createApiApp', () => {
       },
       requestsLimit: 3,
       ttlMs: 60_000,
+      uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
+      uploadedDocumentTextExtractor,
       version: 'test',
     });
 
@@ -154,6 +320,8 @@ describe('createApiApp', () => {
       repository: new InMemorySessionRepository(),
       requestsLimit: 3,
       ttlMs: 60_000,
+      uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
+      uploadedDocumentTextExtractor,
       version: 'test',
     });
     const response = await request(app)
@@ -182,6 +350,8 @@ describe('createApiApp', () => {
       },
       requestsLimit: 3,
       ttlMs: 60_000,
+      uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
+      uploadedDocumentTextExtractor,
       version: 'test',
     });
     const failed = await request(failingApp).get('/api/session');
