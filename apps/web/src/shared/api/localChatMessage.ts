@@ -1,5 +1,6 @@
 import type { ChatAgent, ChatMessageResponse } from '@admin/contracts';
 import { createLocalDocumentAnswer } from './localDocumentAnswer';
+import { createLocalCommunityNoticeDraft } from './localCommunityNoticeDraft';
 
 const intentKeywords: ReadonlyArray<{
   readonly agent: ChatAgent;
@@ -48,9 +49,10 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
     };
   }
   if (agent === 'comunicados') {
+    const response = createLocalCommunityNoticeDraft(message);
     return {
       agent,
-      answer: draftLocalCommunityNotice(message),
+      answer: [`Asunto: ${response.draft.subject}`, '', response.draft.body].join('\n'),
       mode: 'local-demo',
       sources: [],
     };
@@ -92,29 +94,3 @@ const localAgentAnswers: Record<Exclude<ChatAgent, 'documentos' | 'comunicados'>
   juntas:
     'Soy el agente de juntas. En esta demo local puedo clasificar tu petición; la preparación completa llegará en la US-008.',
 };
-
-function draftLocalCommunityNotice(message: string): string {
-  const topic = extractTopic(message);
-  const topicWithoutArticle = topic.replace(/^(el|la|los|las)\s+/u, '');
-  const subject = `${topicWithoutArticle.charAt(0).toUpperCase()}${topicWithoutArticle.slice(1)}`;
-
-  return [
-    `Asunto: ${subject}`,
-    '',
-    'Estimados vecinos:',
-    '',
-    `Les informamos sobre ${topic}. Rogamos que tengan en cuenta este aviso y que sigan las indicaciones de la administración de la comunidad.`,
-    '',
-    'Gracias por vuestra colaboración.',
-    '',
-    'La administración de la comunidad',
-  ].join('\n');
-}
-
-function extractTopic(message: string): string {
-  const normalized = normalize(message);
-  const match = /(?:sobre|del|de la|de los|de las) (.+)$/u.exec(normalized);
-  const topic = match?.[1]?.replaceAll(/\.$/gu, '').trim();
-
-  return topic && topic.length > 0 ? topic : 'el aviso de la comunidad';
-}

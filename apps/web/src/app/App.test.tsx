@@ -43,6 +43,13 @@ describe('rutas de App', () => {
     ).toBeInTheDocument();
   });
 
+  it('activa la ruta de comunicados', () => {
+    renderAt('/comunicados');
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Redacta comunicados para vecinos' }),
+    ).toBeInTheDocument();
+  });
+
   it('usa una pantalla segura para rutas desconocidas', () => {
     renderAt('/ruta-desconocida');
     expect(screen.getByRole('heading', { level: 1, name: 'Herramienta' })).toBeInTheDocument();

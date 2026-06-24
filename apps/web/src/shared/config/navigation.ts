@@ -44,7 +44,7 @@ export const navigationItems: NavigationItem[] = [
     label: 'Comunicados',
     description: 'Redacta avisos para vecinos',
     icon: FilePenLine,
-    available: false,
+    available: true,
   },
   {
     path: '/actas',

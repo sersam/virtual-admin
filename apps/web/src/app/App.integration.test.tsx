@@ -30,8 +30,8 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />, { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> });
     const navigation = screen.getByRole('navigation', { name: 'Navegación principal' });
-    await user.click(within(navigation).getByRole('link', { name: 'Comunicados' }));
-    expect(screen.getByRole('heading', { level: 1, name: 'Comunicados' })).toBeInTheDocument();
+    await user.click(within(navigation).getByRole('link', { name: 'Actas' }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Actas' })).toBeInTheDocument();
     await user.click(screen.getByRole('link', { name: 'Volver al inicio' }));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       'Una administración más clara',
