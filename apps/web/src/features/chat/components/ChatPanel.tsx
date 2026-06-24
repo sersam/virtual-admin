@@ -18,6 +18,29 @@ const modeLabels: Record<ChatMode, string> = {
   'local-demo': 'Modo demo local',
 };
 
+const mvpAreaExamples = [
+  {
+    label: 'Documentos',
+    message: '¿Qué dicen las normas de la piscina?',
+  },
+  {
+    label: 'Comunicados',
+    message: 'Redacta un comunicado para avisar del corte de agua del jueves.',
+  },
+  {
+    label: 'Actas',
+    message: 'Convierte estas notas en un acta formal de la junta ordinaria.',
+  },
+  {
+    label: 'Incidencias',
+    message: 'Hay una fuga en el garaje, clasifica la incidencia y su prioridad.',
+  },
+  {
+    label: 'Juntas',
+    message: 'Prepara el orden del día para la próxima junta de propietarios.',
+  },
+];
+
 export function ChatPanel() {
   const [message, setMessage] = useState('¿Qué dicen las normas de la piscina?');
   const { error, result, status, submit } = useChatMessage();
@@ -48,6 +71,18 @@ export function ChatPanel() {
             onChange={(event) => setMessage(event.target.value)}
             value={message}
           />
+          <div className="flex flex-wrap gap-2">
+            {mvpAreaExamples.map((example) => (
+              <button
+                className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-sky-100 hover:text-sky-800"
+                key={example.label}
+                onClick={() => setMessage(example.message)}
+                type="button"
+              >
+                {example.label}
+              </button>
+            ))}
+          </div>
           <button className="primary-button" disabled={loading} type="submit">
             <SendHorizontal aria-hidden="true" size={17} />
             {loading ? 'Enviando...' : 'Enviar mensaje'}

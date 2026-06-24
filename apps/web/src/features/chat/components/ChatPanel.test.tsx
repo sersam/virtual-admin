@@ -42,4 +42,38 @@ describe('ChatPanel', () => {
     expect(within(answerRegion).getByText('Agente de documentos')).toBeInTheDocument();
     expect(within(answerRegion).getByText('Normas de uso de zonas comunes')).toBeInTheDocument();
   });
+
+  it('permite preparar mensajes de ejemplo para todas las áreas del MVP', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          agent: 'incidencias',
+          answer: 'Soy el agente de incidencias.',
+          mode: 'langgraph-demo',
+          sources: [],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    render(<ChatPanel />);
+
+    expect(screen.getByRole('button', { name: 'Documentos' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Comunicados' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Actas' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Incidencias' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Juntas' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Incidencias' }));
+    await user.click(screen.getByRole('button', { name: 'Enviar mensaje' }));
+
+    await waitFor(() => expect(screen.getByText('Agente de incidencias')).toBeInTheDocument());
+    const [, requestOptions] = vi.mocked(globalThis.fetch).mock.calls[0]!;
+    expect(requestOptions?.body).toBe(
+      JSON.stringify({
+        message: 'Hay una fuga en el garaje, clasifica la incidencia y su prioridad.',
+      }),
+    );
+  });
 });
