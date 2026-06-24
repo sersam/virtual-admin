@@ -36,7 +36,7 @@ Como usuario, quiero escribir una petición libre y ser atendido por el agente a
 
 Como administrador, quiero redactar comunicaciones según tipo, audiencia y tono.
 
-**Aceptación:** formulario, OpenAI/fallback, edición, copia y PDF.
+**Aceptación:** formulario, generación demo determinista, edición, copia y PDF.
 
 ## US-006 · Generador de actas
 
@@ -56,7 +56,13 @@ Como administrador, quiero generar un orden del día desde incidencias y acuerdo
 
 **Aceptación:** agregación por sesión, priorización, resultado editable y trazabilidad de entradas.
 
-## US-009 · PostgreSQL, despliegue y evaluación
+## US-009 · OpenAI para generación de comunicados
+
+Como administrador, quiero generar comunicados con OpenAI manteniendo un modo demo local reproducible.
+
+**Aceptación:** OpenAI solo desde backend, puerto de generación, adaptador OpenAI, adaptador demo, prompt versionado, observabilidad de modelo/tokens/coste/latencia, fallback sin API key, pruebas con proveedor fake y sin llamadas reales en CI.
+
+## US-010 · PostgreSQL, despliegue y evaluación
 
 Como tribunal, quiero acceder a una demo pública reproducible y evidencias medibles.
 

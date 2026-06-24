@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-06-24 · PR [#9](https://github.com/sersam/virtual-admin/pull/9)
+
+### Changed
+
+- Separa la integración de OpenAI para comunicados en una historia de usuario propia del backlog.
+
 ## 2026-06-24 · PR [#7](https://github.com/sersam/virtual-admin/pull/7)
 
 ### Added
