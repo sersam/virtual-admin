@@ -10,6 +10,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@admin/community-notices": "0.1.0",
     "@admin/contracts": "0.1.0",
     "@langchain/core": "^1.2.1",
     "@langchain/langgraph": "^1.4.5",
