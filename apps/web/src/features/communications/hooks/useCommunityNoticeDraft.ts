@@ -21,7 +21,7 @@ export function useCommunityNoticeDraft() {
     const trimmedMessage = message.trim();
     if (trimmedMessage.length < MIN_MESSAGE_LENGTH || trimmedMessage.length > MAX_MESSAGE_LENGTH) {
       setState({
-        error: 'El mensaje debe tener entre 3 y 500 caracteres.',
+        error: `El mensaje debe tener entre ${MIN_MESSAGE_LENGTH} y ${MAX_MESSAGE_LENGTH} caracteres.`,
         status: 'error',
       });
       return;
