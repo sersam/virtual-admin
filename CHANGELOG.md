@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-06-24 · PR [#7](https://github.com/sersam/virtual-admin/pull/7)
+
+### Added
+
+- Añade los contratos iniciales de chat, la clasificación de intención del coordinador multiagente y el endpoint backend de mensajes con LangGraph.
+
 ## 2026-06-23 · PR [#6](https://github.com/sersam/virtual-admin/pull/6)
 
 ### Added
