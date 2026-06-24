@@ -10,6 +10,7 @@ export interface LibraryDocument {
 
 const documentTypeLabels: Record<DocumentSource['type'], string> = {
   acta: 'Acta',
+  adjunto: 'Adjunto',
   contrato: 'Contrato',
   estatutos: 'Estatutos',
   normas: 'Normas',
