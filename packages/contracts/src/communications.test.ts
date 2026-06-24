@@ -34,4 +34,21 @@ describe('communication contracts', () => {
       }),
     ).toThrow();
   });
+
+  it('acepta longitudes límite y rechaza mode inválido', () => {
+    expect(
+      CommunityNoticeDraftRequestSchema.parse({ message: 'a'.repeat(500) }),
+    ).toEqual({ message: 'a'.repeat(500) });
+
+    expect(() =>
+      CommunityNoticeDraftRequestSchema.parse({ message: '  ab  ' }),
+    ).toThrow();
+
+    expect(() =>
+      CommunityNoticeDraftResponseSchema.parse({
+        draft: { subject: 'Aviso', body: 'Contenido válido' },
+        mode: 'other-mode',
+      }),
+    ).toThrow();
+  });
 });
