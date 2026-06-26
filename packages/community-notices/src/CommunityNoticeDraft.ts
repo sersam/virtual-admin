@@ -78,9 +78,9 @@ function findTopicStart(text: string): number | undefined {
 function isTopicMarkerBoundary(text: string, markerIndex: number): boolean {
   if (markerIndex === 0) return true;
 
-  const previousCharacter = text.charCodeAt(markerIndex - 1);
+  const previousCharacter = text.codePointAt(markerIndex - 1);
 
-  return !isAsciiLetterOrDigit(previousCharacter);
+  return previousCharacter === undefined || !isAsciiLetterOrDigit(previousCharacter);
 }
 
 function isAsciiLetterOrDigit(characterCode: number): boolean {
