@@ -11,6 +11,8 @@ import {
   DocumentQueryResponseSchema,
   ErrorResponseSchema,
   HealthResponseSchema,
+  MeetingMinutesDraftRequestSchema,
+  MeetingMinutesDraftResponseSchema,
   PdfUploadConstraints,
   SessionResponseSchema,
   UploadedDocumentResponseSchema,
@@ -23,6 +25,7 @@ import {
 import { AnswerDocumentQuestion } from '../../application/use-cases/AnswerDocumentQuestion.js';
 import { CoordinateChatMessage } from '../../application/use-cases/CoordinateChatMessage.js';
 import { DraftCommunityNotice } from '../../application/use-cases/DraftCommunityNotice.js';
+import { DraftMeetingMinutes } from '../../application/use-cases/DraftMeetingMinutes.js';
 import {
   GetUploadedDocument,
   UploadedDocumentNotFoundError,
@@ -79,6 +82,7 @@ export function createApiApp(options: ApiAppOptions) {
     }),
   });
   const draftCommunityNotice = new DraftCommunityNotice();
+  const draftMeetingMinutes = new DraftMeetingMinutes();
   const ensureSession = new EnsureDemoSession({
     clock: options.clock,
     ids: options.ids,
@@ -177,6 +181,24 @@ export function createApiApp(options: ApiAppOptions) {
 
       attachSessionCookie(response, session.id, options);
       response.json(CommunityNoticeDraftResponseSchema.parse(draft));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post('/api/meeting-minutes/draft', async (request: Request, response: Response, next) => {
+    try {
+      const payloadResult = MeetingMinutesDraftRequestSchema.safeParse(request.body);
+      if (!payloadResult.success) {
+        sendError(response, 400, 'VALIDATION_ERROR', 'La petición no tiene un formato válido.');
+        return;
+      }
+
+      const session = await ensureSession.execute(readSignedSessionId(request));
+      const draft = await draftMeetingMinutes.execute(payloadResult.data.notes);
+
+      attachSessionCookie(response, session.id, options);
+      response.json(MeetingMinutesDraftResponseSchema.parse(draft));
     } catch (error) {
       next(error);
     }

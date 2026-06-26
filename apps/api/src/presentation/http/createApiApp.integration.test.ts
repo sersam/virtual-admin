@@ -152,9 +152,41 @@ describe('createApiApp', () => {
     expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
   });
 
+  it('genera actas desde el endpoint dedicado', async () => {
+    const agent = request.agent(buildApp());
+    const response = await agent.post('/api/meeting-minutes/draft').send({
+      notes: [
+        'Junta ordinaria del 12 de junio.',
+        'Acuerdo: aprobar presupuesto.',
+        'Tarea: Revisar contrato; Responsable: Ana',
+      ].join('\n'),
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      draft: {
+        title: 'Acta de reunión',
+        body: expect.stringContaining('Acuerdos:'),
+        tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
+      },
+      mode: 'deterministic-demo',
+    });
+    expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
+  });
+
   it('valida el formato del endpoint de comunicados antes de consumir sesión', async () => {
     const response = await request(buildApp()).post('/api/communications/draft').send({
       message: 'ok',
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    expect(response.headers['set-cookie']).toBeUndefined();
+  });
+
+  it('valida el formato del endpoint de actas antes de consumir sesión', async () => {
+    const response = await request(buildApp()).post('/api/meeting-minutes/draft').send({
+      notes: 'Acta',
     });
 
     expect(response.status).toBe(400);
