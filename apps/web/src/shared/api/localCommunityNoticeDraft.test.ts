@@ -13,4 +13,12 @@ describe('createLocalCommunityNoticeDraft', () => {
       mode: 'deterministic-demo',
     });
   });
+
+  it.each([
+    ['demasiado corto', 'ok'],
+    ['demasiado largo', 'a'.repeat(501)],
+    ['solo espacios', '   '],
+  ])('rechaza mensajes con formato inválido: %s', (_caseName, message) => {
+    expect(() => createLocalCommunityNoticeDraft(message)).toThrow();
+  });
 });

@@ -17,13 +17,22 @@ describe('createCommunityNoticeDraft', () => {
     });
   });
 
-  it('normaliza tildes y extrae el tema cuando se usa una preposicion alternativa', () => {
+  it('preserva tildes y extrae el tema cuando se usa una preposicion alternativa', () => {
     expect(
       createCommunityNoticeDraft('Redacta un comunicado de la revisión del ascensor.'),
     ).toEqual(
       expect.objectContaining({
-        subject: 'Revision del ascensor',
-        body: expect.stringContaining('revision del ascensor'),
+        subject: 'Revisión del ascensor',
+        body: expect.stringContaining('revisión del ascensor'),
+      }),
+    );
+  });
+
+  it('usa un tema directo sin sustituirlo por el aviso genérico', () => {
+    expect(createCommunityNoticeDraft('Corte de agua')).toEqual(
+      expect.objectContaining({
+        subject: 'Corte de agua',
+        body: expect.stringContaining('Corte de agua'),
       }),
     );
   });

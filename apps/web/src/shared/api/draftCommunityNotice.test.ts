@@ -6,19 +6,21 @@ describe('draftCommunityNotice api', () => {
     vi.restoreAllMocks();
   });
 
-  it('envía mensajes al endpoint de comunicados y valida la respuesta', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          draft: {
-            subject: 'Corte de agua',
-            body: 'Estimados vecinos:\n\nLes informamos sobre el corte de agua.',
-          },
-          mode: 'deterministic-demo',
-        }),
-        { status: 200 },
-      ),
+  function validDraftResponse(): Response {
+    return new Response(
+      JSON.stringify({
+        draft: {
+          subject: 'Corte de agua',
+          body: 'Estimados vecinos:\n\nLes informamos sobre el corte de agua.',
+        },
+        mode: 'deterministic-demo',
+      }),
+      { status: 200 },
     );
+  }
+
+  it('envía mensajes al endpoint de comunicados y valida la respuesta', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(validDraftResponse());
 
     const response = await draftCommunityNotice('Redacta un comunicado sobre el corte de agua.');
 
@@ -40,5 +42,41 @@ describe('draftCommunityNotice api', () => {
     await expect(draftCommunityNotice('ok')).rejects.toThrow();
 
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('rechaza respuestas HTTP no exitosas', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 503 }));
+
+    await expect(
+      draftCommunityNotice('Redacta un comunicado sobre el corte de agua.'),
+    ).rejects.toThrow('No se pudo redactar el comunicado (HTTP 503).');
+  });
+
+  it('rechaza respuestas con formato inválido', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          draft: { subject: '', body: 'Contenido válido' },
+          mode: 'deterministic-demo',
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      draftCommunityNotice('Redacta un comunicado sobre el corte de agua.'),
+    ).rejects.toThrow();
+  });
+
+  it('reenvía AbortSignal a fetch', async () => {
+    const controller = new AbortController();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(validDraftResponse());
+
+    await draftCommunityNotice('Redacta un comunicado sobre el corte de agua.', controller.signal);
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      'http://localhost:3000/api/communications/draft',
+      expect.objectContaining({ signal: controller.signal }),
+    );
   });
 });
