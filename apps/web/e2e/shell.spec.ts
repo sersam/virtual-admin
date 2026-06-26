@@ -139,7 +139,10 @@ test('genera actas desde notas de reunión', async ({ page }, testInfo) => {
 
   const draftRegion = page.getByLabel('Acta generada');
   await expect(draftRegion.getByRole('heading', { name: 'Acta de reunión' })).toBeVisible();
-  await expect(draftRegion.getByText(/Acuerdos:/)).toBeVisible();
+  const editableDraft = draftRegion.getByLabel('Borrador editable del acta');
+  await expect(editableDraft).toHaveValue(/Acuerdos:/);
+  await editableDraft.fill('Acta revisada por secretaría.');
+  await expect(editableDraft).toHaveValue('Acta revisada por secretaría.');
   await expect(
     draftRegion.getByRole('listitem').filter({ hasText: 'Revisar contrato' }),
   ).toBeVisible();

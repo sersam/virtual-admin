@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react';
 import { ClipboardList, FileText, SendHorizontal } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMeetingMinutesDraft } from '../hooks/useMeetingMinutesDraft';
 
 const suggestedNotes = [
@@ -23,8 +23,15 @@ const suggestedNotes = [
 
 export function MeetingMinutesPanel() {
   const [notes, setNotes] = useState(suggestedNotes[0]!);
+  const [editableDraftBody, setEditableDraftBody] = useState('');
   const { error, result, status, submit } = useMeetingMinutesDraft();
   const loading = status === 'loading';
+
+  useEffect(() => {
+    if (result) {
+      setEditableDraftBody(result.draft.body);
+    }
+  }, [result]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -101,9 +108,18 @@ export function MeetingMinutesPanel() {
                 Demo determinista
               </span>
               <h3 className="mt-4 font-display text-2xl font-extrabold">{result.draft.title}</h3>
-              <p className="mt-4 whitespace-pre-line text-sm leading-6 text-sky-50">
-                {result.draft.body}
-              </p>
+              <label
+                className="mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-sky-100"
+                htmlFor="editable-meeting-minutes"
+              >
+                Borrador editable del acta
+              </label>
+              <textarea
+                className="mt-2 min-h-64 w-full rounded-2xl border border-white/15 bg-white p-4 text-sm leading-6 text-navy-950 shadow-inner outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                id="editable-meeting-minutes"
+                onChange={(event) => setEditableDraftBody(event.target.value)}
+                value={editableDraftBody}
+              />
             </div>
 
             {result.draft.tasks.length > 0 && (
