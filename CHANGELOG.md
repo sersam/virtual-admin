@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-06-26 · PR [#8](https://github.com/sersam/virtual-admin/pull/8)
+
+### Added
+
+- Añade la redacción demo inicial de comunicados desde el chat coordinador.
+
 ## 2026-06-24 · PR [#9](https://github.com/sersam/virtual-admin/pull/9)
 
 ### Changed
