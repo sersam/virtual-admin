@@ -4,7 +4,8 @@ export interface CommunityNoticeDraftContent {
 }
 
 const DEFAULT_TOPIC = 'el aviso de la comunidad';
-const TOPIC_MARKERS = ['sobre ', 'del ', 'de la ', 'de los ', 'de las '] as const;
+const TOPIC_MARKERS = ['sobre ', 'de la ', 'de los ', 'de las ', 'del '] as const;
+const TRAILING_TOPIC_PUNCTUATION = new Set(['.', '?', '!', '¡', '¿']);
 const GENERIC_REQUEST_PATTERN =
   /\b(?:ayuda|aviso|avisar|comunicacion|comunicado|redacta|redactar)\b/u;
 
@@ -55,24 +56,20 @@ function removeLeadingArticle(text: string): string {
 
 function findTopicStart(text: string): number | undefined {
   const lowerCaseText = text.toLocaleLowerCase('es');
-  let firstTopicStart: number | undefined;
 
   for (const marker of TOPIC_MARKERS) {
     let markerIndex = lowerCaseText.indexOf(marker);
 
     while (markerIndex >= 0) {
       if (isTopicMarkerBoundary(lowerCaseText, markerIndex)) {
-        const topicStart = markerIndex + marker.length;
-        firstTopicStart =
-          firstTopicStart === undefined ? topicStart : Math.min(firstTopicStart, topicStart);
-        break;
+        return markerIndex + marker.length;
       }
 
       markerIndex = lowerCaseText.indexOf(marker, markerIndex + 1);
     }
   }
 
-  return firstTopicStart;
+  return undefined;
 }
 
 function isTopicMarkerBoundary(text: string, markerIndex: number): boolean {
@@ -92,7 +89,7 @@ function isAsciiLetterOrDigit(characterCode: number): boolean {
 function trimTopic(text: string): string {
   let endIndex = text.trimEnd().length;
 
-  while (endIndex > 0 && text[endIndex - 1] === '.') {
+  while (endIndex > 0 && TRAILING_TOPIC_PUNCTUATION.has(text[endIndex - 1] ?? '')) {
     endIndex -= 1;
   }
 

@@ -37,6 +37,34 @@ describe('createCommunityNoticeDraft', () => {
     );
   });
 
+  it('prioriza marcadores de tema explícitos aunque aparezcan otros antes', () => {
+    expect(
+      createCommunityNoticeDraft(
+        'Necesito un comunicado del administrador sobre el corte de agua.',
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        subject: 'Corte de agua',
+        body: expect.stringContaining('el corte de agua'),
+      }),
+    );
+  });
+
+  it('elimina puntuación final habitual del tema', () => {
+    expect(createCommunityNoticeDraft('Comunicado sobre poda urgente!')).toEqual(
+      expect.objectContaining({
+        subject: 'Poda urgente',
+        body: expect.stringContaining('poda urgente'),
+      }),
+    );
+    expect(createCommunityNoticeDraft('Corte de agua?')).toEqual(
+      expect.objectContaining({
+        subject: 'Corte de agua',
+        body: expect.stringContaining('Corte de agua'),
+      }),
+    );
+  });
+
   it('usa un tema generico cuando el mensaje no contiene tema reconocible', () => {
     expect(createCommunityNoticeDraft('Necesito ayuda')).toEqual(
       expect.objectContaining({
