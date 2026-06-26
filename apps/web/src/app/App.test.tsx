@@ -50,6 +50,13 @@ describe('rutas de App', () => {
     ).toBeInTheDocument();
   });
 
+  it('activa la ruta de actas', () => {
+    renderAt('/actas');
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Convierte notas en actas' }),
+    ).toBeInTheDocument();
+  });
+
   it('usa una pantalla segura para rutas desconocidas', () => {
     renderAt('/ruta-desconocida');
     expect(screen.getByRole('heading', { level: 1, name: 'Herramienta' })).toBeInTheDocument();

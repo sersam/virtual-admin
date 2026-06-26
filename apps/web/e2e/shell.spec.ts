@@ -112,6 +112,38 @@ test('redacta comunicados para vecinos', async ({ page }, testInfo) => {
   await expect(draftRegion.getByText('Demo determinista')).toBeVisible();
 });
 
+test('genera actas desde notas de reunión', async ({ page }, testInfo) => {
+  await page.route('**/api/meeting-minutes/draft', (route) => route.abort());
+  await page.goto('/actas');
+
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Generar acta' }).scrollIntoViewIfNeeded();
+  }
+
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Convierte notas en actas' }),
+  ).toBeVisible();
+
+  await page
+    .getByLabel('Notas de la reunión')
+    .fill(
+      [
+        'Junta ordinaria del 12 de junio.',
+        'Acuerdo: aprobar presupuesto.',
+        'Tarea: Revisar contrato; Responsable: Ana',
+      ].join('\n'),
+    );
+  await page.getByRole('button', { name: 'Generar acta' }).click();
+
+  const draftRegion = page.getByLabel('Acta generada');
+  await expect(draftRegion.getByRole('heading', { name: 'Acta de reunión' })).toBeVisible();
+  await expect(draftRegion.getByText(/Acuerdos:/)).toBeVisible();
+  await expect(
+    draftRegion.getByRole('listitem').filter({ hasText: 'Revisar contrato' }),
+  ).toBeVisible();
+  await expect(draftRegion.getByText('Demo determinista')).toBeVisible();
+});
+
 test('adapta la navegación al viewport', async ({ page }, testInfo) => {
   await page.goto('/');
 

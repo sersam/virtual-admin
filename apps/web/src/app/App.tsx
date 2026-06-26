@@ -4,6 +4,7 @@ import { CommunicationsPage } from '../pages/CommunicationsPage';
 import { ComingSoonPage } from '../pages/ComingSoonPage';
 import { DocumentsPage } from '../pages/DocumentsPage';
 import { HomePage } from '../pages/HomePage';
+import { MeetingMinutesPage } from '../pages/MeetingMinutesPage';
 import { navigationItems } from '../shared/config/navigation';
 import { AppShell } from './layout/AppShell';
 
@@ -15,8 +16,11 @@ export function App() {
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/documentos" element={<DocumentsPage />} />
         <Route path="/comunicados" element={<CommunicationsPage />} />
+        <Route path="/actas" element={<MeetingMinutesPage />} />
         {navigationItems
-          .filter(({ path }) => !['/', '/chat', '/documentos', '/comunicados'].includes(path))
+          .filter(
+            ({ path }) => !['/', '/chat', '/documentos', '/comunicados', '/actas'].includes(path),
+          )
           .map(({ path }) => (
             <Route key={path} path={path} element={<ComingSoonPage />} />
           ))}

@@ -30,11 +30,22 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />, { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> });
     const navigation = screen.getByRole('navigation', { name: 'Navegación principal' });
-    await user.click(within(navigation).getByRole('link', { name: 'Actas' }));
-    expect(screen.getByRole('heading', { level: 1, name: 'Actas' })).toBeInTheDocument();
+    await user.click(within(navigation).getByRole('link', { name: 'Incidencias' }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Incidencias' })).toBeInTheDocument();
     await user.click(screen.getByRole('link', { name: 'Volver al inicio' }));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       'Una administración más clara',
     );
+  });
+
+  it('navega al generador de actas', async () => {
+    const user = userEvent.setup();
+    render(<App />, { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> });
+    const navigation = screen.getByRole('navigation', { name: 'Navegación principal' });
+    await user.click(within(navigation).getByRole('link', { name: 'Actas' }));
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Convierte notas en actas' }),
+    ).toBeInTheDocument();
   });
 });
