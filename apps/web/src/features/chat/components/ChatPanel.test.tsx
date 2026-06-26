@@ -76,4 +76,28 @@ describe('ChatPanel', () => {
       }),
     );
   });
+
+  it('muestra actas generadas desde el chat coordinador', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network'));
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    render(<ChatPanel />);
+    await user.clear(screen.getByLabelText('Mensaje'));
+    await user.type(
+      screen.getByLabelText('Mensaje'),
+      [
+        'Junta ordinaria del 12 de junio.',
+        'Acuerdo: aprobar presupuesto.',
+        'Tarea: Revisar contrato; Responsable: Ana',
+      ].join('\n'),
+    );
+    await user.click(screen.getByRole('button', { name: 'Enviar mensaje' }));
+
+    await waitFor(() => expect(screen.getByText('Agente de actas')).toBeInTheDocument());
+    const answerRegion = screen.getByRole('region', { name: 'Respuesta del coordinador' });
+    expect(within(answerRegion).getByText(/Acta de reunión/)).toBeInTheDocument();
+    expect(within(answerRegion).getByText(/Acuerdos:/)).toBeInTheDocument();
+    expect(within(answerRegion).getByText(/Revisar contrato/)).toBeInTheDocument();
+  });
 });

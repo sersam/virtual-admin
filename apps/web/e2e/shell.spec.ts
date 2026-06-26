@@ -72,7 +72,7 @@ test('chat coordinador permite probar todas las áreas del MVP', async ({ page }
   await page.goto('/chat');
 
   if (testInfo.project.name === 'mobile') {
-    await page.getByRole('button', { name: 'Incidencias' }).scrollIntoViewIfNeeded();
+    await page.getByRole('button', { name: 'Actas' }).scrollIntoViewIfNeeded();
   }
 
   await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
@@ -81,11 +81,13 @@ test('chat coordinador permite probar todas las áreas del MVP', async ({ page }
   await expect(page.getByRole('button', { name: 'Incidencias' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Juntas' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Incidencias' }).click();
+  await page.getByRole('button', { name: 'Actas' }).click();
   await page.getByRole('button', { name: 'Enviar mensaje' }).click();
 
   const answerRegion = page.getByLabel('Respuesta del coordinador');
-  await expect(answerRegion.getByText('Agente de incidencias', { exact: true })).toBeVisible();
+  await expect(answerRegion.getByText('Agente de actas', { exact: true })).toBeVisible();
+  await expect(answerRegion.getByText(/Acta de reunión/)).toBeVisible();
+  await expect(answerRegion.getByText(/Acuerdos:/)).toBeVisible();
   await expect(answerRegion.getByText('Modo demo local')).toBeVisible();
 });
 

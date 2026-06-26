@@ -44,8 +44,15 @@ const intentKeywords: ReadonlyArray<{
   },
 ];
 
+const strongMeetingMinutesKeywords = [' acta ', ' acuerdo ', ' acuerdos ', ' notas '] as const;
+
 export function classifyIntent(message: string): AgentIntent {
   const normalizedMessage = ` ${normalize(message)} `;
+
+  if (strongMeetingMinutesKeywords.some((keyword) => normalizedMessage.includes(keyword))) {
+    return 'actas';
+  }
+
   const match = intentKeywords.find(({ keywords }) =>
     keywords.some((keyword) => normalizedMessage.includes(` ${keyword} `)),
   );

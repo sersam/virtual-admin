@@ -1,6 +1,7 @@
 import type { ChatAgent, ChatMessageResponse } from '@admin/contracts';
 import { createLocalDocumentAnswer } from './localDocumentAnswer';
 import { createLocalCommunityNoticeDraft } from './localCommunityNoticeDraft';
+import { createLocalMeetingMinutesDraft } from './localMeetingMinutesDraft';
 
 const intentKeywords: ReadonlyArray<{
   readonly agent: ChatAgent;
@@ -37,6 +38,8 @@ const intentKeywords: ReadonlyArray<{
   },
 ];
 
+const strongMeetingMinutesKeywords = [' acta ', ' acuerdo ', ' acuerdos ', ' notas '] as const;
+
 export function createLocalChatMessage(message: string): ChatMessageResponse {
   const agent = classifyLocalAgent(message);
   if (agent === 'documentos') {
@@ -57,6 +60,14 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
       sources: [],
     };
   }
+  if (agent === 'actas') {
+    return {
+      agent,
+      answer: createLocalMeetingMinutesDraft(message).draft.body,
+      mode: 'local-demo',
+      sources: [],
+    };
+  }
 
   return {
     agent,
@@ -68,6 +79,10 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
 
 function classifyLocalAgent(message: string): ChatAgent {
   const normalizedMessage = ` ${normalize(message)} `;
+  if (strongMeetingMinutesKeywords.some((keyword) => normalizedMessage.includes(keyword))) {
+    return 'actas';
+  }
+
   const match = intentKeywords.find(({ keywords }) =>
     keywords.some((keyword) => normalizedMessage.includes(` ${keyword} `)),
   );
@@ -84,9 +99,10 @@ function normalize(text: string): string {
     .trim();
 }
 
-const localAgentAnswers: Record<Exclude<ChatAgent, 'documentos' | 'comunicados'>, string> = {
-  actas:
-    'Soy el agente de actas. En esta demo local puedo clasificar tu petición; la generación completa llegará en la US-006.',
+const localAgentAnswers: Record<
+  Exclude<ChatAgent, 'documentos' | 'comunicados' | 'actas'>,
+  string
+> = {
   general:
     'Soy el coordinador local. Puedo derivar peticiones sobre documentos, comunicados, actas, incidencias y juntas.',
   incidencias:

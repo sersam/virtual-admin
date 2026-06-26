@@ -57,4 +57,28 @@ describe('LangGraphChatWorkflow', () => {
     expect(response.answer).toContain('limpieza del garaje');
     expect(response.sources).toEqual([]);
   });
+
+  it('genera actas demo desde notas de reunión sin consultar fuentes documentales', async () => {
+    const workflow = new LangGraphChatWorkflow({
+      documentAnswerer: {
+        execute: async () => {
+          throw new Error('No debería consultar documentos');
+        },
+      },
+    });
+
+    const response = await workflow.run(
+      [
+        'Junta ordinaria del 12 de junio.',
+        'Acuerdo: aprobar presupuesto.',
+        'Tarea: Revisar contrato; Responsable: Ana',
+      ].join('\n'),
+    );
+
+    expect(response.agent).toBe('actas');
+    expect(response.answer).toContain('Acta de reunión');
+    expect(response.answer).toContain('Acuerdos:');
+    expect(response.answer).toContain('Revisar contrato');
+    expect(response.sources).toEqual([]);
+  });
 });
