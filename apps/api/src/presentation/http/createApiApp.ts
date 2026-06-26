@@ -5,6 +5,8 @@ import multer from 'multer';
 import {
   ChatMessageRequestSchema,
   ChatMessageResponseSchema,
+  CommunityNoticeDraftRequestSchema,
+  CommunityNoticeDraftResponseSchema,
   DocumentQueryRequestSchema,
   DocumentQueryResponseSchema,
   ErrorResponseSchema,
@@ -20,6 +22,7 @@ import {
 } from '../../application/use-cases/EnsureDemoSession.js';
 import { AnswerDocumentQuestion } from '../../application/use-cases/AnswerDocumentQuestion.js';
 import { CoordinateChatMessage } from '../../application/use-cases/CoordinateChatMessage.js';
+import { DraftCommunityNotice } from '../../application/use-cases/DraftCommunityNotice.js';
 import {
   GetUploadedDocument,
   UploadedDocumentNotFoundError,
@@ -75,6 +78,7 @@ export function createApiApp(options: ApiAppOptions) {
       documentAnswerer: answerDocumentQuestion,
     }),
   });
+  const draftCommunityNotice = new DraftCommunityNotice();
   const ensureSession = new EnsureDemoSession({
     clock: options.clock,
     ids: options.ids,
@@ -155,6 +159,24 @@ export function createApiApp(options: ApiAppOptions) {
 
       attachSessionCookie(response, session.id, options);
       response.json(ChatMessageResponseSchema.parse(answer));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post('/api/communications/draft', async (request: Request, response: Response, next) => {
+    try {
+      const payloadResult = CommunityNoticeDraftRequestSchema.safeParse(request.body);
+      if (!payloadResult.success) {
+        sendError(response, 400, 'VALIDATION_ERROR', 'La petición no tiene un formato válido.');
+        return;
+      }
+
+      const session = await ensureSession.execute(readSignedSessionId(request));
+      const draft = await draftCommunityNotice.execute(payloadResult.data.message);
+
+      attachSessionCookie(response, session.id, options);
+      response.json(CommunityNoticeDraftResponseSchema.parse(draft));
     } catch (error) {
       next(error);
     }

@@ -40,7 +40,7 @@ describe('LangGraphChatWorkflow', () => {
     expect(receivedSessionId).toBe('session-1');
   });
 
-  it('orienta al agente futuro sin simular acciones no implementadas', async () => {
+  it('redacta comunicados demo sin consultar fuentes documentales', async () => {
     const workflow = new LangGraphChatWorkflow({
       documentAnswerer: {
         execute: async () => {
@@ -52,8 +52,9 @@ describe('LangGraphChatWorkflow', () => {
     const response = await workflow.run('Redacta un comunicado sobre la limpieza del garaje.');
 
     expect(response.agent).toBe('comunicados');
-    expect(response.answer).toContain('agente de comunicados');
-    expect(response.answer).toContain('US-005');
+    expect(response.answer).toContain('Asunto: Limpieza del garaje');
+    expect(response.answer).toContain('Estimados vecinos:');
+    expect(response.answer).toContain('limpieza del garaje');
     expect(response.sources).toEqual([]);
   });
 });

@@ -10,11 +10,12 @@ describe('createLocalChatMessage', () => {
     expect(response.sources[0]?.id).toBe('normas-piscina');
   });
 
-  it('clasifica intenciones futuras sin simular acciones', () => {
+  it('redacta comunicados demo en modo local', () => {
     const response = createLocalChatMessage('Redacta un comunicado sobre el corte de agua.');
 
     expect(response.agent).toBe('comunicados');
-    expect(response.answer).toContain('agente de comunicados');
+    expect(response.answer).toContain('Asunto: Corte de agua');
+    expect(response.answer).toContain('Estimados vecinos:');
     expect(response.sources).toEqual([]);
   });
 });

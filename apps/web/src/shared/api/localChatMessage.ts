@@ -1,5 +1,6 @@
 import type { ChatAgent, ChatMessageResponse } from '@admin/contracts';
 import { createLocalDocumentAnswer } from './localDocumentAnswer';
+import { createLocalCommunityNoticeDraft } from './localCommunityNoticeDraft';
 
 const intentKeywords: ReadonlyArray<{
   readonly agent: ChatAgent;
@@ -47,6 +48,15 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
       sources: answer.sources,
     };
   }
+  if (agent === 'comunicados') {
+    const response = createLocalCommunityNoticeDraft(message);
+    return {
+      agent,
+      answer: [`Asunto: ${response.draft.subject}`, '', response.draft.body].join('\n'),
+      mode: 'local-demo',
+      sources: [],
+    };
+  }
 
   return {
     agent,
@@ -74,11 +84,9 @@ function normalize(text: string): string {
     .trim();
 }
 
-const localAgentAnswers: Record<Exclude<ChatAgent, 'documentos'>, string> = {
+const localAgentAnswers: Record<Exclude<ChatAgent, 'documentos' | 'comunicados'>, string> = {
   actas:
     'Soy el agente de actas. En esta demo local puedo clasificar tu petición; la generación completa llegará en la US-006.',
-  comunicados:
-    'Soy el agente de comunicados. En esta demo local puedo clasificar tu petición; la redacción completa llegará en la US-005.',
   general:
     'Soy el coordinador local. Puedo derivar peticiones sobre documentos, comunicados, actas, incidencias y juntas.',
   incidencias:

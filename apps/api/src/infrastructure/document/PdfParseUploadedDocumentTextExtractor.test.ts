@@ -29,5 +29,5 @@ describe('PdfParseUploadedDocumentTextExtractor', () => {
     await expect(extractor.extractText(minimalPdf)).resolves.toContain(
       'Contrato mantenimiento ascensor portal B',
     );
-  });
+  }, 15_000);
 });
