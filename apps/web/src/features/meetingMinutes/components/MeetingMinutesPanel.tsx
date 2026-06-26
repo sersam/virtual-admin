@@ -1,7 +1,8 @@
 import type { FormEvent } from 'react';
-import { ClipboardList, FileText, SendHorizontal } from 'lucide-react';
+import { ClipboardList, Download, FileText, SendHorizontal } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useMeetingMinutesDraft } from '../hooks/useMeetingMinutesDraft';
+import { downloadMeetingMinutesPdf } from '../model/meetingMinutesPdf';
 
 const suggestedNotes = [
   [
@@ -36,6 +37,15 @@ export function MeetingMinutesPanel() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await submit(notes);
+  }
+
+  function handleDownloadPdf() {
+    if (!result) return;
+
+    downloadMeetingMinutesPdf({
+      body: editableDraftBody,
+      title: result.draft.title,
+    });
   }
 
   return (
@@ -120,6 +130,10 @@ export function MeetingMinutesPanel() {
                 onChange={(event) => setEditableDraftBody(event.target.value)}
                 value={editableDraftBody}
               />
+              <button className="primary-button mt-4" onClick={handleDownloadPdf} type="button">
+                <Download aria-hidden="true" size={17} />
+                Descargar PDF
+              </button>
             </div>
 
             {result.draft.tasks.length > 0 && (

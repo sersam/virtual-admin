@@ -143,6 +143,10 @@ test('genera actas desde notas de reunión', async ({ page }, testInfo) => {
   await expect(editableDraft).toHaveValue(/Acuerdos:/);
   await editableDraft.fill('Acta revisada por secretaría.');
   await expect(editableDraft).toHaveValue('Acta revisada por secretaría.');
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Descargar PDF' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('acta-reunion.pdf');
   await expect(
     draftRegion.getByRole('listitem').filter({ hasText: 'Revisar contrato' }),
   ).toBeVisible();

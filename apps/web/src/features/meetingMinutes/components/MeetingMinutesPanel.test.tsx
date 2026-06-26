@@ -64,4 +64,46 @@ describe('MeetingMinutesPanel', () => {
     expect(screen.getByDisplayValue('Acta revisada por secretaría.')).toBeInTheDocument();
     expect(screen.getByText('Revisar contrato')).toBeInTheDocument();
   });
+
+  it('descarga un PDF con el borrador editado', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          draft: {
+            title: 'Acta de reunión',
+            body: 'Acta de reunión\n\nAcuerdos:\n- Aprobar presupuesto.',
+            tasks: [],
+          },
+          mode: 'deterministic-demo',
+        }),
+        { status: 200 },
+      ),
+    );
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+    const createObjectUrlSpy = vi.fn((blob: Blob) => {
+      expect(blob.type).toBe('application/pdf');
+      return 'blob:acta';
+    });
+    const revokeObjectUrlSpy = vi.fn();
+    vi.stubGlobal('URL', {
+      ...URL,
+      createObjectURL: createObjectUrlSpy,
+      revokeObjectURL: revokeObjectUrlSpy,
+    });
+
+    render(<MeetingMinutesPanel />);
+
+    await user.click(screen.getByRole('button', { name: 'Generar acta' }));
+    const editableDraft = await screen.findByLabelText('Borrador editable del acta');
+    await user.clear(editableDraft);
+    await user.type(editableDraft, 'Acta revisada por secretaría.');
+    await user.click(screen.getByRole('button', { name: 'Descargar PDF' }));
+
+    expect(createObjectUrlSpy).toHaveBeenCalledWith(expect.any(Blob));
+    expect(clickSpy).toHaveBeenCalled();
+    expect(revokeObjectUrlSpy).toHaveBeenCalledWith('blob:acta');
+  });
 });
