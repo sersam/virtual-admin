@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-06-27 · PR [#10](https://github.com/sersam/virtual-admin/pull/10)
+
+### Added
+
+- Añade los contratos y el generador demo determinista para actas de reunión.
+
 ## 2026-06-26 · PR [#8](https://github.com/sersam/virtual-admin/pull/8)
 
 ### Added
