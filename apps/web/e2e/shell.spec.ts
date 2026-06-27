@@ -72,7 +72,7 @@ test('chat coordinador permite probar todas las áreas del MVP', async ({ page }
   await page.goto('/chat');
 
   if (testInfo.project.name === 'mobile') {
-    await page.getByRole('button', { name: 'Incidencias' }).scrollIntoViewIfNeeded();
+    await page.getByRole('button', { name: 'Actas' }).scrollIntoViewIfNeeded();
   }
 
   await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
@@ -81,11 +81,13 @@ test('chat coordinador permite probar todas las áreas del MVP', async ({ page }
   await expect(page.getByRole('button', { name: 'Incidencias' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Juntas' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Incidencias' }).click();
+  await page.getByRole('button', { name: 'Actas' }).click();
   await page.getByRole('button', { name: 'Enviar mensaje' }).click();
 
   const answerRegion = page.getByLabel('Respuesta del coordinador');
-  await expect(answerRegion.getByText('Agente de incidencias', { exact: true })).toBeVisible();
+  await expect(answerRegion.getByText('Agente de actas', { exact: true })).toBeVisible();
+  await expect(answerRegion.getByText(/Acta de reunión/)).toBeVisible();
+  await expect(answerRegion.getByText(/Acuerdos:/)).toBeVisible();
   await expect(answerRegion.getByText('Modo demo local')).toBeVisible();
 });
 
@@ -109,6 +111,45 @@ test('redacta comunicados para vecinos', async ({ page }, testInfo) => {
   const draftRegion = page.getByLabel('Comunicado generado');
   await expect(draftRegion.getByRole('heading', { name: 'Corte de agua' })).toBeVisible();
   await expect(draftRegion.getByText(/Estimados vecinos:/)).toBeVisible();
+  await expect(draftRegion.getByText('Demo determinista')).toBeVisible();
+});
+
+test('genera actas desde notas de reunión', async ({ page }, testInfo) => {
+  await page.route('**/api/meeting-minutes/draft', (route) => route.abort());
+  await page.goto('/actas');
+
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Generar acta' }).scrollIntoViewIfNeeded();
+  }
+
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Convierte notas en actas' }),
+  ).toBeVisible();
+
+  await page
+    .getByLabel('Notas de la reunión')
+    .fill(
+      [
+        'Junta ordinaria del 12 de junio.',
+        'Acuerdo: aprobar presupuesto.',
+        'Tarea: Revisar contrato; Responsable: Ana',
+      ].join('\n'),
+    );
+  await page.getByRole('button', { name: 'Generar acta' }).click();
+
+  const draftRegion = page.getByLabel('Acta generada');
+  await expect(draftRegion.getByRole('heading', { name: 'Acta de reunión' })).toBeVisible();
+  const editableDraft = draftRegion.getByLabel('Borrador editable del acta');
+  await expect(editableDraft).toHaveValue(/Acuerdos:/);
+  await editableDraft.fill('Acta revisada por secretaría.');
+  await expect(editableDraft).toHaveValue('Acta revisada por secretaría.');
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Descargar PDF' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('acta-reunion.pdf');
+  await expect(
+    draftRegion.getByRole('listitem').filter({ hasText: 'Revisar contrato' }),
+  ).toBeVisible();
   await expect(draftRegion.getByText('Demo determinista')).toBeVisible();
 });
 

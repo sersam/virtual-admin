@@ -51,7 +51,7 @@ export const navigationItems: NavigationItem[] = [
     label: 'Actas',
     description: 'Convierte notas en actas',
     icon: ScrollText,
-    available: false,
+    available: true,
   },
   {
     path: '/incidencias',

@@ -19,6 +19,24 @@ describe('classifyIntent', () => {
     ).toBe('incidencias');
   });
 
+  it('prioriza actas cuando las notas incluyen responsables de tareas', () => {
+    expect(
+      classifyIntent(
+        [
+          'Junta ordinaria del 12 de junio.',
+          'Acuerdo: aprobar presupuesto.',
+          'Tarea: Revisar contrato; Responsable: Ana',
+        ].join('\n'),
+      ),
+    ).toBe('actas');
+  });
+
+  it('mantiene documentos cuando una consulta documental menciona un acuerdo', () => {
+    expect(classifyIntent('Consulta los documentos adjuntos sobre el acuerdo del ascensor.')).toBe(
+      'documentos',
+    );
+  });
+
   it('reconoce documentos en plural y consultas explícitas sobre adjuntos', () => {
     expect(classifyIntent('Consulta los documentos adjuntos sobre el contrato del ascensor.')).toBe(
       'documentos',

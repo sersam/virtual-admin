@@ -9,6 +9,7 @@ import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import type { ChatWorkflow, ChatWorkflowContext } from '../../application/ports/ChatWorkflow.js';
 import { classifyIntent } from '../../domain/agent/IntentClassifier.js';
 import { draftCommunityNotice } from '../../domain/communication/CommunityNoticeDraft.js';
+import { createMeetingMinutesDraft } from '../../domain/meetingMinutes/MeetingMinutesDraft.js';
 
 interface DocumentAnswerer {
   execute(question: string, context?: ChatWorkflowContext): Promise<DocumentQueryResponse>;
@@ -77,6 +78,9 @@ export class LangGraphChatWorkflow implements ChatWorkflow {
     if (agent === 'comunicados') {
       return { answer: draftCommunityNotice(message), sources: [] };
     }
+    if (agent === 'actas') {
+      return { answer: createMeetingMinutesDraft(message).body, sources: [] };
+    }
 
     return {
       answer: futureAgentAnswer[agent],
@@ -85,9 +89,10 @@ export class LangGraphChatWorkflow implements ChatWorkflow {
   }
 }
 
-const futureAgentAnswer: Record<Exclude<ChatAgent, 'documentos' | 'comunicados'>, string> = {
-  actas:
-    'Soy el agente de actas. En esta US-004 puedo clasificar tu petición; la generación completa de actas llegará en la US-006.',
+const futureAgentAnswer: Record<
+  Exclude<ChatAgent, 'documentos' | 'comunicados' | 'actas'>,
+  string
+> = {
   general:
     'Soy el coordinador de la demo. Puedo derivar peticiones sobre documentos, comunicados, actas, incidencias y preparación de juntas.',
   incidencias:

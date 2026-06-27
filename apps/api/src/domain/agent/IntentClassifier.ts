@@ -1,3 +1,5 @@
+import { isMeetingMinutesRequest } from '@admin/meeting-minutes';
+
 export type AgentIntent =
   | 'documentos'
   | 'comunicados'
@@ -21,7 +23,7 @@ const intentKeywords: ReadonlyArray<{
   },
   {
     intent: 'actas',
-    keywords: ['acta', 'acuerdo', 'acuerdos', 'notas', 'secretario'],
+    keywords: ['acta', 'actas', 'secretario'],
   },
   {
     intent: 'juntas',
@@ -46,6 +48,11 @@ const intentKeywords: ReadonlyArray<{
 
 export function classifyIntent(message: string): AgentIntent {
   const normalizedMessage = ` ${normalize(message)} `;
+
+  if (isMeetingMinutesRequest(message)) {
+    return 'actas';
+  }
+
   const match = intentKeywords.find(({ keywords }) =>
     keywords.some((keyword) => normalizedMessage.includes(` ${keyword} `)),
   );

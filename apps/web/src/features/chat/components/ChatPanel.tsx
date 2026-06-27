@@ -124,7 +124,9 @@ export function ChatPanel() {
                   {modeLabels[result.mode]}
                 </span>
               </div>
-              <p className="mt-4 text-sm leading-6 text-sky-50">{result.answer}</p>
+              <p className="mt-4 whitespace-pre-line text-sm leading-6 text-sky-50">
+                {result.answer}
+              </p>
             </div>
 
             {result.sources.length > 0 && (

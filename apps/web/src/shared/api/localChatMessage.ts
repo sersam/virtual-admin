@@ -1,6 +1,8 @@
+import { isMeetingMinutesRequest } from '@admin/meeting-minutes';
 import type { ChatAgent, ChatMessageResponse } from '@admin/contracts';
 import { createLocalDocumentAnswer } from './localDocumentAnswer';
 import { createLocalCommunityNoticeDraft } from './localCommunityNoticeDraft';
+import { createLocalMeetingMinutesDraft } from './localMeetingMinutesDraft';
 
 const intentKeywords: ReadonlyArray<{
   readonly agent: ChatAgent;
@@ -16,7 +18,7 @@ const intentKeywords: ReadonlyArray<{
   },
   {
     agent: 'actas',
-    keywords: ['acta', 'acuerdo', 'acuerdos', 'notas', 'secretario'],
+    keywords: ['acta', 'actas', 'secretario'],
   },
   {
     agent: 'juntas',
@@ -36,6 +38,8 @@ const intentKeywords: ReadonlyArray<{
     ],
   },
 ];
+
+const MIN_MEETING_MINUTES_NOTES_LENGTH = 10;
 
 export function createLocalChatMessage(message: string): ChatMessageResponse {
   const agent = classifyLocalAgent(message);
@@ -57,6 +61,23 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
       sources: [],
     };
   }
+  if (agent === 'actas') {
+    if (message.trim().length < MIN_MEETING_MINUTES_NOTES_LENGTH) {
+      return {
+        agent,
+        answer: 'Necesito unas notas de al menos 10 caracteres para generar un borrador de acta.',
+        mode: 'local-demo',
+        sources: [],
+      };
+    }
+
+    return {
+      agent,
+      answer: createLocalMeetingMinutesDraft(message).draft.body,
+      mode: 'local-demo',
+      sources: [],
+    };
+  }
 
   return {
     agent,
@@ -68,6 +89,10 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
 
 function classifyLocalAgent(message: string): ChatAgent {
   const normalizedMessage = ` ${normalize(message)} `;
+  if (isMeetingMinutesRequest(message)) {
+    return 'actas';
+  }
+
   const match = intentKeywords.find(({ keywords }) =>
     keywords.some((keyword) => normalizedMessage.includes(` ${keyword} `)),
   );
@@ -84,9 +109,10 @@ function normalize(text: string): string {
     .trim();
 }
 
-const localAgentAnswers: Record<Exclude<ChatAgent, 'documentos' | 'comunicados'>, string> = {
-  actas:
-    'Soy el agente de actas. En esta demo local puedo clasificar tu petición; la generación completa llegará en la US-006.',
+const localAgentAnswers: Record<
+  Exclude<ChatAgent, 'documentos' | 'comunicados' | 'actas'>,
+  string
+> = {
   general:
     'Soy el coordinador local. Puedo derivar peticiones sobre documentos, comunicados, actas, incidencias y juntas.',
   incidencias:
