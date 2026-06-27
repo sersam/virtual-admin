@@ -1,3 +1,5 @@
+import { isMeetingMinutesRequest } from '@admin/meeting-minutes';
+
 export type AgentIntent =
   | 'documentos'
   | 'comunicados'
@@ -44,21 +46,10 @@ const intentKeywords: ReadonlyArray<{
   },
 ];
 
-const explicitMeetingMinutesKeywords = ['acta', 'actas'] as const;
-const supportingMeetingMinutesKeywords = [
-  'acuerdo',
-  'acuerdos',
-  'notas',
-  'responsable',
-  'responsables',
-  'tarea',
-  'tareas',
-] as const;
-
 export function classifyIntent(message: string): AgentIntent {
   const normalizedMessage = ` ${normalize(message)} `;
 
-  if (isMeetingMinutesRequest(normalizedMessage)) {
+  if (isMeetingMinutesRequest(message)) {
     return 'actas';
   }
 
@@ -67,24 +58,6 @@ export function classifyIntent(message: string): AgentIntent {
   );
 
   return match?.intent ?? 'general';
-}
-
-function isMeetingMinutesRequest(normalizedMessage: string): boolean {
-  if (
-    explicitMeetingMinutesKeywords.some((keyword) => includesKeyword(normalizedMessage, keyword))
-  ) {
-    return true;
-  }
-
-  return (
-    supportingMeetingMinutesKeywords.filter((keyword) =>
-      includesKeyword(normalizedMessage, keyword),
-    ).length >= 2
-  );
-}
-
-function includesKeyword(normalizedMessage: string, keyword: string): boolean {
-  return normalizedMessage.includes(` ${keyword} `);
 }
 
 function normalize(text: string): string {
