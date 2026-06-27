@@ -5,6 +5,7 @@ import { MeetingMinutesPanel } from './MeetingMinutesPanel';
 
 describe('MeetingMinutesPanel', () => {
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -104,6 +105,6 @@ describe('MeetingMinutesPanel', () => {
 
     expect(createObjectUrlSpy).toHaveBeenCalledWith(expect.any(Blob));
     expect(clickSpy).toHaveBeenCalled();
-    expect(revokeObjectUrlSpy).toHaveBeenCalledWith('blob:acta');
+    await waitFor(() => expect(revokeObjectUrlSpy).toHaveBeenCalledWith('blob:acta'));
   });
 });

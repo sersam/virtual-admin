@@ -21,7 +21,7 @@ const intentKeywords: ReadonlyArray<{
   },
   {
     intent: 'actas',
-    keywords: ['acta', 'acuerdo', 'acuerdos', 'notas', 'secretario'],
+    keywords: ['acta', 'actas', 'secretario'],
   },
   {
     intent: 'juntas',
@@ -44,12 +44,21 @@ const intentKeywords: ReadonlyArray<{
   },
 ];
 
-const strongMeetingMinutesKeywords = [' acta ', ' acuerdo ', ' acuerdos ', ' notas '] as const;
+const explicitMeetingMinutesKeywords = ['acta', 'actas'] as const;
+const supportingMeetingMinutesKeywords = [
+  'acuerdo',
+  'acuerdos',
+  'notas',
+  'responsable',
+  'responsables',
+  'tarea',
+  'tareas',
+] as const;
 
 export function classifyIntent(message: string): AgentIntent {
   const normalizedMessage = ` ${normalize(message)} `;
 
-  if (strongMeetingMinutesKeywords.some((keyword) => normalizedMessage.includes(keyword))) {
+  if (isMeetingMinutesRequest(normalizedMessage)) {
     return 'actas';
   }
 
@@ -58,6 +67,24 @@ export function classifyIntent(message: string): AgentIntent {
   );
 
   return match?.intent ?? 'general';
+}
+
+function isMeetingMinutesRequest(normalizedMessage: string): boolean {
+  if (
+    explicitMeetingMinutesKeywords.some((keyword) => includesKeyword(normalizedMessage, keyword))
+  ) {
+    return true;
+  }
+
+  return (
+    supportingMeetingMinutesKeywords.filter((keyword) =>
+      includesKeyword(normalizedMessage, keyword),
+    ).length >= 2
+  );
+}
+
+function includesKeyword(normalizedMessage: string, keyword: string): boolean {
+  return normalizedMessage.includes(` ${keyword} `);
 }
 
 function normalize(text: string): string {

@@ -30,7 +30,7 @@ export function downloadMeetingMinutesPdf(input: MeetingMinutesPdfInput): void {
   document.body.append(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function normalizePdfContent(input: MeetingMinutesPdfInput): string {
@@ -50,64 +50,53 @@ function wrapLine(line: string): string[] {
   if (line.trim().length === 0) return [''];
 
   const words = line.trim().split(/\s+/u);
-  const lines: string[] = [];
+  let lines: string[] = [];
   let currentLine = '';
 
   for (const word of words) {
     if (word.length > MAX_LINE_LENGTH) {
       if (currentLine.length > 0) {
-        lines.push(currentLine);
+        lines = [...lines, currentLine];
         currentLine = '';
       }
-      lines.push(...splitLongWord(word));
+      lines = [...lines, ...splitLongWord(word)];
       continue;
     }
 
     const nextLine = currentLine.length > 0 ? `${currentLine} ${word}` : word;
     if (nextLine.length > MAX_LINE_LENGTH) {
-      lines.push(currentLine);
+      lines = [...lines, currentLine];
       currentLine = word;
     } else {
       currentLine = nextLine;
     }
   }
 
-  if (currentLine.length > 0) lines.push(currentLine);
-  return lines;
+  return currentLine.length > 0 ? [...lines, currentLine] : lines;
 }
 
 function splitLongWord(word: string): string[] {
-  const chunks: string[] = [];
-  for (let index = 0; index < word.length; index += MAX_LINE_LENGTH) {
-    chunks.push(word.slice(index, index + MAX_LINE_LENGTH));
-  }
-
-  return chunks;
+  return Array.from({ length: Math.ceil(word.length / MAX_LINE_LENGTH) }, (_, index) => {
+    const start = index * MAX_LINE_LENGTH;
+    return word.slice(start, start + MAX_LINE_LENGTH);
+  });
 }
 
 function chunkLines(lines: string[], chunkSize: number): string[][] {
-  const chunks: string[][] = [];
-  for (let index = 0; index < lines.length; index += chunkSize) {
-    chunks.push(lines.slice(index, index + chunkSize));
-  }
-
-  return chunks;
+  return Array.from({ length: Math.ceil(lines.length / chunkSize) }, (_, index) => {
+    const start = index * chunkSize;
+    return lines.slice(start, start + chunkSize);
+  });
 }
 
 function buildPdfObjects(pages: string[][]): string[] {
   const kids = pages.map((_, index) => `${4 + index * 2} 0 R`).join(' ');
-  const objects = [
-    '<< /Type /Catalog /Pages 2 0 R >>',
-    `<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>`,
-    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
-  ];
-
-  for (const [index, pageLines] of pages.entries()) {
+  const pageObjects = pages.flatMap((pageLines, index) => {
     const pageObjectId = 4 + index * 2;
     const contentObjectId = pageObjectId + 1;
     const stream = buildPageContentStream(pageLines);
 
-    objects.push(
+    return [
       [
         '<< /Type /Page',
         '/Parent 2 0 R',
@@ -116,11 +105,16 @@ function buildPdfObjects(pages: string[][]): string[] {
         `/Contents ${contentObjectId} 0 R`,
         '>>',
       ].join(' '),
-    );
-    objects.push(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
-  }
+      `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    ];
+  });
 
-  return objects;
+  return [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    `<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+    ...pageObjects,
+  ];
 }
 
 function buildPageContentStream(lines: string[]): string {
@@ -148,15 +142,7 @@ function escapePdfLiteral(text: string): string {
 }
 
 function encodeWinAnsi(text: string): number[] {
-  const bytes: number[] = [];
-
-  for (let index = 0; index < text.length; ) {
-    const codePoint = text.codePointAt(index) ?? 0;
-    bytes.push(toWinAnsiByte(codePoint));
-    index += codePoint > 0xffff ? 2 : 1;
-  }
-
-  return bytes;
+  return Array.from(text, (character) => toWinAnsiByte(character.codePointAt(0) ?? 0));
 }
 
 function toWinAnsiByte(codePoint: number): number {
@@ -178,19 +164,19 @@ const winAnsiSpecialBytes = new Map<number, number>([
 ]);
 
 function serializePdf(objects: string[]): Uint8Array {
-  const offsets = [0];
-  let binary = '%PDF-1.4\n';
-
-  for (const [index, object] of objects.entries()) {
-    offsets.push(binary.length);
-    binary += `${index + 1} 0 obj\n${object}\nendobj\n`;
-  }
+  const serializedObjects = objects.reduce(
+    (state, object, index) => ({
+      binary: `${state.binary}${index + 1} 0 obj\n${object}\nendobj\n`,
+      offsets: [...state.offsets, state.binary.length],
+    }),
+    { binary: '%PDF-1.4\n', offsets: [] as number[] },
+  );
+  let binary = serializedObjects.binary;
 
   const xrefOffset = binary.length;
   binary += `xref\n0 ${objects.length + 1}\n`;
   binary += '0000000000 65535 f \n';
-  binary += offsets
-    .slice(1)
+  binary += serializedObjects.offsets
     .map((offset) => `${offset.toString().padStart(10, '0')} 00000 n \n`)
     .join('');
   binary += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\n`;

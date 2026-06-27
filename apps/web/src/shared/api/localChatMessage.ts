@@ -17,7 +17,7 @@ const intentKeywords: ReadonlyArray<{
   },
   {
     agent: 'actas',
-    keywords: ['acta', 'acuerdo', 'acuerdos', 'notas', 'secretario'],
+    keywords: ['acta', 'actas', 'secretario'],
   },
   {
     agent: 'juntas',
@@ -38,7 +38,17 @@ const intentKeywords: ReadonlyArray<{
   },
 ];
 
-const strongMeetingMinutesKeywords = [' acta ', ' acuerdo ', ' acuerdos ', ' notas '] as const;
+const MIN_MEETING_MINUTES_NOTES_LENGTH = 10;
+const explicitMeetingMinutesKeywords = ['acta', 'actas'] as const;
+const supportingMeetingMinutesKeywords = [
+  'acuerdo',
+  'acuerdos',
+  'notas',
+  'responsable',
+  'responsables',
+  'tarea',
+  'tareas',
+] as const;
 
 export function createLocalChatMessage(message: string): ChatMessageResponse {
   const agent = classifyLocalAgent(message);
@@ -61,6 +71,15 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
     };
   }
   if (agent === 'actas') {
+    if (message.trim().length < MIN_MEETING_MINUTES_NOTES_LENGTH) {
+      return {
+        agent,
+        answer: 'Necesito unas notas de al menos 10 caracteres para generar un borrador de acta.',
+        mode: 'local-demo',
+        sources: [],
+      };
+    }
+
     return {
       agent,
       answer: createLocalMeetingMinutesDraft(message).draft.body,
@@ -79,7 +98,7 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
 
 function classifyLocalAgent(message: string): ChatAgent {
   const normalizedMessage = ` ${normalize(message)} `;
-  if (strongMeetingMinutesKeywords.some((keyword) => normalizedMessage.includes(keyword))) {
+  if (isMeetingMinutesRequest(normalizedMessage)) {
     return 'actas';
   }
 
@@ -88,6 +107,24 @@ function classifyLocalAgent(message: string): ChatAgent {
   );
 
   return match?.agent ?? 'general';
+}
+
+function isMeetingMinutesRequest(normalizedMessage: string): boolean {
+  if (
+    explicitMeetingMinutesKeywords.some((keyword) => includesKeyword(normalizedMessage, keyword))
+  ) {
+    return true;
+  }
+
+  return (
+    supportingMeetingMinutesKeywords.filter((keyword) =>
+      includesKeyword(normalizedMessage, keyword),
+    ).length >= 2
+  );
+}
+
+function includesKeyword(normalizedMessage: string, keyword: string): boolean {
+  return normalizedMessage.includes(` ${keyword} `);
 }
 
 function normalize(text: string): string {

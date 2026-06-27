@@ -31,6 +31,12 @@ describe('classifyIntent', () => {
     ).toBe('actas');
   });
 
+  it('mantiene documentos cuando una consulta documental menciona un acuerdo', () => {
+    expect(classifyIntent('Consulta los documentos adjuntos sobre el acuerdo del ascensor.')).toBe(
+      'documentos',
+    );
+  });
+
   it('reconoce documentos en plural y consultas explícitas sobre adjuntos', () => {
     expect(classifyIntent('Consulta los documentos adjuntos sobre el contrato del ascensor.')).toBe(
       'documentos',

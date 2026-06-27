@@ -34,4 +34,21 @@ describe('createLocalChatMessage', () => {
     expect(response.answer).toContain('Revisar contrato');
     expect(response.sources).toEqual([]);
   });
+
+  it('mantiene documentos cuando una consulta documental menciona un acuerdo', () => {
+    const response = createLocalChatMessage(
+      'Consulta los documentos sobre el acuerdo del contrato del ascensor.',
+    );
+
+    expect(response.agent).toBe('documentos');
+    expect(response.sources.length).toBeGreaterThan(0);
+  });
+
+  it('responde de forma segura cuando la petición de actas es demasiado corta', () => {
+    const response = createLocalChatMessage('acta');
+
+    expect(response.agent).toBe('actas');
+    expect(response.answer).toContain('Necesito unas notas');
+    expect(response.sources).toEqual([]);
+  });
 });

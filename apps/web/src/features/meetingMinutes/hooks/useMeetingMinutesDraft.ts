@@ -1,5 +1,5 @@
 import type { MeetingMinutesDraftResponse } from '@admin/contracts';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { draftMeetingMinutes } from '../../../shared/api/draftMeetingMinutes';
 import { createLocalMeetingMinutesDraft } from '../../../shared/api/localMeetingMinutesDraft';
 
@@ -16,8 +16,11 @@ interface MeetingMinutesDraftState {
 
 export function useMeetingMinutesDraft() {
   const [state, setState] = useState<MeetingMinutesDraftState>({ status: 'idle' });
+  const latestRequestId = useRef(0);
 
   async function submit(notes: string): Promise<void> {
+    const requestId = latestRequestId.current + 1;
+    latestRequestId.current = requestId;
     const trimmedNotes = notes.trim();
     if (trimmedNotes.length < MIN_NOTES_LENGTH || trimmedNotes.length > MAX_NOTES_LENGTH) {
       setState({
@@ -31,8 +34,10 @@ export function useMeetingMinutesDraft() {
 
     try {
       const result = await draftMeetingMinutes(trimmedNotes);
+      if (requestId !== latestRequestId.current) return;
       setState({ result, status: 'ready' });
     } catch (error) {
+      if (requestId !== latestRequestId.current) return;
       console.error('[useMeetingMinutesDraft] Se usa redacción local determinista.', error);
       setState({ result: createLocalMeetingMinutesDraft(trimmedNotes), status: 'fallback' });
     }
