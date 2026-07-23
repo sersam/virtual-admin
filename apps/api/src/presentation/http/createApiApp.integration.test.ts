@@ -174,6 +174,75 @@ describe('createApiApp', () => {
     expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
   });
 
+  it('crea incidencias clasificadas desde el endpoint dedicado', async () => {
+    const agent = request.agent(buildApp());
+    const response = await agent.post('/api/incidents').send({
+      description: 'Hay una fuga de agua urgente en el garaje.',
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({
+      incident: {
+        id: '00000000-0000-4000-8000-000000000002',
+        description: 'Hay una fuga de agua urgente en el garaje.',
+        type: 'agua',
+        priority: 'urgente',
+        suggestedResponsible: 'Fontanería',
+        createdAt: '2026-06-23T08:00:00.000Z',
+      },
+      mode: 'deterministic-demo',
+    });
+    expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
+  });
+
+  it('registra desde el chat una incidencia visible en el listado de la sesión', async () => {
+    const agent = request.agent(buildApp());
+    const chatResponse = await agent.post('/api/chat/messages').send({
+      message: 'Hay una fuga de agua urgente en el garaje.',
+    });
+    const listResponse = await agent.get('/api/incidents');
+
+    expect(chatResponse.status).toBe(200);
+    expect(chatResponse.body).toMatchObject({
+      agent: 'incidencias',
+      answer: expect.stringContaining('Responsable sugerido: Fontanería'),
+      mode: 'langgraph-demo',
+      sources: [],
+    });
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body.incidents).toEqual([
+      expect.objectContaining({
+        description: 'Hay una fuga de agua urgente en el garaje.',
+        type: 'agua',
+        priority: 'urgente',
+        suggestedResponsible: 'Fontanería',
+      }),
+    ]);
+  });
+
+  it('lista incidencias de la sesión y permite filtrarlas por tipo', async () => {
+    const agent = request.agent(buildApp(6));
+    await agent.post('/api/incidents').send({
+      description: 'Hay una fuga de agua en el garaje.',
+    });
+    await agent.post('/api/incidents').send({
+      description: 'El ascensor no funciona desde esta mañana.',
+    });
+
+    const list = await agent.get('/api/incidents');
+    const filtered = await agent.get('/api/incidents').query({ type: 'ascensor' });
+
+    expect(list.status).toBe(200);
+    expect(list.body.incidents).toHaveLength(2);
+    expect(filtered.status).toBe(200);
+    expect(filtered.body.incidents).toEqual([
+      expect.objectContaining({
+        id: '00000000-0000-4000-8000-000000000003',
+        type: 'ascensor',
+      }),
+    ]);
+  });
+
   it('valida el formato del endpoint de comunicados antes de consumir sesión', async () => {
     const response = await request(buildApp()).post('/api/communications/draft').send({
       message: 'ok',
@@ -191,6 +260,38 @@ describe('createApiApp', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    expect(response.headers['set-cookie']).toBeUndefined();
+  });
+
+  it('valida el formato de incidencias antes de consumir sesión', async () => {
+    let consumeRequestCount = 0;
+    const app = createApiApp({
+      clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
+      cookieSecret: 'test-secret',
+      documentRetriever,
+      ids: { randomId: () => '00000000-0000-4000-8000-000000000001' },
+      repository: {
+        consumeRequest: async () => {
+          consumeRequestCount += 1;
+          return 'limit_reached';
+        },
+        findById: async () => undefined,
+        save: async () => {
+          /* no-op */
+        },
+      },
+      requestsLimit: 3,
+      ttlMs: 60_000,
+      uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
+      uploadedDocumentTextExtractor,
+      version: 'test',
+    });
+
+    const response = await request(app).post('/api/incidents').send({ description: 'Fuga' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    expect(consumeRequestCount).toBe(0);
     expect(response.headers['set-cookie']).toBeUndefined();
   });
 

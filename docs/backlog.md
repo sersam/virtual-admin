@@ -48,7 +48,7 @@ Como secretario, quiero convertir notas y acuerdos en un acta formal.
 
 Como vecino, quiero registrar una incidencia y obtener categoría, prioridad y responsable sugerido.
 
-**Aceptación:** clasificación estructurada, reglas fallback, persistencia por sesión y listado.
+**Aceptación:** clasificación estructurada, reglas fallback, persistencia por sesión, listado y filtrado por tipo de incidencia.
 
 ## US-008 · Preparador de juntas
 
@@ -56,11 +56,11 @@ Como administrador, quiero generar un orden del día desde incidencias y acuerdo
 
 **Aceptación:** agregación por sesión, priorización, resultado editable y trazabilidad de entradas.
 
-## US-009 · OpenAI para generación de comunicados
+## US-009 · OpenAI para comunicados e incidencias
 
-Como administrador, quiero generar comunicados con OpenAI manteniendo un modo demo local reproducible.
+Como administrador, quiero generar comunicados y clasificar incidencias con OpenAI manteniendo un modo demo local reproducible.
 
-**Aceptación:** OpenAI solo desde backend, puerto de generación, adaptador OpenAI, adaptador demo, prompt versionado, observabilidad de modelo/tokens/coste/latencia, fallback sin API key, pruebas con proveedor fake y sin llamadas reales en CI.
+**Aceptación:** OpenAI solo desde backend, puerto de generación de comunicados, puerto de clasificación de incidencias, adaptadores OpenAI, adaptadores demo, prompts versionados, observabilidad de modelo/tokens/coste/latencia, fallback sin API key, pruebas con proveedor fake y sin llamadas reales en CI.
 
 ## US-010 · PostgreSQL, despliegue y evaluación
 

@@ -153,6 +153,85 @@ test('genera actas desde notas de reunión', async ({ page }, testInfo) => {
   await expect(draftRegion.getByText('Demo determinista')).toBeVisible();
 });
 
+test('registra incidencias y filtra por tipo', async ({ page }, testInfo) => {
+  const incidents: Array<{
+    id: string;
+    description: string;
+    type: 'agua' | 'ascensor';
+    priority: 'alta' | 'urgente';
+    suggestedResponsible: string;
+    createdAt: string;
+  }> = [];
+
+  await page.route(/^http:\/\/127\.0\.0\.1:3000\/api\/incidents(?:\?.*)?$/, async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+
+    if (request.method() === 'GET') {
+      const type = url.searchParams.get('type');
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          incidents: type ? incidents.filter((incident) => incident.type === type) : incidents,
+        },
+        status: 200,
+      });
+      return;
+    }
+
+    const payload = request.postDataJSON() as { readonly description: string };
+    const isLiftIncident = payload.description.toLowerCase().includes('ascensor');
+    const incident = {
+      id: `inc-000${incidents.length + 1}`,
+      description: payload.description,
+      type: isLiftIncident ? ('ascensor' as const) : ('agua' as const),
+      priority: isLiftIncident ? ('alta' as const) : ('urgente' as const),
+      suggestedResponsible: isLiftIncident ? 'Mantenimiento de ascensores' : 'Fontanería',
+      createdAt: '2026-06-27T10:00:00.000Z',
+    };
+    incidents.push(incident);
+
+    await route.fulfill({
+      contentType: 'application/json',
+      json: { incident, mode: 'deterministic-demo' },
+      status: 201,
+    });
+  });
+
+  await page.goto('/incidencias');
+
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Registrar incidencia' }).scrollIntoViewIfNeeded();
+  }
+
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Registra y clasifica incidencias' }),
+  ).toBeVisible();
+  await expect(page.getByText('Sin incidencias registradas')).toBeVisible();
+
+  await page
+    .getByLabel('Descripción de la incidencia')
+    .fill('Hay una fuga de agua urgente en el garaje.');
+  await page.getByRole('button', { name: 'Registrar incidencia' }).click();
+  const waterIncident = page.getByRole('article', { name: /fuga de agua urgente/i });
+  await expect(waterIncident).toBeVisible();
+  await expect(waterIncident.getByText('Agua', { exact: true })).toBeVisible();
+  await expect(waterIncident.getByText('Urgente', { exact: true })).toBeVisible();
+  await expect(waterIncident.getByText('Fontanería')).toBeVisible();
+
+  await page
+    .getByLabel('Descripción de la incidencia')
+    .fill('El ascensor no funciona desde esta mañana.');
+  await page.getByRole('button', { name: 'Registrar incidencia' }).click();
+  const liftIncident = page.getByRole('article', { name: /ascensor no funciona/i });
+  await expect(liftIncident).toBeVisible();
+
+  await page.getByLabel('Filtrar por tipo').selectOption('ascensor');
+
+  await expect(liftIncident).toBeVisible();
+  await expect(waterIncident).toBeHidden();
+});
+
 test('adapta la navegación al viewport', async ({ page }, testInfo) => {
   await page.goto('/');
 

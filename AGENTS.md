@@ -148,6 +148,12 @@ No implementar comportamiento que no esté descrito en la historia.
 - Nombres descriptivos.
 - Funciones pequeñas y cohesionadas.
 
+### Commits
+
+- Todos los commits deben seguir Conventional Commits con el formato `<tipo>(<alcance opcional>): <descripción>`.
+- Utilizar tipos reconocibles como `feat`, `fix`, `docs`, `test`, `refactor`, `build`, `ci`, `chore`, `perf`, `style` y `revert`.
+- Indicar los cambios incompatibles mediante `!` antes de `:` o con un pie `BREAKING CHANGE:`.
+
 ### Idioma
 
 - Todo el contenido visible para el usuario debe estar en español.

@@ -51,4 +51,21 @@ describe('createLocalChatMessage', () => {
     expect(response.answer).toContain('Necesito unas notas');
     expect(response.sources).toEqual([]);
   });
+
+  it('clasifica incidencias en fallback local sin simular su registro', () => {
+    const response = createLocalChatMessage('Hay una fuga de agua urgente en el garaje.');
+
+    expect(response).toEqual({
+      agent: 'incidencias',
+      answer: [
+        'Clasificación local de la incidencia.',
+        'Categoría: Agua',
+        'Prioridad: Urgente',
+        'Responsable sugerido: Fontanería',
+        'No se ha registrado porque la API de sesión no está disponible.',
+      ].join('\n'),
+      mode: 'local-demo',
+      sources: [],
+    });
+  });
 });

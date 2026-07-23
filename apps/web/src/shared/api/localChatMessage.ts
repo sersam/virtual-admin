@@ -1,4 +1,5 @@
 import { isMeetingMinutesRequest } from '@admin/meeting-minutes';
+import { classifyIncident } from '@admin/incidents';
 import type { ChatAgent, ChatMessageResponse } from '@admin/contracts';
 import { createLocalDocumentAnswer } from './localDocumentAnswer';
 import { createLocalCommunityNoticeDraft } from './localCommunityNoticeDraft';
@@ -78,6 +79,21 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
       sources: [],
     };
   }
+  if (agent === 'incidencias') {
+    const classification = classifyIncident(message);
+    return {
+      agent,
+      answer: [
+        'Clasificación local de la incidencia.',
+        `Categoría: ${capitalize(classification.type)}`,
+        `Prioridad: ${capitalize(classification.priority)}`,
+        `Responsable sugerido: ${classification.suggestedResponsible}`,
+        'No se ha registrado porque la API de sesión no está disponible.',
+      ].join('\n'),
+      mode: 'local-demo',
+      sources: [],
+    };
+  }
 
   return {
     agent,
@@ -110,13 +126,15 @@ function normalize(text: string): string {
 }
 
 const localAgentAnswers: Record<
-  Exclude<ChatAgent, 'documentos' | 'comunicados' | 'actas'>,
+  Exclude<ChatAgent, 'documentos' | 'comunicados' | 'actas' | 'incidencias'>,
   string
 > = {
   general:
     'Soy el coordinador local. Puedo derivar peticiones sobre documentos, comunicados, actas, incidencias y juntas.',
-  incidencias:
-    'Soy el agente de incidencias. En esta demo local puedo clasificar tu petición; el registro completo llegará en la US-007.',
   juntas:
     'Soy el agente de juntas. En esta demo local puedo clasificar tu petición; la preparación completa llegará en la US-008.',
 };
+
+function capitalize(value: string): string {
+  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
+}

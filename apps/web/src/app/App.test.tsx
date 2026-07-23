@@ -57,6 +57,13 @@ describe('rutas de App', () => {
     ).toBeInTheDocument();
   });
 
+  it('activa la ruta de incidencias', () => {
+    renderAt('/incidencias');
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Registra y clasifica incidencias' }),
+    ).toBeInTheDocument();
+  });
+
   it('usa una pantalla segura para rutas desconocidas', () => {
     renderAt('/ruta-desconocida');
     expect(screen.getByRole('heading', { level: 1, name: 'Herramienta' })).toBeInTheDocument();

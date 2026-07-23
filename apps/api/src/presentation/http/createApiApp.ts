@@ -7,10 +7,14 @@ import {
   ChatMessageResponseSchema,
   CommunityNoticeDraftRequestSchema,
   CommunityNoticeDraftResponseSchema,
+  CreateIncidentRequestSchema,
+  CreateIncidentResponseSchema,
   DocumentQueryRequestSchema,
   DocumentQueryResponseSchema,
   ErrorResponseSchema,
   HealthResponseSchema,
+  IncidentListQuerySchema,
+  IncidentListResponseSchema,
   MeetingMinutesDraftRequestSchema,
   MeetingMinutesDraftResponseSchema,
   PdfUploadConstraints,
@@ -24,6 +28,10 @@ import {
 } from '../../application/use-cases/EnsureDemoSession.js';
 import { AnswerDocumentQuestion } from '../../application/use-cases/AnswerDocumentQuestion.js';
 import { CoordinateChatMessage } from '../../application/use-cases/CoordinateChatMessage.js';
+import {
+  CreateIncident,
+  InvalidIncidentDescriptionError,
+} from '../../application/use-cases/CreateIncident.js';
 import { DraftCommunityNotice } from '../../application/use-cases/DraftCommunityNotice.js';
 import { DraftMeetingMinutes } from '../../application/use-cases/DraftMeetingMinutes.js';
 import {
@@ -36,6 +44,7 @@ import {
   StoreUploadedDocument,
   UploadedDocumentTooLargeError,
 } from '../../application/use-cases/StoreUploadedDocument.js';
+import { ListIncidents } from '../../application/use-cases/ListIncidents.js';
 import type { DocumentRetriever } from '../../application/ports/DocumentRetriever.js';
 import type { SessionRepository } from '../../application/ports/SessionRepository.js';
 import type { UploadedDocumentRepository } from '../../application/ports/UploadedDocumentRepository.js';
@@ -44,6 +53,8 @@ import type { Clock } from '../../application/ports/Clock.js';
 import type { IdGenerator } from '../../application/ports/IdGenerator.js';
 import { LangGraphChatWorkflow } from '../../infrastructure/agent/LangGraphChatWorkflow.js';
 import { UploadedSessionDocumentRetriever } from '../../infrastructure/document/UploadedSessionDocumentRetriever.js';
+import { DeterministicIncidentClassifier } from '../../infrastructure/incident/DeterministicIncidentClassifier.js';
+import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemoryIncidentRepository.js';
 import { presentSession } from './sessionPresenter.js';
 
 const SESSION_COOKIE = 'va_session';
@@ -76,9 +87,18 @@ export function createApiApp(options: ApiAppOptions) {
     retriever: options.documentRetriever,
     sessionRetriever: uploadedSessionDocumentRetriever,
   });
+  const incidentRepository = new InMemoryIncidentRepository();
+  const createIncident = new CreateIncident({
+    classifier: new DeterministicIncidentClassifier(),
+    clock: options.clock,
+    ids: options.ids,
+    repository: incidentRepository,
+  });
+  const listIncidents = new ListIncidents({ repository: incidentRepository });
   const coordinateChatMessage = new CoordinateChatMessage({
     workflow: new LangGraphChatWorkflow({
       documentAnswerer: answerDocumentQuestion,
+      incidentCreator: createIncident,
     }),
   });
   const draftCommunityNotice = new DraftCommunityNotice();
@@ -199,6 +219,50 @@ export function createApiApp(options: ApiAppOptions) {
 
       attachSessionCookie(response, session.id, options);
       response.json(MeetingMinutesDraftResponseSchema.parse(draft));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post('/api/incidents', async (request: Request, response: Response, next) => {
+    try {
+      const payloadResult = CreateIncidentRequestSchema.safeParse(request.body);
+      if (!payloadResult.success) {
+        sendError(response, 400, 'VALIDATION_ERROR', 'La petición no tiene un formato válido.');
+        return;
+      }
+
+      const session = await ensureSession.execute(readSignedSessionId(request));
+      const incident = await createIncident.execute({
+        sessionId: session.id,
+        description: payloadResult.data.description,
+      });
+
+      attachSessionCookie(response, session.id, options);
+      response
+        .status(201)
+        .json(CreateIncidentResponseSchema.parse({ incident, mode: 'deterministic-demo' }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get('/api/incidents', async (request: Request, response: Response, next) => {
+    try {
+      const queryResult = IncidentListQuerySchema.safeParse(request.query);
+      if (!queryResult.success) {
+        sendError(response, 400, 'VALIDATION_ERROR', 'La petición no tiene un formato válido.');
+        return;
+      }
+
+      const session = await ensureSession.execute(readSignedSessionId(request));
+      const incidents = await listIncidents.execute({
+        sessionId: session.id,
+        type: queryResult.data.type,
+      });
+
+      attachSessionCookie(response, session.id, options);
+      response.json(IncidentListResponseSchema.parse({ incidents }));
     } catch (error) {
       next(error);
     }
@@ -341,6 +405,11 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
 
   if (error instanceof UploadedDocumentTooLargeError) {
     sendError(response, 413, 'UPLOAD_TOO_LARGE', 'El PDF no puede superar 5 MB.');
+    return;
+  }
+
+  if (error instanceof InvalidIncidentDescriptionError) {
+    sendError(response, 400, 'VALIDATION_ERROR', error.message);
     return;
   }
 
