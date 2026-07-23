@@ -60,9 +60,10 @@ describe('MeetingMinutesPanel', () => {
     const editableDraft = await screen.findByLabelText('Borrador editable del acta');
 
     await user.clear(editableDraft);
+    await waitFor(() => expect(editableDraft).toHaveValue(''));
     await user.type(editableDraft, 'Acta revisada por secretaría.');
 
-    expect(screen.getByDisplayValue('Acta revisada por secretaría.')).toBeInTheDocument();
+    expect(editableDraft).toHaveValue('Acta revisada por secretaría.');
     expect(screen.getByText('Revisar contrato')).toBeInTheDocument();
   });
 
