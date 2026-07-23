@@ -153,6 +153,65 @@ test('genera actas desde notas de reunión', async ({ page }, testInfo) => {
   await expect(draftRegion.getByText('Demo determinista')).toBeVisible();
 });
 
+test('prepara juntas con entradas trazables y borrador editable', async ({ page }, testInfo) => {
+  await page.route('**/api/meeting-agendas/draft', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        draft: {
+          title: 'Orden del día',
+          body: [
+            'Orden del día',
+            '',
+            '1. [Urgente] Hay una fuga de agua urgente en el garaje.',
+            '   Origen: incidencia inc-1.',
+            '2. [Alta] Revisar contrato de limpieza.',
+            '   Origen: acuerdo pendiente pending-1. Responsable: Ana. Fecha: 30 de junio.',
+          ].join('\n'),
+          items: [
+            {
+              description: 'Hay una fuga de agua urgente en el garaje.',
+              priority: 'urgente',
+              sourceType: 'incident',
+              sourceId: 'inc-1',
+            },
+            {
+              description: 'Revisar contrato de limpieza',
+              priority: 'alta',
+              sourceType: 'pending-agreement',
+              sourceId: 'pending-1',
+              assignee: 'Ana',
+              dueDate: '30 de junio',
+            },
+          ],
+        },
+        mode: 'deterministic-demo',
+      },
+      status: 200,
+    });
+  });
+  await page.goto('/juntas');
+
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Preparar orden del día' }).scrollIntoViewIfNeeded();
+  }
+
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Prepara el orden del día' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Preparar orden del día' }).click();
+
+  const draftRegion = page.getByLabel('Orden del día generado');
+  const editableDraft = draftRegion.getByLabel('Borrador editable del orden del día');
+  await expect(editableDraft).toHaveValue(/fuga de agua urgente/);
+  await editableDraft.fill('Orden del día revisado por administración.');
+  await expect(editableDraft).toHaveValue('Orden del día revisado por administración.');
+  await expect(draftRegion.getByText('Entradas utilizadas')).toBeVisible();
+  await expect(draftRegion.getByText('Incidencia', { exact: true })).toBeVisible();
+  await expect(draftRegion.getByText('Acuerdo pendiente', { exact: true })).toBeVisible();
+  await expect(draftRegion.getByText('Revisar contrato de limpieza')).toBeVisible();
+});
+
 test('registra incidencias y filtra por tipo', async ({ page }, testInfo) => {
   const incidents: Array<{
     id: string;
