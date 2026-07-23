@@ -31,7 +31,7 @@ describe('MeetingMinutesPanel', () => {
     await user.type(screen.getByLabelText('Notas de la reunión'), 'Acuerdo: aprobar presupuesto.');
     await user.click(screen.getByRole('button', { name: 'Generar acta' }));
 
-    await waitFor(() => expect(screen.getByText('Acta de reunión')).toBeInTheDocument());
+    expect(await screen.findByText('Acta de reunión')).toBeInTheDocument();
     expect(await screen.findByDisplayValue(/Acuerdos:/)).toBeInTheDocument();
     expect(screen.getByText('Revisar contrato')).toBeInTheDocument();
     expect(screen.getByText('Ana')).toBeInTheDocument();

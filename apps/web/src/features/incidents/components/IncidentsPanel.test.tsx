@@ -37,9 +37,7 @@ describe('IncidentsPanel', () => {
       );
 
     render(<IncidentsPanel />);
-    await waitFor(() =>
-      expect(screen.getByText('Sin incidencias registradas')).toBeInTheDocument(),
-    );
+    expect(await screen.findByText('Sin incidencias registradas')).toBeInTheDocument();
 
     await user.clear(screen.getByLabelText('Descripción de la incidencia'));
     await user.type(
@@ -90,9 +88,7 @@ describe('IncidentsPanel', () => {
       .mockResolvedValue(new Response(JSON.stringify({ incidents: [] }), { status: 200 }));
 
     render(<IncidentsPanel />);
-    await waitFor(() =>
-      expect(screen.getByText('Sin incidencias registradas')).toBeInTheDocument(),
-    );
+    expect(await screen.findByText('Sin incidencias registradas')).toBeInTheDocument();
 
     await user.clear(screen.getByLabelText('Descripción de la incidencia'));
     await user.type(screen.getByLabelText('Descripción de la incidencia'), 'Fuga');

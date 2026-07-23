@@ -110,7 +110,7 @@ export function IncidentsPanel() {
             className="grid gap-2 text-sm font-bold text-navy-950"
             htmlFor="incident-type-filter"
           >
-            Filtrar por tipo
+            <span>Filtrar por tipo</span>
             <span className="relative">
               <Filter
                 aria-hidden="true"
