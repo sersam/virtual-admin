@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-23 · PR [#11](https://github.com/sersam/virtual-admin/pull/11)
+
+### Added
+
+- Añade el registro y la clasificación determinista de incidencias por sesión, con listado, filtro por tipo e integración en el chat.
+
 ## 2026-06-27 · PR [#10](https://github.com/sersam/virtual-admin/pull/10)
 
 ### Added
