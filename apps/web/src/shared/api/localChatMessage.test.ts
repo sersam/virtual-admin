@@ -68,4 +68,16 @@ describe('createLocalChatMessage', () => {
       sources: [],
     });
   });
+
+  it('clasifica juntas en fallback local sin simular entradas de sesión', () => {
+    const response = createLocalChatMessage('Prepara el orden del día de la próxima junta.');
+
+    expect(response).toEqual({
+      agent: 'juntas',
+      answer:
+        'Puedo clasificar la petición de juntas, pero necesito la API de sesión para preparar un orden del día con incidencias y acuerdos pendientes reales.',
+      mode: 'local-demo',
+      sources: [],
+    });
+  });
 });
