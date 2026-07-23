@@ -58,7 +58,7 @@ export const navigationItems: NavigationItem[] = [
     label: 'Incidencias',
     description: 'Clasifica y da seguimiento',
     icon: Wrench,
-    available: false,
+    available: true,
   },
   {
     path: '/juntas',

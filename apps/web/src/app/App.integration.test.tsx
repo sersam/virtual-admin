@@ -26,16 +26,14 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
-  it('navega a una herramienta futura y permite volver', async () => {
+  it('navega a incidencias desde la navegación principal', async () => {
     const user = userEvent.setup();
     render(<App />, { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> });
     const navigation = screen.getByRole('navigation', { name: 'Navegación principal' });
     await user.click(within(navigation).getByRole('link', { name: 'Incidencias' }));
-    expect(screen.getByRole('heading', { level: 1, name: 'Incidencias' })).toBeInTheDocument();
-    await user.click(screen.getByRole('link', { name: 'Volver al inicio' }));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      'Una administración más clara',
-    );
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Registra y clasifica incidencias' }),
+    ).toBeInTheDocument();
   });
 
   it('navega al generador de actas', async () => {
