@@ -15,6 +15,8 @@ import {
   HealthResponseSchema,
   IncidentListQuerySchema,
   IncidentListResponseSchema,
+  ResolveIncidentParamsSchema,
+  ResolveIncidentResponseSchema,
   MeetingMinutesDraftRequestSchema,
   MeetingMinutesDraftResponseSchema,
   PdfUploadConstraints,
@@ -45,6 +47,10 @@ import {
   UploadedDocumentTooLargeError,
 } from '../../application/use-cases/StoreUploadedDocument.js';
 import { ListIncidents } from '../../application/use-cases/ListIncidents.js';
+import {
+  IncidentNotFoundError,
+  ResolveIncident,
+} from '../../application/use-cases/ResolveIncident.js';
 import type { DocumentRetriever } from '../../application/ports/DocumentRetriever.js';
 import type { SessionRepository } from '../../application/ports/SessionRepository.js';
 import type { UploadedDocumentRepository } from '../../application/ports/UploadedDocumentRepository.js';
@@ -95,6 +101,10 @@ export function createApiApp(options: ApiAppOptions) {
     repository: incidentRepository,
   });
   const listIncidents = new ListIncidents({ repository: incidentRepository });
+  const resolveIncident = new ResolveIncident({
+    clock: options.clock,
+    repository: incidentRepository,
+  });
   const coordinateChatMessage = new CoordinateChatMessage({
     workflow: new LangGraphChatWorkflow({
       documentAnswerer: answerDocumentQuestion,
@@ -124,7 +134,13 @@ export function createApiApp(options: ApiAppOptions) {
   });
 
   app.disable('x-powered-by');
-  app.use(cors({ origin: true, credentials: true }));
+  app.use(
+    cors({
+      credentials: true,
+      methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+      origin: true,
+    }),
+  );
   app.use(express.json({ limit: '32kb' }));
   app.use(cookieParser(options.cookieSecret));
 
@@ -268,6 +284,30 @@ export function createApiApp(options: ApiAppOptions) {
     }
   });
 
+  app.patch(
+    '/api/incidents/:incidentId/resolve',
+    async (request: Request, response: Response, next) => {
+      try {
+        const paramsResult = ResolveIncidentParamsSchema.safeParse(request.params);
+        if (!paramsResult.success) {
+          sendError(response, 400, 'VALIDATION_ERROR', 'La petición no tiene un formato válido.');
+          return;
+        }
+
+        const session = await ensureSession.execute(readSignedSessionId(request));
+        const incident = await resolveIncident.execute({
+          incidentId: paramsResult.data.incidentId,
+          sessionId: session.id,
+        });
+
+        attachSessionCookie(response, session.id, options);
+        response.json(ResolveIncidentResponseSchema.parse({ incident }));
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
   app.get('/api/documents/uploads', async (request: Request, response: Response, next) => {
     try {
       const session = await ensureSession.execute(readSignedSessionId(request));
@@ -410,6 +450,11 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
 
   if (error instanceof InvalidIncidentDescriptionError) {
     sendError(response, 400, 'VALIDATION_ERROR', error.message);
+    return;
+  }
+
+  if (error instanceof IncidentNotFoundError) {
+    sendError(response, 404, 'INCIDENT_NOT_FOUND', error.message);
     return;
   }
 

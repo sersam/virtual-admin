@@ -10,6 +10,14 @@ const waterIncident = {
   priority: 'urgente',
   suggestedResponsible: 'Fontanería',
   createdAt: '2026-06-27T10:00:00.000Z',
+  status: 'pendiente',
+  resolvedAt: null,
+};
+
+const resolvedWaterIncident = {
+  ...waterIncident,
+  status: 'resuelta',
+  resolvedAt: '2026-06-27T12:30:00.000Z',
 };
 
 const liftIncident = {
@@ -19,6 +27,8 @@ const liftIncident = {
   priority: 'alta',
   suggestedResponsible: 'Mantenimiento de ascensores',
   createdAt: '2026-06-27T10:05:00.000Z',
+  status: 'pendiente',
+  resolvedAt: null,
 };
 
 describe('IncidentsPanel', () => {
@@ -79,6 +89,30 @@ describe('IncidentsPanel', () => {
       ).not.toBeInTheDocument(),
     );
     expect(screen.getByRole('article', { name: /ascensor no funciona/i })).toBeInTheDocument();
+  });
+
+  it('marca una incidencia como resuelta y conserva su tarjeta visible', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ incidents: [waterIncident] }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ incident: resolvedWaterIncident }), { status: 200 }),
+      );
+
+    render(<IncidentsPanel />);
+    const incident = await screen.findByRole('article', { name: /fuga de agua urgente/i });
+
+    await user.click(within(incident).getByRole('button', { name: 'Marcar como resuelta' }));
+
+    expect(within(incident).getByText('Resuelta')).toBeInTheDocument();
+    expect(
+      within(incident).getByText('Resolución').parentElement?.querySelector('time'),
+    ).toHaveAttribute('datetime', resolvedWaterIncident.resolvedAt);
+    expect(
+      within(incident).queryByRole('button', { name: 'Marcar como resuelta' }),
+    ).not.toBeInTheDocument();
   });
 
   it('muestra validación para descripciones demasiado cortas', async () => {

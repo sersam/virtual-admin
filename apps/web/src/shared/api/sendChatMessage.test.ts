@@ -33,7 +33,7 @@ describe('sendChatMessage', () => {
 
     expect(response.agent).toBe('documentos');
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      'http://localhost:3000/api/chat/messages',
+      '/api/chat/messages',
       expect.objectContaining({ method: 'POST' }),
     );
   });

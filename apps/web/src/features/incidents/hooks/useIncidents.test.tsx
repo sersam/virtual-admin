@@ -9,6 +9,14 @@ const waterIncident = {
   priority: 'urgente',
   suggestedResponsible: 'Fontanería',
   createdAt: '2026-06-27T10:00:00.000Z',
+  status: 'pendiente',
+  resolvedAt: null,
+};
+
+const resolvedWaterIncident = {
+  ...waterIncident,
+  status: 'resuelta',
+  resolvedAt: '2026-06-27T12:30:00.000Z',
 };
 
 const liftIncident = {
@@ -81,6 +89,41 @@ describe('useIncidents', () => {
 
     expect(result.current.selectedType).toBe('ascensor');
     expect(result.current.incidents).toEqual([liftIncident]);
+  });
+
+  it('resuelve una incidencia y actualiza solo ese elemento del listado', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ incidents: [waterIncident, liftIncident] }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ incident: resolvedWaterIncident }), { status: 200 }),
+      );
+    const { result } = renderHook(() => useIncidents());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await act(() => result.current.resolve(waterIncident.id));
+
+    expect(result.current.status).toBe('ready');
+    expect(result.current.resolvingIncidentId).toBeUndefined();
+    expect(result.current.incidents).toEqual([resolvedWaterIncident, liftIncident]);
+  });
+
+  it('conserva la incidencia pendiente y muestra error si falla la resolución', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ incidents: [waterIncident] }), { status: 200 }),
+      )
+      .mockRejectedValueOnce(new Error('network'));
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { result } = renderHook(() => useIncidents());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await act(() => result.current.resolve(waterIncident.id));
+
+    expect(result.current.status).toBe('error');
+    expect(result.current.error).toBe('No se pudo resolver la incidencia. Inténtalo de nuevo.');
+    expect(result.current.incidents).toEqual([waterIncident]);
   });
 
   it('ignora una carga inicial tardía si ya se aplicó un filtro posterior', async () => {

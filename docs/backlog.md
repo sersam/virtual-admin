@@ -48,7 +48,7 @@ Como secretario, quiero convertir notas y acuerdos en un acta formal.
 
 Como vecino, quiero registrar una incidencia y obtener categoría, prioridad y responsable sugerido.
 
-**Aceptación:** clasificación estructurada, reglas fallback, persistencia por sesión, listado y filtrado por tipo de incidencia.
+**Aceptación:** clasificación estructurada, reglas fallback, persistencia por sesión, listado y filtrado por tipo de incidencia, y resolución unidireccional con fecha de cierre.
 
 ## US-008 · Preparador de juntas
 

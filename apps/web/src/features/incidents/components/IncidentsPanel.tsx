@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react';
 import type { Incident, IncidentPriority, IncidentType } from '@admin/contracts';
-import { ClipboardList, Filter, SendHorizontal, Wrench } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Filter, SendHorizontal, Wrench } from 'lucide-react';
 import { useState } from 'react';
 import { useIncidents } from '../hooks/useIncidents';
 
@@ -31,7 +31,16 @@ const incidentTypes = Object.keys(incidentTypeLabels) as IncidentType[];
 
 export function IncidentsPanel() {
   const [description, setDescription] = useState(suggestedDescriptions[0]!);
-  const { create, error, filterByType, incidents, selectedType, status } = useIncidents();
+  const {
+    create,
+    error,
+    filterByType,
+    incidents,
+    resolve,
+    resolvingIncidentId,
+    selectedType,
+    status,
+  } = useIncidents();
   const loading = status === 'loading';
   const creating = status === 'creating';
 
@@ -149,7 +158,12 @@ export function IncidentsPanel() {
         {incidents.length > 0 && (
           <div className="mt-6 grid gap-3">
             {incidents.map((incident) => (
-              <IncidentItem incident={incident} key={incident.id} />
+              <IncidentItem
+                incident={incident}
+                isResolving={resolvingIncidentId === incident.id}
+                key={incident.id}
+                onResolve={resolve}
+              />
             ))}
           </div>
         )}
@@ -158,7 +172,15 @@ export function IncidentsPanel() {
   );
 }
 
-function IncidentItem({ incident }: { readonly incident: Incident }) {
+interface IncidentItemProps {
+  readonly incident: Incident;
+  readonly isResolving: boolean;
+  readonly onResolve: (incidentId: string) => Promise<void>;
+}
+
+function IncidentItem({ incident, isResolving, onResolve }: IncidentItemProps) {
+  const resolved = incident.status === 'resuelta';
+
   return (
     <article
       aria-label={incident.description}
@@ -171,6 +193,11 @@ function IncidentItem({ incident }: { readonly incident: Incident }) {
         </span>
         <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">
           {priorityLabels[incident.priority]}
+        </span>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-bold ${resolved ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-700'}`}
+        >
+          {resolved ? 'Resuelta' : 'Pendiente'}
         </span>
       </div>
       <p className="mt-3 text-sm font-semibold leading-6 text-navy-950">{incident.description}</p>
@@ -185,7 +212,28 @@ function IncidentItem({ incident }: { readonly incident: Incident }) {
           <dt className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Registro</dt>
           <dd className="mt-1 font-semibold text-navy-950">{formatDate(incident.createdAt)}</dd>
         </div>
+        {resolved ? (
+          <div>
+            <dt className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+              Resolución
+            </dt>
+            <dd className="mt-1 font-semibold text-navy-950">
+              <time dateTime={incident.resolvedAt}>{formatDate(incident.resolvedAt)}</time>
+            </dd>
+          </div>
+        ) : null}
       </dl>
+      {!resolved ? (
+        <button
+          className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-wait disabled:opacity-60"
+          disabled={isResolving}
+          onClick={() => void onResolve(incident.id)}
+          type="button"
+        >
+          <CheckCircle2 aria-hidden="true" size={17} />
+          {isResolving ? 'Resolviendo...' : 'Marcar como resuelta'}
+        </button>
+      ) : null}
     </article>
   );
 }
