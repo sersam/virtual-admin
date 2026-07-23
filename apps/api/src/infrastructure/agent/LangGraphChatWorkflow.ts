@@ -4,13 +4,14 @@ import type {
   DocumentQueryResponse,
   DocumentSource,
   Incident,
+  MeetingAgendaDraftResponse,
+  MeetingMinutesDraftResponse,
 } from '@admin/contracts';
 import { ChatMessageResponseSchema } from '@admin/contracts';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import type { ChatWorkflow, ChatWorkflowContext } from '../../application/ports/ChatWorkflow.js';
 import { classifyIntent } from '../../domain/agent/IntentClassifier.js';
 import { draftCommunityNotice } from '../../domain/communication/CommunityNoticeDraft.js';
-import { createMeetingMinutesDraft } from '../../domain/meetingMinutes/MeetingMinutesDraft.js';
 
 interface DocumentAnswerer {
   execute(question: string, context?: ChatWorkflowContext): Promise<DocumentQueryResponse>;
@@ -20,9 +21,22 @@ interface IncidentCreator {
   execute(input: { readonly description: string; readonly sessionId: string }): Promise<Incident>;
 }
 
+interface MeetingMinutesDrafter {
+  execute(
+    notes: string,
+    options?: { readonly sessionId?: string },
+  ): Promise<MeetingMinutesDraftResponse>;
+}
+
+interface MeetingAgendaDrafter {
+  execute(input: { readonly sessionId: string }): Promise<MeetingAgendaDraftResponse>;
+}
+
 interface LangGraphChatWorkflowDependencies {
   readonly documentAnswerer: DocumentAnswerer;
   readonly incidentCreator: IncidentCreator;
+  readonly meetingAgendaDrafter: MeetingAgendaDrafter;
+  readonly meetingMinutesDrafter: MeetingMinutesDrafter;
 }
 
 interface ChatGraph {
@@ -85,7 +99,10 @@ export class LangGraphChatWorkflow implements ChatWorkflow {
       return { answer: draftCommunityNotice(message), sources: [] };
     }
     if (agent === 'actas') {
-      return { answer: createMeetingMinutesDraft(message).body, sources: [] };
+      const response = await this.dependencies.meetingMinutesDrafter.execute(message, {
+        sessionId,
+      });
+      return { answer: response.draft.body, sources: [] };
     }
     if (agent === 'incidencias') {
       if (!sessionId) {
@@ -100,6 +117,16 @@ export class LangGraphChatWorkflow implements ChatWorkflow {
       });
       return { answer: formatIncidentAnswer(incident), sources: [] };
     }
+    if (agent === 'juntas') {
+      if (!sessionId) {
+        return {
+          answer: 'No se pudo preparar el orden del día porque no hay una sesión activa.',
+          sources: [],
+        };
+      }
+      const response = await this.dependencies.meetingAgendaDrafter.execute({ sessionId });
+      return { answer: response.draft.body, sources: [] };
+    }
 
     return {
       answer: futureAgentAnswer[agent],
@@ -109,13 +136,11 @@ export class LangGraphChatWorkflow implements ChatWorkflow {
 }
 
 const futureAgentAnswer: Record<
-  Exclude<ChatAgent, 'documentos' | 'comunicados' | 'actas' | 'incidencias'>,
+  Exclude<ChatAgent, 'documentos' | 'comunicados' | 'actas' | 'incidencias' | 'juntas'>,
   string
 > = {
   general:
     'Soy el coordinador de la demo. Puedo derivar peticiones sobre documentos, comunicados, actas, incidencias y preparación de juntas.',
-  juntas:
-    'Soy el agente de juntas. En esta US-004 puedo clasificar tu petición; la preparación completa del orden del día llegará en la US-008.',
 };
 
 function formatIncidentAnswer(incident: Incident): string {

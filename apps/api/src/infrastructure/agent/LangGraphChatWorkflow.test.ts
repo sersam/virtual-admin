@@ -18,6 +18,18 @@ const unusedIncidentCreator = {
   },
 };
 
+const unusedMeetingMinutesDrafter = {
+  execute: async () => {
+    throw new Error('No debería redactar actas');
+  },
+};
+
+const unusedMeetingAgendaDrafter = {
+  execute: async () => {
+    throw new Error('No debería preparar juntas');
+  },
+};
+
 describe('LangGraphChatWorkflow', () => {
   it('clasifica consultas documentales y reutiliza el RAG existente', async () => {
     let receivedSessionId: string | undefined;
@@ -34,6 +46,8 @@ describe('LangGraphChatWorkflow', () => {
         },
       },
       incidentCreator: unusedIncidentCreator,
+      meetingAgendaDrafter: unusedMeetingAgendaDrafter,
+      meetingMinutesDrafter: unusedMeetingMinutesDrafter,
     });
 
     await expect(
@@ -55,6 +69,8 @@ describe('LangGraphChatWorkflow', () => {
         },
       },
       incidentCreator: unusedIncidentCreator,
+      meetingAgendaDrafter: unusedMeetingAgendaDrafter,
+      meetingMinutesDrafter: unusedMeetingMinutesDrafter,
     });
 
     const response = await workflow.run('Redacta un comunicado sobre la limpieza del garaje.');
@@ -66,7 +82,9 @@ describe('LangGraphChatWorkflow', () => {
     expect(response.sources).toEqual([]);
   });
 
-  it('genera actas demo desde notas de reunión sin consultar fuentes documentales', async () => {
+  it('genera actas demo usando el caso de uso real y la sesión activa', async () => {
+    let receivedNotes: string | undefined;
+    let receivedSessionId: string | undefined;
     const workflow = new LangGraphChatWorkflow({
       documentAnswerer: {
         execute: async () => {
@@ -74,19 +92,35 @@ describe('LangGraphChatWorkflow', () => {
         },
       },
       incidentCreator: unusedIncidentCreator,
+      meetingAgendaDrafter: unusedMeetingAgendaDrafter,
+      meetingMinutesDrafter: {
+        execute: async (notes, options) => {
+          receivedNotes = notes;
+          receivedSessionId = options?.sessionId;
+
+          return {
+            draft: {
+              title: 'Acta de reunión',
+              body: 'Acta de reunión\n\nTareas:\n- Revisar contrato.',
+              tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
+            },
+            mode: 'deterministic-demo',
+          };
+        },
+      },
     });
 
-    const response = await workflow.run(
-      [
-        'Junta ordinaria del 12 de junio.',
-        'Acuerdo: aprobar presupuesto.',
-        'Tarea: Revisar contrato; Responsable: Ana',
-      ].join('\n'),
-    );
+    const notes = [
+      'Junta ordinaria del 12 de junio.',
+      'Acuerdo: aprobar presupuesto.',
+      'Tarea: Revisar contrato; Responsable: Ana',
+    ].join('\n');
+    const response = await workflow.run(notes, { sessionId: 'session-1' });
 
+    expect(receivedNotes).toBe(notes);
+    expect(receivedSessionId).toBe('session-1');
     expect(response.agent).toBe('actas');
     expect(response.answer).toContain('Acta de reunión');
-    expect(response.answer).toContain('Acuerdos:');
     expect(response.answer).toContain('Revisar contrato');
     expect(response.sources).toEqual([]);
   });
@@ -115,6 +149,8 @@ describe('LangGraphChatWorkflow', () => {
           };
         },
       },
+      meetingAgendaDrafter: unusedMeetingAgendaDrafter,
+      meetingMinutesDrafter: unusedMeetingMinutesDrafter,
     });
 
     const response = await workflow.run('Hay una fuga de agua urgente en el garaje.', {
@@ -140,6 +176,8 @@ describe('LangGraphChatWorkflow', () => {
         },
       },
       incidentCreator: unusedIncidentCreator,
+      meetingAgendaDrafter: unusedMeetingAgendaDrafter,
+      meetingMinutesDrafter: unusedMeetingMinutesDrafter,
     });
 
     const response = await workflow.run('Hay una fuga de agua urgente en el garaje.');
@@ -147,5 +185,51 @@ describe('LangGraphChatWorkflow', () => {
     expect(response.answer).toBe(
       'No se pudo registrar la incidencia porque no hay una sesión activa.',
     );
+  });
+
+  it('prepara juntas usando el caso de uso real de orden del día', async () => {
+    let receivedSessionId: string | undefined;
+    const workflow = new LangGraphChatWorkflow({
+      documentAnswerer: {
+        execute: async () => {
+          throw new Error('No debería consultar documentos');
+        },
+      },
+      incidentCreator: unusedIncidentCreator,
+      meetingAgendaDrafter: {
+        execute: async ({ sessionId }) => {
+          receivedSessionId = sessionId;
+
+          return {
+            draft: {
+              title: 'Orden del día',
+              body: 'Orden del día\n\n1. [Alta] Revisar contrato de limpieza.',
+              items: [
+                {
+                  description: 'Revisar contrato de limpieza',
+                  priority: 'alta',
+                  sourceType: 'pending-agreement',
+                  sourceId: 'pending-1',
+                },
+              ],
+            },
+            mode: 'deterministic-demo',
+          };
+        },
+      },
+      meetingMinutesDrafter: unusedMeetingMinutesDrafter,
+    });
+
+    const response = await workflow.run('Prepara el orden del día de la próxima junta.', {
+      sessionId: 'session-1',
+    });
+
+    expect(receivedSessionId).toBe('session-1');
+    expect(response).toEqual({
+      agent: 'juntas',
+      answer: 'Orden del día\n\n1. [Alta] Revisar contrato de limpieza.',
+      mode: 'langgraph-demo',
+      sources: [],
+    });
   });
 });

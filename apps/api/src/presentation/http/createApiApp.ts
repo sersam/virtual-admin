@@ -15,6 +15,8 @@ import {
   HealthResponseSchema,
   IncidentListQuerySchema,
   IncidentListResponseSchema,
+  MeetingAgendaDraftRequestSchema,
+  MeetingAgendaDraftResponseSchema,
   MeetingMinutesDraftRequestSchema,
   MeetingMinutesDraftResponseSchema,
   PdfUploadConstraints,
@@ -33,6 +35,7 @@ import {
   InvalidIncidentDescriptionError,
 } from '../../application/use-cases/CreateIncident.js';
 import { DraftCommunityNotice } from '../../application/use-cases/DraftCommunityNotice.js';
+import { DraftMeetingAgenda } from '../../application/use-cases/DraftMeetingAgenda.js';
 import { DraftMeetingMinutes } from '../../application/use-cases/DraftMeetingMinutes.js';
 import {
   GetUploadedDocument,
@@ -55,6 +58,7 @@ import { LangGraphChatWorkflow } from '../../infrastructure/agent/LangGraphChatW
 import { UploadedSessionDocumentRetriever } from '../../infrastructure/document/UploadedSessionDocumentRetriever.js';
 import { DeterministicIncidentClassifier } from '../../infrastructure/incident/DeterministicIncidentClassifier.js';
 import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemoryIncidentRepository.js';
+import { InMemoryPendingAgreementRepository } from '../../infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
 import { presentSession } from './sessionPresenter.js';
 
 const SESSION_COOKIE = 'va_session';
@@ -94,15 +98,26 @@ export function createApiApp(options: ApiAppOptions) {
     ids: options.ids,
     repository: incidentRepository,
   });
+  const pendingAgreementRepository = new InMemoryPendingAgreementRepository();
   const listIncidents = new ListIncidents({ repository: incidentRepository });
+  const draftMeetingAgenda = new DraftMeetingAgenda({
+    incidentRepository,
+    pendingAgreementRepository,
+  });
+  const draftCommunityNotice = new DraftCommunityNotice();
+  const draftMeetingMinutes = new DraftMeetingMinutes({
+    clock: options.clock,
+    ids: options.ids,
+    pendingAgreementRepository,
+  });
   const coordinateChatMessage = new CoordinateChatMessage({
     workflow: new LangGraphChatWorkflow({
       documentAnswerer: answerDocumentQuestion,
       incidentCreator: createIncident,
+      meetingAgendaDrafter: draftMeetingAgenda,
+      meetingMinutesDrafter: draftMeetingMinutes,
     }),
   });
-  const draftCommunityNotice = new DraftCommunityNotice();
-  const draftMeetingMinutes = new DraftMeetingMinutes();
   const ensureSession = new EnsureDemoSession({
     clock: options.clock,
     ids: options.ids,
@@ -215,10 +230,30 @@ export function createApiApp(options: ApiAppOptions) {
       }
 
       const session = await ensureSession.execute(readSignedSessionId(request));
-      const draft = await draftMeetingMinutes.execute(payloadResult.data.notes);
+      const draft = await draftMeetingMinutes.execute(payloadResult.data.notes, {
+        sessionId: session.id,
+      });
 
       attachSessionCookie(response, session.id, options);
       response.json(MeetingMinutesDraftResponseSchema.parse(draft));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post('/api/meeting-agendas/draft', async (request: Request, response: Response, next) => {
+    try {
+      const payloadResult = MeetingAgendaDraftRequestSchema.safeParse(request.body);
+      if (!payloadResult.success) {
+        sendError(response, 400, 'VALIDATION_ERROR', 'La petición no tiene un formato válido.');
+        return;
+      }
+
+      const session = await ensureSession.execute(readSignedSessionId(request));
+      const draft = await draftMeetingAgenda.execute({ sessionId: session.id });
+
+      attachSessionCookie(response, session.id, options);
+      response.json(MeetingAgendaDraftResponseSchema.parse(draft));
     } catch (error) {
       next(error);
     }
