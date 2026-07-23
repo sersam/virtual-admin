@@ -65,7 +65,7 @@ export const navigationItems: NavigationItem[] = [
     label: 'Preparar junta',
     description: 'Genera el orden del día',
     icon: CalendarDays,
-    available: false,
+    available: true,
   },
 ];
 

@@ -6,7 +6,7 @@ describe('navigationItems', () => {
     expect(navigationPathsAreUnique(navigationItems)).toBe(true);
   });
 
-  it('activa inicio, chat, documentos, comunicados, actas e incidencias tras la US-007', () => {
+  it('activa inicio, chat, documentos, comunicados, actas, incidencias y juntas tras la US-008', () => {
     expect(navigationItems.filter(({ available }) => available).map(({ label }) => label)).toEqual([
       'Inicio',
       'Chat inteligente',
@@ -14,6 +14,7 @@ describe('navigationItems', () => {
       'Comunicados',
       'Actas',
       'Incidencias',
+      'Preparar junta',
     ]);
   });
 

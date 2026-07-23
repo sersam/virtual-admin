@@ -46,4 +46,15 @@ describe('App', () => {
       screen.getByRole('heading', { level: 1, name: 'Convierte notas en actas' }),
     ).toBeInTheDocument();
   });
+
+  it('navega al preparador de juntas', async () => {
+    const user = userEvent.setup();
+    render(<App />, { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> });
+    const navigation = screen.getByRole('navigation', { name: 'Navegación principal' });
+    await user.click(within(navigation).getByRole('link', { name: 'Preparar junta' }));
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Prepara el orden del día' }),
+    ).toBeInTheDocument();
+  });
 });
