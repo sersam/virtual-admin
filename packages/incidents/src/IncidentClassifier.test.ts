@@ -33,4 +33,20 @@ describe('classifyIncident', () => {
       suggestedResponsible: 'Administrador',
     });
   });
+
+  it('no clasifica coincidencias parciales como palabras válidas', () => {
+    expect(classifyIncident('Se ha perdido un paraguas en la entrada principal.')).toEqual({
+      type: 'otro',
+      priority: 'media',
+      suggestedResponsible: 'Administrador',
+    });
+  });
+
+  it('clasifica texto con diacríticos normalizados', () => {
+    expect(classifyIncident('La tubería está reventada y causa una inundación.')).toEqual({
+      type: 'agua',
+      priority: 'urgente',
+      suggestedResponsible: 'Fontanería',
+    });
+  });
 });

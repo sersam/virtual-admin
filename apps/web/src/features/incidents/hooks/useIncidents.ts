@@ -1,5 +1,6 @@
 import type { Incident, IncidentType } from '@admin/contracts';
-import { useEffect, useState } from 'react';
+import { classifyIncident, type IncidentClassification } from '@admin/incidents';
+import { useEffect, useRef, useState } from 'react';
 import { createIncident, listIncidents } from '../../../shared/api/incidents';
 
 export type IncidentsStatus = 'idle' | 'loading' | 'ready' | 'creating' | 'fallback' | 'error';
@@ -10,6 +11,7 @@ const MAX_DESCRIPTION_LENGTH = 1_000;
 interface IncidentsState {
   readonly error?: string;
   readonly incidents: Incident[];
+  readonly localClassification?: IncidentClassification;
   readonly selectedType?: IncidentType;
   readonly status: IncidentsStatus;
 }
@@ -19,6 +21,7 @@ export function useIncidents() {
     incidents: [],
     status: 'idle',
   });
+  const latestLoadRequestId = useRef(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -28,18 +31,24 @@ export function useIncidents() {
   }, []);
 
   async function load(type?: IncidentType, signal?: AbortSignal): Promise<void> {
+    const requestId = latestLoadRequestId.current + 1;
+    latestLoadRequestId.current = requestId;
+
     setState((current) => ({
       ...current,
       error: undefined,
+      localClassification: undefined,
       selectedType: type,
       status: 'loading',
     }));
 
     try {
       const incidents = await listIncidents(type, signal);
+      if (latestLoadRequestId.current !== requestId) return;
       setState({ incidents, selectedType: type, status: 'ready' });
     } catch (error) {
       if (signal?.aborted) return;
+      if (latestLoadRequestId.current !== requestId) return;
       console.error('[useIncidents] No se pudieron cargar las incidencias de sesión.', error);
       setState({ incidents: [], selectedType: type, status: 'fallback' });
     }
@@ -54,12 +63,18 @@ export function useIncidents() {
       setState((current) => ({
         ...current,
         error: `La descripción debe tener al menos ${MIN_DESCRIPTION_LENGTH} caracteres y como máximo ${MAX_DESCRIPTION_LENGTH}.`,
+        localClassification: undefined,
         status: 'error',
       }));
       return;
     }
 
-    setState((current) => ({ ...current, error: undefined, status: 'creating' }));
+    setState((current) => ({
+      ...current,
+      error: undefined,
+      localClassification: undefined,
+      status: 'creating',
+    }));
 
     try {
       const response = await createIncident(trimmedDescription);
@@ -73,9 +88,11 @@ export function useIncidents() {
       }));
     } catch (error) {
       console.error('[useIncidents] No se pudo registrar la incidencia.', error);
+      const localClassification = classifyIncident(trimmedDescription);
       setState((current) => ({
         ...current,
         error: 'No se pudo registrar la incidencia. Inténtalo de nuevo.',
+        localClassification,
         status: 'error',
       }));
     }

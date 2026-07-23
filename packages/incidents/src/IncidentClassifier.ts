@@ -96,7 +96,12 @@ function hasUrgentSignal(normalizedDescription: string, rule: IncidentRule): boo
 }
 
 function includesKeyword(normalizedDescription: string, keyword: string): boolean {
-  return normalizedDescription.includes(keyword);
+  const descriptionWords = splitWords(normalizedDescription);
+  const keywordWords = splitWords(normalize(keyword));
+
+  return descriptionWords.some((_, index) =>
+    keywordWords.every((word, offset) => descriptionWords[index + offset] === word),
+  );
 }
 
 function normalize(text: string): string {
@@ -104,4 +109,8 @@ function normalize(text: string): string {
     .normalize('NFD')
     .replaceAll(/\p{Diacritic}/gu, '')
     .toLowerCase();
+}
+
+function splitWords(text: string): string[] {
+  return text.split(/[^a-z0-9]+/u).filter(Boolean);
 }

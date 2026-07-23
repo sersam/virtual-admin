@@ -61,4 +61,34 @@ describe('CreateIncident', () => {
       }),
     ).rejects.toThrow('La descripción de la incidencia debe tener al menos 10 caracteres.');
   });
+
+  it('acepta descripciones con el mínimo exacto de 10 caracteres', async () => {
+    const repository = new InMemoryIncidentRepository();
+    const useCase = new CreateIncident({
+      classifier: {
+        classify: () => ({
+          type: 'otro',
+          priority: 'media',
+          suggestedResponsible: 'Administrador',
+        }),
+      },
+      clock: { now: () => new Date('2026-06-27T10:00:00.000Z') },
+      ids: { randomId: () => 'inc-0002' },
+      repository,
+    });
+
+    const incident = await useCase.execute({
+      sessionId: 'session-a',
+      description: '1234567890',
+    });
+
+    expect(incident.description).toBe('1234567890');
+    await expect(repository.listBySession('session-a')).resolves.toEqual([
+      expect.objectContaining({
+        id: 'inc-0002',
+        description: '1234567890',
+        sessionId: 'session-a',
+      }),
+    ]);
+  });
 });

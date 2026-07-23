@@ -58,7 +58,18 @@ describe('incident contracts', () => {
   });
 
   it('rechaza descripciones cortas, tipos inválidos y fechas inválidas', () => {
+    expect(CreateIncidentRequestSchema.parse({ description: '1234567890' })).toEqual({
+      description: '1234567890',
+    });
+    expect(CreateIncidentRequestSchema.parse({ description: 'a'.repeat(1_000) })).toEqual({
+      description: 'a'.repeat(1_000),
+    });
     expect(() => CreateIncidentRequestSchema.parse({ description: 'Fuga' })).toThrow();
+    expect(() => CreateIncidentRequestSchema.parse({ description: '123456789' })).toThrow();
+    expect(() =>
+      CreateIncidentRequestSchema.parse({ description: `  ${'a'.repeat(9)}  ` }),
+    ).toThrow();
+    expect(() => CreateIncidentRequestSchema.parse({ description: 'a'.repeat(1_001) })).toThrow();
     expect(() => IncidentListQuerySchema.parse({ type: 'jardineria' })).toThrow();
     expect(() =>
       CreateIncidentResponseSchema.parse({

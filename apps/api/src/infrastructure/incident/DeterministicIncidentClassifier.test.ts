@@ -11,4 +11,24 @@ describe('DeterministicIncidentClassifier', () => {
       suggestedResponsible: 'Fontanería',
     });
   });
+
+  it('mantiene la prioridad no urgente de las reglas compartidas', () => {
+    expect(
+      new DeterministicIncidentClassifier().classify('Hay bolsas de basura en el portal.'),
+    ).toEqual({
+      type: 'limpieza',
+      priority: 'baja',
+      suggestedResponsible: 'Servicio de limpieza',
+    });
+  });
+
+  it('usa el fallback compartido para descripciones desconocidas', () => {
+    expect(
+      new DeterministicIncidentClassifier().classify('La zona común requiere revisión.'),
+    ).toEqual({
+      type: 'otro',
+      priority: 'media',
+      suggestedResponsible: 'Administrador',
+    });
+  });
 });
