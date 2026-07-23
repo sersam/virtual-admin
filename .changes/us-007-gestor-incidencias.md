@@ -2,4 +2,4 @@
 type: Added
 ---
 
-Añade la base contractual y determinista para gestionar incidencias por sesión.
+Añade el registro y la clasificación determinista de incidencias por sesión, con listado, filtro por tipo e integración en el chat.

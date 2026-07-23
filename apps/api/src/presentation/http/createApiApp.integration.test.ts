@@ -195,6 +195,31 @@ describe('createApiApp', () => {
     expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
   });
 
+  it('registra desde el chat una incidencia visible en el listado de la sesión', async () => {
+    const agent = request.agent(buildApp());
+    const chatResponse = await agent.post('/api/chat/messages').send({
+      message: 'Hay una fuga de agua urgente en el garaje.',
+    });
+    const listResponse = await agent.get('/api/incidents');
+
+    expect(chatResponse.status).toBe(200);
+    expect(chatResponse.body).toMatchObject({
+      agent: 'incidencias',
+      answer: expect.stringContaining('Responsable sugerido: Fontanería'),
+      mode: 'langgraph-demo',
+      sources: [],
+    });
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body.incidents).toEqual([
+      expect.objectContaining({
+        description: 'Hay una fuga de agua urgente en el garaje.',
+        type: 'agua',
+        priority: 'urgente',
+        suggestedResponsible: 'Fontanería',
+      }),
+    ]);
+  });
+
   it('lista incidencias de la sesión y permite filtrarlas por tipo', async () => {
     const agent = request.agent(buildApp(6));
     await agent.post('/api/incidents').send({

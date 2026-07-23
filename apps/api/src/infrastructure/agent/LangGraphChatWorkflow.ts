@@ -3,6 +3,7 @@ import type {
   ChatMessageResponse,
   DocumentQueryResponse,
   DocumentSource,
+  Incident,
 } from '@admin/contracts';
 import { ChatMessageResponseSchema } from '@admin/contracts';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
@@ -15,8 +16,13 @@ interface DocumentAnswerer {
   execute(question: string, context?: ChatWorkflowContext): Promise<DocumentQueryResponse>;
 }
 
+interface IncidentCreator {
+  execute(input: { readonly description: string; readonly sessionId: string }): Promise<Incident>;
+}
+
 interface LangGraphChatWorkflowDependencies {
   readonly documentAnswerer: DocumentAnswerer;
+  readonly incidentCreator: IncidentCreator;
 }
 
 interface ChatGraph {
@@ -81,6 +87,19 @@ export class LangGraphChatWorkflow implements ChatWorkflow {
     if (agent === 'actas') {
       return { answer: createMeetingMinutesDraft(message).body, sources: [] };
     }
+    if (agent === 'incidencias') {
+      if (!sessionId) {
+        return {
+          answer: 'No se pudo registrar la incidencia porque no hay una sesión activa.',
+          sources: [],
+        };
+      }
+      const incident = await this.dependencies.incidentCreator.execute({
+        description: message,
+        sessionId,
+      });
+      return { answer: formatIncidentAnswer(incident), sources: [] };
+    }
 
     return {
       answer: futureAgentAnswer[agent],
@@ -90,13 +109,24 @@ export class LangGraphChatWorkflow implements ChatWorkflow {
 }
 
 const futureAgentAnswer: Record<
-  Exclude<ChatAgent, 'documentos' | 'comunicados' | 'actas'>,
+  Exclude<ChatAgent, 'documentos' | 'comunicados' | 'actas' | 'incidencias'>,
   string
 > = {
   general:
     'Soy el coordinador de la demo. Puedo derivar peticiones sobre documentos, comunicados, actas, incidencias y preparación de juntas.',
-  incidencias:
-    'Soy el agente de incidencias. En esta US-004 puedo clasificar tu petición; el registro y priorización de incidencias llegará en la US-007.',
   juntas:
     'Soy el agente de juntas. En esta US-004 puedo clasificar tu petición; la preparación completa del orden del día llegará en la US-008.',
 };
+
+function formatIncidentAnswer(incident: Incident): string {
+  return [
+    'Incidencia registrada.',
+    `Categoría: ${capitalize(incident.type)}`,
+    `Prioridad: ${capitalize(incident.priority)}`,
+    `Responsable sugerido: ${incident.suggestedResponsible}`,
+  ].join('\n');
+}
+
+function capitalize(value: string): string {
+  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
+}

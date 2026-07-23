@@ -87,13 +87,6 @@ export function createApiApp(options: ApiAppOptions) {
     retriever: options.documentRetriever,
     sessionRetriever: uploadedSessionDocumentRetriever,
   });
-  const coordinateChatMessage = new CoordinateChatMessage({
-    workflow: new LangGraphChatWorkflow({
-      documentAnswerer: answerDocumentQuestion,
-    }),
-  });
-  const draftCommunityNotice = new DraftCommunityNotice();
-  const draftMeetingMinutes = new DraftMeetingMinutes();
   const incidentRepository = new InMemoryIncidentRepository();
   const createIncident = new CreateIncident({
     classifier: new DeterministicIncidentClassifier(),
@@ -102,6 +95,14 @@ export function createApiApp(options: ApiAppOptions) {
     repository: incidentRepository,
   });
   const listIncidents = new ListIncidents({ repository: incidentRepository });
+  const coordinateChatMessage = new CoordinateChatMessage({
+    workflow: new LangGraphChatWorkflow({
+      documentAnswerer: answerDocumentQuestion,
+      incidentCreator: createIncident,
+    }),
+  });
+  const draftCommunityNotice = new DraftCommunityNotice();
+  const draftMeetingMinutes = new DraftMeetingMinutes();
   const ensureSession = new EnsureDemoSession({
     clock: options.clock,
     ids: options.ids,

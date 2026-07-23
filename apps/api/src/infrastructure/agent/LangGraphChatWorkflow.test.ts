@@ -12,6 +12,12 @@ const poolSource: DocumentSource = {
   score: 0.9,
 };
 
+const unusedIncidentCreator = {
+  execute: async () => {
+    throw new Error('No debería registrar incidencias');
+  },
+};
+
 describe('LangGraphChatWorkflow', () => {
   it('clasifica consultas documentales y reutiliza el RAG existente', async () => {
     let receivedSessionId: string | undefined;
@@ -27,6 +33,7 @@ describe('LangGraphChatWorkflow', () => {
           };
         },
       },
+      incidentCreator: unusedIncidentCreator,
     });
 
     await expect(
@@ -47,6 +54,7 @@ describe('LangGraphChatWorkflow', () => {
           throw new Error('No debería consultar documentos');
         },
       },
+      incidentCreator: unusedIncidentCreator,
     });
 
     const response = await workflow.run('Redacta un comunicado sobre la limpieza del garaje.');
@@ -65,6 +73,7 @@ describe('LangGraphChatWorkflow', () => {
           throw new Error('No debería consultar documentos');
         },
       },
+      incidentCreator: unusedIncidentCreator,
     });
 
     const response = await workflow.run(
@@ -80,5 +89,63 @@ describe('LangGraphChatWorkflow', () => {
     expect(response.answer).toContain('Acuerdos:');
     expect(response.answer).toContain('Revisar contrato');
     expect(response.sources).toEqual([]);
+  });
+
+  it('registra y clasifica incidencias en la sesión desde el chat', async () => {
+    let receivedSessionId: string | undefined;
+    let receivedDescription: string | undefined;
+    const workflow = new LangGraphChatWorkflow({
+      documentAnswerer: {
+        execute: async () => {
+          throw new Error('No debería consultar documentos');
+        },
+      },
+      incidentCreator: {
+        execute: async ({ description, sessionId }) => {
+          receivedDescription = description;
+          receivedSessionId = sessionId;
+
+          return {
+            id: 'incident-1',
+            description,
+            type: 'agua',
+            priority: 'urgente',
+            suggestedResponsible: 'Fontanería',
+            createdAt: '2026-07-23T10:00:00.000Z',
+          };
+        },
+      },
+    });
+
+    const response = await workflow.run('Hay una fuga de agua urgente en el garaje.', {
+      sessionId: 'session-1',
+    });
+
+    expect(receivedDescription).toBe('Hay una fuga de agua urgente en el garaje.');
+    expect(receivedSessionId).toBe('session-1');
+    expect(response).toEqual({
+      agent: 'incidencias',
+      answer:
+        'Incidencia registrada.\nCategoría: Agua\nPrioridad: Urgente\nResponsable sugerido: Fontanería',
+      mode: 'langgraph-demo',
+      sources: [],
+    });
+  });
+
+  it('no intenta registrar una incidencia cuando falta la sesión', async () => {
+    const workflow = new LangGraphChatWorkflow({
+      documentAnswerer: {
+        execute: async () => {
+          throw new Error('No debería consultar documentos');
+        },
+      },
+      incidentCreator: unusedIncidentCreator,
+    });
+
+    const response = await workflow.run('Hay una fuga de agua urgente en el garaje.');
+
+    expect(response.answer).toBe(
+      'No se pudo registrar la incidencia porque no hay una sesión activa.',
+    );
   });
 });
