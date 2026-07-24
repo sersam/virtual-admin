@@ -19,15 +19,15 @@ interface StructuredResponseRequest<Output> {
   readonly schemaName: string;
 }
 
-export interface StructuredResponse<Output> {
-  readonly output: Output;
+export interface StructuredResponse {
+  readonly output: unknown;
   readonly usage: OpenAiUsage;
 }
 
 export interface OpenAiResponsesClient {
   createStructuredResponse<Output>(
     request: StructuredResponseRequest<Output>,
-  ): Promise<StructuredResponse<Output>>;
+  ): Promise<StructuredResponse>;
 }
 
 interface ParsedResponsesApi {
@@ -52,7 +52,7 @@ export class OfficialOpenAiResponsesClient implements OpenAiResponsesClient {
 
   async createStructuredResponse<Output>(
     request: StructuredResponseRequest<Output>,
-  ): Promise<StructuredResponse<Output>> {
+  ): Promise<StructuredResponse> {
     const response = await this.client.responses.parse<Output>({
       input: request.input,
       instructions: request.instructions,
