@@ -504,6 +504,7 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
   }
 
   if (error instanceof OpenAiProviderError) {
+    console.error('openai.error', sanitizeOpenAiError(error.cause));
     sendError(response, 502, 'AI_PROVIDER_ERROR', 'No se pudo completar la operación con OpenAI.');
     return;
   }
@@ -513,4 +514,24 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
 
 function sendError(response: Response, status: number, code: string, message: string): void {
   response.status(status).json(ErrorResponseSchema.parse({ error: { code, message } }));
+}
+
+function sanitizeOpenAiError(error: unknown): Record<string, unknown> {
+  if (!(error instanceof Error)) return { message: String(error) };
+
+  const candidate = error as Error & {
+    readonly code?: unknown;
+    readonly requestID?: unknown;
+    readonly status?: unknown;
+    readonly type?: unknown;
+  };
+
+  return {
+    code: candidate.code,
+    message: candidate.message,
+    name: candidate.name,
+    requestID: candidate.requestID,
+    status: candidate.status,
+    type: candidate.type,
+  };
 }

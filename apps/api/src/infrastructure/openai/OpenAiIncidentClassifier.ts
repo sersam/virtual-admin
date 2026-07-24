@@ -53,7 +53,9 @@ export class OpenAiIncidentClassifier implements IncidentClassifier {
       await this.recordTelemetry(startedAt, usage, 'failure');
       throw error instanceof OpenAiProviderError
         ? error
-        : new OpenAiProviderError('No se pudo clasificar la incidencia con OpenAI.');
+        : new OpenAiProviderError('No se pudo clasificar la incidencia con OpenAI.', {
+            cause: error,
+          });
     }
   }
 

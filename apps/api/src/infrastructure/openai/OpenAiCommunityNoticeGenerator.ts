@@ -43,7 +43,9 @@ export class OpenAiCommunityNoticeGenerator implements CommunityNoticeGenerator 
       await this.recordTelemetry(startedAt, usage, 'failure');
       throw error instanceof OpenAiProviderError
         ? error
-        : new OpenAiProviderError('No se pudo generar el comunicado con OpenAI.');
+        : new OpenAiProviderError('No se pudo generar el comunicado con OpenAI.', {
+            cause: error,
+          });
     }
   }
 
