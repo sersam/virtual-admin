@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-24 · PR [#14](https://github.com/sersam/virtual-admin/pull/14)
+
+### Added
+
+- Integra OpenAI en backend para comunicados e incidencias con modo demo local reproducible.
+
 ## 2026-07-24 · PR [#12](https://github.com/sersam/virtual-admin/pull/12)
 
 ### Added
