@@ -1,8 +1,6 @@
 import type {
   ChatAgent,
   ChatMessageResponse,
-  CommunityNoticeDraftResponse,
-  CreateIncidentResponse,
   DocumentQueryResponse,
   DocumentSource,
   MeetingAgendaDraftResponse,
@@ -11,7 +9,10 @@ import type {
 import { ChatMessageResponseSchema } from '@admin/contracts';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import type { ChatWorkflow, ChatWorkflowContext } from '../../application/ports/ChatWorkflow.js';
+import type { CommunityNoticeDraftResult } from '../../application/ports/CommunityNoticeGenerator.js';
+import type { CreateIncidentResult } from '../../application/use-cases/CreateIncident.js';
 import { classifyIntent } from '../../domain/agent/IntentClassifier.js';
+import type { CommunityIncident } from '../../domain/incident/CommunityIncident.js';
 
 interface DocumentAnswerer {
   execute(question: string, context?: ChatWorkflowContext): Promise<DocumentQueryResponse>;
@@ -21,11 +22,11 @@ interface IncidentCreator {
   execute(input: {
     readonly description: string;
     readonly sessionId: string;
-  }): Promise<CreateIncidentResponse>;
+  }): Promise<CreateIncidentResult>;
 }
 
 interface CommunityNoticeDrafter {
-  execute(message: string): Promise<CommunityNoticeDraftResponse>;
+  execute(message: string): Promise<CommunityNoticeDraftResult>;
 }
 
 interface MeetingMinutesDrafter {
@@ -152,11 +153,11 @@ const futureAgentAnswer: Record<
     'Soy el coordinador de la demo. Puedo derivar peticiones sobre documentos, comunicados, actas, incidencias y preparación de juntas.',
 };
 
-function formatCommunityNoticeAnswer(response: CommunityNoticeDraftResponse): string {
+function formatCommunityNoticeAnswer(response: CommunityNoticeDraftResult): string {
   return [`Asunto: ${response.draft.subject}`, '', response.draft.body].join('\n');
 }
 
-function formatIncidentAnswer(incident: CreateIncidentResponse['incident']): string {
+function formatIncidentAnswer(incident: CommunityIncident): string {
   return [
     'Incidencia registrada.',
     `Categoría: ${capitalize(incident.type)}`,

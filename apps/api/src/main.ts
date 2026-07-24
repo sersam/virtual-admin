@@ -6,21 +6,45 @@ import { LexicalDocumentRetriever } from './infrastructure/document/LexicalDocum
 import { residencialSierraNevadaDocuments } from './infrastructure/document/residencialSierraNevadaDocuments.js';
 import { InMemoryUploadedDocumentRepository } from './infrastructure/document/InMemoryUploadedDocumentRepository.js';
 import { PdfParseUploadedDocumentTextExtractor } from './infrastructure/document/PdfParseUploadedDocumentTextExtractor.js';
+import { UploadedSessionDocumentRetriever } from './infrastructure/document/UploadedSessionDocumentRetriever.js';
+import { LangGraphChatWorkflow } from './infrastructure/agent/LangGraphChatWorkflow.js';
+import { InMemoryIncidentRepository } from './infrastructure/incident/InMemoryIncidentRepository.js';
+import { InMemoryPendingAgreementRepository } from './infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
 import { createAiProviders } from './infrastructure/openai/createAiProviders.js';
 
 const port = Number(process.env.PORT ?? 3000);
 const cookieSecret = readRequiredEnvironmentVariable('COOKIE_SECRET');
+const uploadedDocumentRepository = new InMemoryUploadedDocumentRepository();
+const aiProviders = createAiProviders({ openAiApiKey: process.env.OPENAI_API_KEY });
 
 const app = createApiApp({
-  aiProviders: createAiProviders({ openAiApiKey: process.env.OPENAI_API_KEY }),
   clock: new SystemClock(),
+  chatWorkflowFactory: ({
+    answerDocumentQuestion,
+    createIncident,
+    draftCommunityNotice,
+    draftMeetingAgenda,
+    draftMeetingMinutes,
+  }) =>
+    new LangGraphChatWorkflow({
+      communityNoticeDrafter: draftCommunityNotice,
+      documentAnswerer: answerDocumentQuestion,
+      incidentCreator: createIncident,
+      meetingAgendaDrafter: draftMeetingAgenda,
+      meetingMinutesDrafter: draftMeetingMinutes,
+    }),
+  communityNoticeGenerator: aiProviders.communityNoticeGenerator,
   cookieSecret,
   documentRetriever: new LexicalDocumentRetriever(residencialSierraNevadaDocuments),
   ids: new UuidGenerator(),
+  incidentClassifier: aiProviders.incidentClassifier,
+  incidentRepository: new InMemoryIncidentRepository(),
+  pendingAgreementRepository: new InMemoryPendingAgreementRepository(),
   repository: new InMemorySessionRepository(),
   secureCookies: process.env.NODE_ENV === 'production',
   version: '0.1.0',
-  uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
+  sessionDocumentRetriever: new UploadedSessionDocumentRetriever(uploadedDocumentRepository),
+  uploadedDocumentRepository,
   uploadedDocumentTextExtractor: new PdfParseUploadedDocumentTextExtractor(),
 });
 

@@ -5,7 +5,13 @@ import { LexicalDocumentRetriever } from '../../infrastructure/document/LexicalD
 import { residencialSierraNevadaDocuments } from '../../infrastructure/document/residencialSierraNevadaDocuments.js';
 import { InMemoryUploadedDocumentRepository } from '../../infrastructure/document/InMemoryUploadedDocumentRepository.js';
 import { InMemorySessionRepository } from '../../infrastructure/session/InMemorySessionRepository.js';
-import { OpenAiProviderError } from '../../infrastructure/openai/OpenAiProviderError.js';
+import { UploadedSessionDocumentRetriever } from '../../infrastructure/document/UploadedSessionDocumentRetriever.js';
+import { LangGraphChatWorkflow } from '../../infrastructure/agent/LangGraphChatWorkflow.js';
+import { DeterministicCommunityNoticeGenerator } from '../../infrastructure/communication/DeterministicCommunityNoticeGenerator.js';
+import { DeterministicIncidentClassifier } from '../../infrastructure/incident/DeterministicIncidentClassifier.js';
+import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemoryIncidentRepository.js';
+import { InMemoryPendingAgreementRepository } from '../../infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
+import { AiProviderError } from '../../application/ports/AiProviderError.js';
 import { createApiApp } from './createApiApp.js';
 
 const documentRetriever = new LexicalDocumentRetriever(residencialSierraNevadaDocuments);
@@ -15,21 +21,49 @@ const uploadedDocumentTextExtractor = {
 };
 
 function buildApp(requestsLimit = 3, overrides: Partial<Parameters<typeof createApiApp>[0]> = {}) {
+  return createApiApp(buildAppOptions(requestsLimit, overrides));
+}
+
+function buildAppOptions(
+  requestsLimit = 3,
+  overrides: Partial<Parameters<typeof createApiApp>[0]> = {},
+): Parameters<typeof createApiApp>[0] {
   let idSequence = 0;
-  return createApiApp({
-    ...overrides,
+  const uploadedDocumentRepository =
+    overrides.uploadedDocumentRepository ?? new InMemoryUploadedDocumentRepository();
+
+  return {
     clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
+    chatWorkflowFactory: ({
+      answerDocumentQuestion,
+      createIncident,
+      draftCommunityNotice,
+      draftMeetingAgenda,
+      draftMeetingMinutes,
+    }) =>
+      new LangGraphChatWorkflow({
+        communityNoticeDrafter: draftCommunityNotice,
+        documentAnswerer: answerDocumentQuestion,
+        incidentCreator: createIncident,
+        meetingAgendaDrafter: draftMeetingAgenda,
+        meetingMinutesDrafter: draftMeetingMinutes,
+      }),
+    communityNoticeGenerator: new DeterministicCommunityNoticeGenerator(),
     cookieSecret: 'test-secret',
     documentRetriever,
     ids: { randomId: () => `00000000-0000-4000-8000-${String(++idSequence).padStart(12, '0')}` },
+    incidentClassifier: new DeterministicIncidentClassifier(),
+    incidentRepository: new InMemoryIncidentRepository(),
+    pendingAgreementRepository: new InMemoryPendingAgreementRepository(),
     repository: new InMemorySessionRepository(),
     requestsLimit,
+    sessionDocumentRetriever: new UploadedSessionDocumentRetriever(uploadedDocumentRepository),
     ttlMs: 60_000,
-    uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
+    uploadedDocumentRepository,
     uploadedDocumentTextExtractor,
     version: 'test',
     ...overrides,
-  });
+  };
 }
 
 describe('createApiApp', () => {
@@ -67,19 +101,8 @@ describe('createApiApp', () => {
   });
 
   it('marca la cookie como segura cuando se configura para producción', async () => {
-    let idSequence = 0;
-    const app = createApiApp({
-      clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
-      cookieSecret: 'test-secret',
-      documentRetriever,
-      ids: { randomId: () => `00000000-0000-4000-8000-${String(++idSequence).padStart(12, '0')}` },
-      repository: new InMemorySessionRepository(),
-      requestsLimit: 3,
+    const app = buildApp(3, {
       secureCookies: true,
-      ttlMs: 60_000,
-      uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
-      uploadedDocumentTextExtractor,
-      version: 'test',
     });
 
     const response = await request(app).get('/api/session');
@@ -194,26 +217,14 @@ describe('createApiApp', () => {
   it('redacta comunicados con el proveedor IA configurado', async () => {
     const agent = request.agent(
       buildApp(3, {
-        aiProviders: {
-          communityNoticeGenerator: {
-            draft: async () => ({
-              draft: {
-                subject: 'Corte de agua',
-                body: 'Estimados vecinos:\n\nOpenAI ha preparado el aviso.',
-              },
-              mode: 'openai',
-            }),
-          },
-          incidentClassifier: {
-            classify: async () => ({
-              classification: {
-                type: 'otro',
-                priority: 'media',
-                suggestedResponsible: 'Administrador',
-              },
-              mode: 'openai',
-            }),
-          },
+        communityNoticeGenerator: {
+          draft: async () => ({
+            draft: {
+              subject: 'Corte de agua',
+              body: 'Estimados vecinos:\n\nOpenAI ha preparado el aviso.',
+            },
+            mode: 'openai',
+          }),
         },
       }),
     );
@@ -334,23 +345,15 @@ describe('createApiApp', () => {
   it('crea incidencias con el clasificador IA configurado', async () => {
     const agent = request.agent(
       buildApp(3, {
-        aiProviders: {
-          communityNoticeGenerator: {
-            draft: async () => ({
-              draft: { subject: 'Aviso', body: 'Contenido válido' },
-              mode: 'openai',
-            }),
-          },
-          incidentClassifier: {
-            classify: async () => ({
-              classification: {
-                type: 'ascensor',
-                priority: 'alta',
-                suggestedResponsible: 'Mantenimiento de ascensores',
-              },
-              mode: 'openai',
-            }),
-          },
+        incidentClassifier: {
+          classify: async () => ({
+            classification: {
+              type: 'ascensor',
+              priority: 'alta',
+              suggestedResponsible: 'Mantenimiento de ascensores',
+            },
+            mode: 'openai',
+          }),
         },
       }),
     );
@@ -373,16 +376,9 @@ describe('createApiApp', () => {
   it('devuelve un error controlado cuando falla OpenAI', async () => {
     const response = await request(
       buildApp(3, {
-        aiProviders: {
-          communityNoticeGenerator: {
-            draft: async () => {
-              throw new OpenAiProviderError();
-            },
-          },
-          incidentClassifier: {
-            classify: async () => {
-              throw new OpenAiProviderError();
-            },
+        communityNoticeGenerator: {
+          draft: async () => {
+            throw new AiProviderError();
           },
         },
       }),
@@ -498,11 +494,7 @@ describe('createApiApp', () => {
 
   it('valida el formato de incidencias antes de consumir sesión', async () => {
     let consumeRequestCount = 0;
-    const app = createApiApp({
-      clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
-      cookieSecret: 'test-secret',
-      documentRetriever,
-      ids: { randomId: () => '00000000-0000-4000-8000-000000000001' },
+    const app = buildApp(3, {
       repository: {
         consumeRequest: async () => {
           consumeRequestCount += 1;
@@ -513,11 +505,6 @@ describe('createApiApp', () => {
           /* no-op */
         },
       },
-      requestsLimit: 3,
-      ttlMs: 60_000,
-      uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
-      uploadedDocumentTextExtractor,
-      version: 'test',
     });
 
     const response = await request(app).post('/api/incidents').send({ description: 'Fuga' });
@@ -676,11 +663,7 @@ describe('createApiApp', () => {
 
   it('no crea sesión demo para consultas documentales con formato inválido', async () => {
     let consumeRequestCount = 0;
-    const app = createApiApp({
-      clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
-      cookieSecret: 'test-secret',
-      documentRetriever,
-      ids: { randomId: () => '00000000-0000-4000-8000-000000000001' },
+    const app = buildApp(3, {
       repository: {
         consumeRequest: async () => {
           consumeRequestCount += 1;
@@ -691,11 +674,6 @@ describe('createApiApp', () => {
           /* no-op */
         },
       },
-      requestsLimit: 3,
-      ttlMs: 60_000,
-      uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
-      uploadedDocumentTextExtractor,
-      version: 'test',
     });
 
     const response = await request(app).post('/api/documents/query').send({ question: '' });
@@ -707,9 +685,7 @@ describe('createApiApp', () => {
   });
 
   it('trata fallos del contrato de respuesta como errores internos', async () => {
-    const app = createApiApp({
-      clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
-      cookieSecret: 'test-secret',
+    const app = buildApp(3, {
       documentRetriever: {
         retrieve: async () => [
           {
@@ -723,13 +699,6 @@ describe('createApiApp', () => {
           },
         ],
       },
-      ids: { randomId: () => '00000000-0000-4000-8000-000000000001' },
-      repository: new InMemorySessionRepository(),
-      requestsLimit: 3,
-      ttlMs: 60_000,
-      uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
-      uploadedDocumentTextExtractor,
-      version: 'test',
     });
     const response = await request(app)
       .post('/api/documents/query')
@@ -741,11 +710,7 @@ describe('createApiApp', () => {
 
   it('normaliza rutas no encontradas y errores inesperados', async () => {
     const notFound = await request(buildApp()).get('/api/desconocida');
-    const failingApp = createApiApp({
-      clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
-      cookieSecret: 'test-secret',
-      documentRetriever,
-      ids: { randomId: () => '00000000-0000-4000-8000-000000000001' },
+    const failingApp = buildApp(3, {
       repository: {
         consumeRequest: async () => {
           throw new Error('database unavailable');
@@ -755,11 +720,6 @@ describe('createApiApp', () => {
           void session;
         },
       },
-      requestsLimit: 3,
-      ttlMs: 60_000,
-      uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
-      uploadedDocumentTextExtractor,
-      version: 'test',
     });
     const failed = await request(failingApp).get('/api/session');
 

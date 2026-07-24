@@ -29,11 +29,12 @@ describe('CreateIncident', () => {
     expect(response).toEqual({
       incident: {
         id: 'inc-0001',
+        sessionId: 'session-a',
         description: 'Hay una fuga de agua urgente en el garaje.',
         type: 'agua',
         priority: 'urgente',
         suggestedResponsible: 'Fontanería',
-        createdAt: '2026-06-27T10:00:00.000Z',
+        createdAt: new Date('2026-06-27T10:00:00.000Z'),
         status: 'pendiente',
         resolvedAt: null,
       },
@@ -74,11 +75,12 @@ describe('CreateIncident', () => {
     expect(response.mode).toBe('deterministic-demo');
     expect(response.incident).toEqual({
       id: 'inc-0001',
+      sessionId: 'session-a',
       description: 'Hay una fuga de agua urgente en el garaje.',
       type: 'agua',
       priority: 'urgente',
       suggestedResponsible: 'Fontanería',
-      createdAt: '2026-06-27T10:00:00.000Z',
+      createdAt: new Date('2026-06-27T10:00:00.000Z'),
       status: 'pendiente',
       resolvedAt: null,
     });

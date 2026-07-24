@@ -1,6 +1,5 @@
-import type { Incident, IncidentType } from '@admin/contracts';
 import type { IncidentRepository } from '../ports/IncidentRepository.js';
-import { presentIncident } from './CreateIncident.js';
+import type { CommunityIncident, IncidentType } from '../../domain/incident/CommunityIncident.js';
 
 interface ListIncidentsDependencies {
   readonly repository: IncidentRepository;
@@ -14,11 +13,9 @@ interface ListIncidentsInput {
 export class ListIncidents {
   constructor(private readonly dependencies: ListIncidentsDependencies) {}
 
-  async execute(input: ListIncidentsInput): Promise<Incident[]> {
-    const incidents = await this.dependencies.repository.listBySession(input.sessionId, {
+  async execute(input: ListIncidentsInput): Promise<CommunityIncident[]> {
+    return this.dependencies.repository.listBySession(input.sessionId, {
       type: input.type,
     });
-
-    return incidents.map(presentIncident);
   }
 }

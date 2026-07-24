@@ -160,11 +160,12 @@ describe('LangGraphChatWorkflow', () => {
           return {
             incident: {
               id: 'incident-1',
+              sessionId,
               description,
               type: 'agua',
               priority: 'urgente',
               suggestedResponsible: 'Fontanería',
-              createdAt: '2026-07-23T10:00:00.000Z',
+              createdAt: new Date('2026-07-23T10:00:00.000Z'),
               status: 'pendiente',
               resolvedAt: null,
             },
