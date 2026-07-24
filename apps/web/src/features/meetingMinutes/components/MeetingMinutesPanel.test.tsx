@@ -98,8 +98,7 @@ describe('MeetingMinutesPanel', () => {
 
     await user.click(screen.getByRole('button', { name: 'Generar acta' }));
     const editableDraft = await screen.findByLabelText('Borrador editable del acta');
-    await user.clear(editableDraft);
-    await user.type(editableDraft, 'Acta revisada por secretaría.');
+    fireEvent.change(editableDraft, { target: { value: 'Acta revisada por secretaría.' } });
     await user.click(screen.getByRole('button', { name: 'Descargar PDF' }));
 
     expect(createObjectUrlSpy).toHaveBeenCalledWith(expect.any(Blob));

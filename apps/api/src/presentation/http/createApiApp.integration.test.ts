@@ -146,6 +146,31 @@ describe('createApiApp', () => {
     expect(response.body.sources).toEqual([]);
   });
 
+  it('coordina chat de actas y juntas usando pendientes de la misma sesión', async () => {
+    const agent = request.agent(buildApp(6));
+    const minutesResponse = await agent.post('/api/chat/messages').send({
+      message: [
+        'Junta ordinaria del 12 de junio.',
+        'Tarea: Revisar contrato de limpieza; Responsable: Ana; Fecha: 30 de junio',
+      ].join('\n'),
+    });
+    const agendaResponse = await agent.post('/api/chat/messages').send({
+      message: 'Prepara el orden del día de la próxima junta.',
+    });
+
+    expect(minutesResponse.status).toBe(200);
+    expect(minutesResponse.body.agent).toBe('actas');
+    expect(agendaResponse.status).toBe(200);
+    expect(agendaResponse.body).toMatchObject({
+      agent: 'juntas',
+      answer: expect.stringContaining('Revisar contrato de limpieza'),
+      mode: 'langgraph-demo',
+      sources: [],
+    });
+    expect(agendaResponse.body.answer).toContain('Responsable: Ana');
+    expect(agendaResponse.body.answer).toContain('Fecha: 30 de junio');
+  });
+
   it('redacta comunicados desde el endpoint dedicado', async () => {
     const agent = request.agent(buildApp());
     const response = await agent
@@ -183,6 +208,60 @@ describe('createApiApp', () => {
       mode: 'deterministic-demo',
     });
     expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
+  });
+
+  it('genera un orden del día con incidencias y acuerdos pendientes de la sesión', async () => {
+    const agent = request.agent(buildApp(6));
+    await agent.post('/api/meeting-minutes/draft').send({
+      notes: [
+        'Junta ordinaria del 12 de junio.',
+        'Tarea: Revisar contrato de limpieza; Responsable: Ana; Fecha: 30 de junio',
+      ].join('\n'),
+    });
+    await agent.post('/api/incidents').send({
+      description: 'Hay una fuga de agua urgente en el garaje.',
+    });
+
+    const response = await agent.post('/api/meeting-agendas/draft').send({});
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      draft: {
+        title: 'Orden del día',
+        body: expect.stringContaining('fuga de agua urgente'),
+        items: [
+          expect.objectContaining({
+            sourceType: 'incident',
+            priority: 'urgente',
+          }),
+          expect.objectContaining({
+            description: 'Revisar contrato de limpieza',
+            sourceType: 'pending-agreement',
+            priority: 'alta',
+            assignee: 'Ana',
+            dueDate: '30 de junio',
+          }),
+        ],
+      },
+      mode: 'deterministic-demo',
+    });
+    expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
+  });
+
+  it('genera un orden del día vacío cuando la sesión no tiene asuntos pendientes', async () => {
+    const agent = request.agent(buildApp());
+
+    const response = await agent.post('/api/meeting-agendas/draft').send({});
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      draft: {
+        title: 'Orden del día',
+        body: 'No hay asuntos pendientes para incluir en el orden del día.',
+        items: [],
+      },
+      mode: 'deterministic-demo',
+    });
   });
 
   it('crea incidencias clasificadas desde el endpoint dedicado', async () => {

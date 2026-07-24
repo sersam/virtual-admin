@@ -26,24 +26,15 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
-  it('navega a incidencias desde la navegación principal', async () => {
+  it.each([
+    ['Incidencias', 'Registra y clasifica incidencias'],
+    ['Actas', 'Convierte notas en actas'],
+    ['Preparar junta', 'Prepara el orden del día'],
+  ])('navega a %s desde la navegación principal', async (linkName, headingName) => {
     const user = userEvent.setup();
     render(<App />, { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> });
     const navigation = screen.getByRole('navigation', { name: 'Navegación principal' });
-    await user.click(within(navigation).getByRole('link', { name: 'Incidencias' }));
-    expect(
-      screen.getByRole('heading', { level: 1, name: 'Registra y clasifica incidencias' }),
-    ).toBeInTheDocument();
-  });
-
-  it('navega al generador de actas', async () => {
-    const user = userEvent.setup();
-    render(<App />, { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> });
-    const navigation = screen.getByRole('navigation', { name: 'Navegación principal' });
-    await user.click(within(navigation).getByRole('link', { name: 'Actas' }));
-
-    expect(
-      screen.getByRole('heading', { level: 1, name: 'Convierte notas en actas' }),
-    ).toBeInTheDocument();
+    await user.click(within(navigation).getByRole('link', { name: linkName }));
+    expect(screen.getByRole('heading', { level: 1, name: headingName })).toBeInTheDocument();
   });
 });

@@ -132,7 +132,7 @@ const localAgentAnswers: Record<
   general:
     'Soy el coordinador local. Puedo derivar peticiones sobre documentos, comunicados, actas, incidencias y juntas.',
   juntas:
-    'Soy el agente de juntas. En esta demo local puedo clasificar tu petición; la preparación completa llegará en la US-008.',
+    'Puedo clasificar la petición de juntas, pero necesito la API de sesión para preparar un orden del día con incidencias y acuerdos pendientes reales.',
 };
 
 function capitalize(value: string): string {
