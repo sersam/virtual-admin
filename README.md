@@ -54,6 +54,18 @@ npm run dev:api
 
 La API quedará disponible en [http://localhost:3000](http://localhost:3000), con healthcheck en `/health`, sesión demo en `/api/session` y consulta documental en `/api/documents/query`. Si la API no está levantada, el frontend usa fallbacks locales deterministas.
 
+### Configuración OpenAI
+
+La API puede generar comunicados y clasificar incidencias con OpenAI desde backend. Para activarlo en local, define `OPENAI_API_KEY` al arrancar la API:
+
+```bash
+COOKIE_SECRET=local-demo-cookie-secret OPENAI_API_KEY=<TU_API_KEY> npm run dev:api
+```
+
+El modelo fijado para la US-009 es `gpt-5.6-luna`. Si `OPENAI_API_KEY` no está definida, la API usa los adaptadores demo deterministas y no hace llamadas externas. Las pruebas y CI no necesitan API key ni ejecutan llamadas reales a OpenAI.
+
+Cada operación IA registra en los logs del backend el modelo, versión de prompt, tokens de entrada/salida, tokens cacheados, coste estimado, latencia y resultado.
+
 Para verificar que el entorno está correctamente preparado, ejecuta:
 
 ```bash
