@@ -22,7 +22,9 @@ export class InMemoryPendingAgreementRepository implements PendingAgreementRepos
 }
 
 function createPendingAgreementSignature(agreement: PendingAgreement): string {
-  return [agreement.description, agreement.assignee ?? '', agreement.dueDate ?? '']
-    .map((value) => value.trim().toLocaleLowerCase('es'))
-    .join('|');
+  return JSON.stringify(
+    [agreement.description, agreement.assignee ?? '', agreement.dueDate ?? ''].map((value) =>
+      value.trim().toLocaleLowerCase('es'),
+    ),
+  );
 }

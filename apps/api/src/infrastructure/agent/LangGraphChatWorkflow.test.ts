@@ -234,4 +234,26 @@ describe('LangGraphChatWorkflow', () => {
       sources: [],
     });
   });
+
+  it('no intenta preparar juntas cuando falta la sesión', async () => {
+    const workflow = new LangGraphChatWorkflow({
+      documentAnswerer: {
+        execute: async () => {
+          throw new Error('No debería consultar documentos');
+        },
+      },
+      incidentCreator: unusedIncidentCreator,
+      meetingAgendaDrafter: unusedMeetingAgendaDrafter,
+      meetingMinutesDrafter: unusedMeetingMinutesDrafter,
+    });
+
+    const response = await workflow.run('Prepara el orden del día de la próxima junta.');
+
+    expect(response).toEqual({
+      agent: 'juntas',
+      answer: 'No se pudo preparar el orden del día porque no hay una sesión activa.',
+      mode: 'langgraph-demo',
+      sources: [],
+    });
+  });
 });

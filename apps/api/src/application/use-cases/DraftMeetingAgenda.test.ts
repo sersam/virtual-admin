@@ -1,3 +1,7 @@
+import type { CommunityIncident } from '../../domain/incident/CommunityIncident.js';
+import type { PendingAgreement } from '../../domain/meetingAgenda/PendingAgreement.js';
+import type { IncidentRepository } from '../ports/IncidentRepository.js';
+import type { PendingAgreementRepository } from '../ports/PendingAgreementRepository.js';
 import { describe, expect, it } from 'vitest';
 import { DraftMeetingAgenda } from './DraftMeetingAgenda.js';
 
@@ -131,4 +135,126 @@ describe('DraftMeetingAgenda', () => {
       mode: 'deterministic-demo',
     });
   });
+
+  it('limita el orden del día a las 100 entradas más prioritarias', async () => {
+    const useCase = new DraftMeetingAgenda({
+      incidentRepository: createIncidentRepository(
+        Array.from({ length: 101 }, (_, index) =>
+          createIncident({
+            id: `inc-${String(index + 1).padStart(3, '0')}`,
+            description: `Incidencia ${index + 1}`,
+            createdAt: new Date(new Date('2026-06-23T10:00:00.000Z').getTime() + index * 60_000),
+          }),
+        ),
+      ),
+      pendingAgreementRepository: createPendingAgreementRepository([]),
+    });
+
+    const response = await useCase.execute({ sessionId: 'session-a' });
+
+    expect(response.draft.items).toHaveLength(100);
+    expect(response.draft.items.at(-1)).toEqual(expect.objectContaining({ sourceId: 'inc-100' }));
+    expect(response.draft.body).not.toContain('Incidencia 101');
+  });
+
+  it('ordena de forma determinista cuando prioridad y fecha coinciden', async () => {
+    const sharedCreatedAt = new Date('2026-06-23T10:00:00.000Z');
+    const useCase = new DraftMeetingAgenda({
+      incidentRepository: createIncidentRepository([
+        createIncident({ id: 'inc-b', createdAt: sharedCreatedAt }),
+        createIncident({ id: 'inc-a', createdAt: sharedCreatedAt }),
+      ]),
+      pendingAgreementRepository: createPendingAgreementRepository([
+        createPendingAgreement({ id: 'pending-a', createdAt: sharedCreatedAt }),
+      ]),
+    });
+
+    const response = await useCase.execute({ sessionId: 'session-a' });
+
+    expect(response.draft.items.map((item) => item.sourceId)).toEqual([
+      'inc-a',
+      'inc-b',
+      'pending-a',
+    ]);
+  });
+
+  it('propaga errores al listar incidencias', async () => {
+    const useCase = new DraftMeetingAgenda({
+      incidentRepository: {
+        ...createIncidentRepository([]),
+        listBySession: async () => {
+          throw new Error('incidents unavailable');
+        },
+      },
+      pendingAgreementRepository: createPendingAgreementRepository([]),
+    });
+
+    await expect(useCase.execute({ sessionId: 'session-a' })).rejects.toThrow(
+      'incidents unavailable',
+    );
+  });
+
+  it('propaga errores al listar acuerdos pendientes', async () => {
+    const useCase = new DraftMeetingAgenda({
+      incidentRepository: createIncidentRepository([]),
+      pendingAgreementRepository: {
+        ...createPendingAgreementRepository([]),
+        listBySession: async () => {
+          throw new Error('pending agreements unavailable');
+        },
+      },
+    });
+
+    await expect(useCase.execute({ sessionId: 'session-a' })).rejects.toThrow(
+      'pending agreements unavailable',
+    );
+  });
 });
+
+function createIncidentRepository(incidents: readonly CommunityIncident[]): IncidentRepository {
+  return {
+    listBySession: async () => [...incidents],
+    resolve: async () => undefined,
+    save: async () => {
+      /* no-op */
+    },
+  };
+}
+
+function createPendingAgreementRepository(
+  agreements: readonly PendingAgreement[],
+): PendingAgreementRepository {
+  return {
+    listBySession: async () => [...agreements],
+    save: async () => {
+      /* no-op */
+    },
+  };
+}
+
+type PendingIncidentOverrides = Partial<Omit<CommunityIncident, 'resolvedAt' | 'status'>>;
+
+function createIncident(overrides: PendingIncidentOverrides = {}): CommunityIncident {
+  return {
+    id: 'inc-1',
+    sessionId: 'session-a',
+    description: 'Incidencia pendiente',
+    type: 'otro',
+    priority: 'media',
+    suggestedResponsible: 'Administrador',
+    createdAt: new Date('2026-06-23T10:00:00.000Z'),
+    ...overrides,
+    status: 'pendiente',
+    resolvedAt: null,
+  };
+}
+
+function createPendingAgreement(overrides: Partial<PendingAgreement> = {}): PendingAgreement {
+  return {
+    id: 'pending-1',
+    sessionId: 'session-a',
+    description: 'Acuerdo pendiente',
+    createdAt: new Date('2026-06-23T10:00:00.000Z'),
+    ...overrides,
+  };
+}

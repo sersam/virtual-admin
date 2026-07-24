@@ -48,7 +48,11 @@ export function MeetingAgendaPanel() {
             <SendHorizontal aria-hidden="true" size={17} />
             {loading ? 'Preparando...' : 'Preparar orden del día'}
           </button>
-          {error && <p className="text-sm font-semibold text-red-700">{error}</p>}
+          {error && (
+            <p className="text-sm font-semibold text-red-700" role="alert">
+              {error}
+            </p>
+          )}
         </div>
       </section>
 

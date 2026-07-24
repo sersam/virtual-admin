@@ -23,6 +23,7 @@ interface PrioritizedAgendaItem extends MeetingAgendaItem {
 
 const TITLE = 'Orden del día';
 const EMPTY_BODY = 'No hay asuntos pendientes para incluir en el orden del día.';
+const MAX_AGENDA_ITEMS = 100;
 const PRIORITY_WEIGHT: Record<IncidentPriority, number> = {
   urgente: 4,
   alta: 3,
@@ -41,7 +42,9 @@ export class DraftMeetingAgenda {
     const items = [
       ...incidents.map(presentIncidentItem),
       ...pendingAgreements.map(presentPendingAgreementItem),
-    ].sort(compareAgendaItems);
+    ]
+      .sort(compareAgendaItems)
+      .slice(0, MAX_AGENDA_ITEMS);
 
     return {
       draft: {

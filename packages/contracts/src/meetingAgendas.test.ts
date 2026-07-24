@@ -9,6 +9,10 @@ describe('meeting agenda contracts', () => {
     expect(MeetingAgendaDraftRequestSchema.parse({})).toEqual({});
   });
 
+  it('rechaza campos desconocidos en la petición', () => {
+    expect(() => MeetingAgendaDraftRequestSchema.parse({ sessionId: 'session-a' })).toThrow();
+  });
+
   it('valida un borrador trazable con incidencias y acuerdos pendientes', () => {
     const response = MeetingAgendaDraftResponseSchema.parse({
       draft: {
@@ -35,5 +39,38 @@ describe('meeting agenda contracts', () => {
     });
 
     expect(response.draft.items).toHaveLength(2);
+  });
+
+  it('rechaza modos de respuesta no soportados', () => {
+    expect(() =>
+      MeetingAgendaDraftResponseSchema.parse({
+        draft: {
+          title: 'Orden del día',
+          body: '1. Incidencia urgente',
+          items: [],
+        },
+        mode: 'remote-ai',
+      }),
+    ).toThrow();
+  });
+
+  it('rechaza orígenes de entrada no soportados', () => {
+    expect(() =>
+      MeetingAgendaDraftResponseSchema.parse({
+        draft: {
+          title: 'Orden del día',
+          body: '1. Incidencia urgente',
+          items: [
+            {
+              description: 'Incidencia urgente',
+              priority: 'urgente',
+              sourceType: 'document',
+              sourceId: 'doc-1',
+            },
+          ],
+        },
+        mode: 'deterministic-demo',
+      }),
+    ).toThrow();
   });
 });

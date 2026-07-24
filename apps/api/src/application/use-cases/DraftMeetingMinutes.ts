@@ -1,4 +1,5 @@
-import type { MeetingMinutesDraftResponse, MeetingMinutesTask } from '@admin/contracts';
+import type { MeetingMinutesDraftResponse } from '@admin/contracts';
+import type { PendingAgreement } from '../../domain/meetingAgenda/PendingAgreement.js';
 import { createMeetingMinutesDraft } from '../../domain/meetingMinutes/MeetingMinutesDraft.js';
 import type { Clock } from '../ports/Clock.js';
 import type { IdGenerator } from '../ports/IdGenerator.js';
@@ -45,7 +46,9 @@ export class DraftMeetingMinutes {
   }
 }
 
-function presentOptionalPendingAgreementDetails(task: MeetingMinutesTask): {
+function presentOptionalPendingAgreementDetails(
+  task: Pick<PendingAgreement, 'assignee' | 'dueDate'>,
+): {
   readonly assignee?: string;
   readonly dueDate?: string;
 } {

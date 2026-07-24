@@ -87,4 +87,17 @@ describe('MeetingAgendaPanel', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Sin entradas pendientes')).toBeInTheDocument();
   });
+
+  it('notifica de forma accesible el error de generación', () => {
+    useMeetingAgendaDraftMock.mockReturnValue({
+      error: 'No se pudo preparar el orden del día.',
+      generate: vi.fn(),
+      result: undefined,
+      status: 'error',
+    });
+
+    render(<MeetingAgendaPanel />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pudo preparar el orden del día.');
+  });
 });
