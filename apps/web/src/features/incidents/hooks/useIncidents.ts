@@ -1,9 +1,16 @@
 import type { Incident, IncidentType } from '@admin/contracts';
 import { classifyIncident, type IncidentClassification } from '@admin/incidents';
 import { useEffect, useRef, useState } from 'react';
-import { createIncident, listIncidents } from '../../../shared/api/incidents';
+import { createIncident, listIncidents, resolveIncident } from '../../../shared/api/incidents';
 
-export type IncidentsStatus = 'idle' | 'loading' | 'ready' | 'creating' | 'fallback' | 'error';
+export type IncidentsStatus =
+  | 'idle'
+  | 'loading'
+  | 'ready'
+  | 'creating'
+  | 'resolving'
+  | 'fallback'
+  | 'error';
 
 const MIN_DESCRIPTION_LENGTH = 10;
 const MAX_DESCRIPTION_LENGTH = 1_000;
@@ -12,6 +19,7 @@ interface IncidentsState {
   readonly error?: string;
   readonly incidents: Incident[];
   readonly localClassification?: IncidentClassification;
+  readonly resolvingIncidentId?: string;
   readonly selectedType?: IncidentType;
   readonly status: IncidentsStatus;
 }
@@ -22,6 +30,7 @@ export function useIncidents() {
     status: 'idle',
   });
   const latestLoadRequestId = useRef(0);
+  const resolvingIncidentIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -102,5 +111,39 @@ export function useIncidents() {
     await load(type);
   }
 
-  return { ...state, create, filterByType };
+  async function resolve(incidentId: string): Promise<void> {
+    if (resolvingIncidentIdRef.current) return;
+    resolvingIncidentIdRef.current = incidentId;
+
+    setState((current) => ({
+      ...current,
+      error: undefined,
+      resolvingIncidentId: incidentId,
+      status: 'resolving',
+    }));
+
+    try {
+      const resolvedIncident = await resolveIncident(incidentId);
+      setState((current) => ({
+        ...current,
+        incidents: current.incidents.map((incident) =>
+          incident.id === incidentId ? resolvedIncident : incident,
+        ),
+        resolvingIncidentId: undefined,
+        status: 'ready',
+      }));
+    } catch (error) {
+      console.error('[useIncidents] No se pudo resolver la incidencia.', error);
+      setState((current) => ({
+        ...current,
+        error: 'No se pudo resolver la incidencia. Inténtalo de nuevo.',
+        resolvingIncidentId: undefined,
+        status: 'error',
+      }));
+    } finally {
+      resolvingIncidentIdRef.current = undefined;
+    }
+  }
+
+  return { ...state, create, filterByType, resolve };
 }

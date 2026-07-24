@@ -4,6 +4,8 @@ import {
   CreateIncidentResponseSchema,
   IncidentListQuerySchema,
   IncidentListResponseSchema,
+  ResolveIncidentParamsSchema,
+  ResolveIncidentResponseSchema,
 } from './incidents.js';
 
 describe('incident contracts', () => {
@@ -25,6 +27,8 @@ describe('incident contracts', () => {
           priority: 'urgente',
           suggestedResponsible: 'Fontanería',
           createdAt: '2026-06-27T10:00:00.000Z',
+          status: 'pendiente',
+          resolvedAt: null,
         },
         mode: 'deterministic-demo',
       }),
@@ -51,10 +55,72 @@ describe('incident contracts', () => {
             priority: 'alta',
             suggestedResponsible: 'Mantenimiento de ascensores',
             createdAt: '2026-06-27T10:05:00.000Z',
+            status: 'resuelta',
+            resolvedAt: '2026-06-27T12:30:00.000Z',
           },
         ],
       }).incidents,
     ).toHaveLength(1);
+  });
+
+  it('valida la respuesta de resolución y la coherencia de su estado', () => {
+    expect(
+      ResolveIncidentResponseSchema.parse({
+        incident: {
+          id: 'inc-0001',
+          description: 'Hay una fuga de agua urgente en el garaje.',
+          type: 'agua',
+          priority: 'urgente',
+          suggestedResponsible: 'Fontanería',
+          createdAt: '2026-06-27T10:00:00.000Z',
+          status: 'resuelta',
+          resolvedAt: '2026-06-27T12:30:00.000Z',
+        },
+      }),
+    ).toMatchObject({ incident: { status: 'resuelta' } });
+
+    expect(() =>
+      ResolveIncidentResponseSchema.parse({
+        incident: {
+          id: 'inc-0001',
+          description: 'Hay una fuga de agua urgente en el garaje.',
+          type: 'agua',
+          priority: 'urgente',
+          suggestedResponsible: 'Fontanería',
+          createdAt: '2026-06-27T10:00:00.000Z',
+          status: 'pendiente',
+          resolvedAt: '2026-06-27T12:30:00.000Z',
+        },
+      }),
+    ).toThrow();
+
+    expect(() =>
+      ResolveIncidentResponseSchema.parse({
+        incident: {
+          id: 'inc-0001',
+          description: 'Hay una fuga de agua urgente en el garaje.',
+          type: 'agua',
+          priority: 'urgente',
+          suggestedResponsible: 'Fontanería',
+          createdAt: '2026-06-27T10:00:00.000Z',
+          status: 'resuelta',
+          resolvedAt: null,
+        },
+      }),
+    ).toThrow();
+  });
+
+  it('valida parámetros de resolución de incidencia', () => {
+    expect(ResolveIncidentParamsSchema.parse({ incidentId: ' inc-0001 ' })).toEqual({
+      incidentId: 'inc-0001',
+    });
+    expect(ResolveIncidentParamsSchema.parse({ incidentId: 'a'.repeat(80) })).toEqual({
+      incidentId: 'a'.repeat(80),
+    });
+
+    expect(() => ResolveIncidentParamsSchema.parse({ incidentId: ' ' })).toThrow();
+    expect(() => ResolveIncidentParamsSchema.parse({ incidentId: 'a'.repeat(81) })).toThrow();
+    expect(() => ResolveIncidentParamsSchema.parse({})).toThrow();
   });
 
   it('rechaza descripciones cortas, tipos inválidos y fechas inválidas', () => {

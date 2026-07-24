@@ -30,7 +30,7 @@ describe('uploadedDocuments api', () => {
 
     await expect(listUploadedDocuments()).resolves.toEqual([uploadedDocument]);
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      'http://localhost:3000/api/documents/uploads',
+      '/api/documents/uploads',
       expect.objectContaining({ method: 'GET' }),
     );
   });

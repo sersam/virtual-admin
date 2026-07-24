@@ -20,4 +20,29 @@ export class InMemoryIncidentRepository implements IncidentRepository {
     const current = this.incidents.get(incident.sessionId) ?? [];
     this.incidents.set(incident.sessionId, [...current, incident]);
   }
+
+  async resolve(
+    sessionId: string,
+    incidentId: string,
+    resolvedAt: Date,
+  ): Promise<CommunityIncident | undefined> {
+    const current = this.incidents.get(sessionId) ?? [];
+    const index = current.findIndex((incident) => incident.id === incidentId);
+    if (index < 0) return undefined;
+
+    const existing = current[index]!;
+    if (existing.status === 'resuelta') return existing;
+
+    const resolved: CommunityIncident = {
+      ...existing,
+      status: 'resuelta',
+      resolvedAt,
+    };
+    const updated = current.map((incident, currentIndex) =>
+      currentIndex === index ? resolved : incident,
+    );
+    this.incidents.set(sessionId, updated);
+
+    return resolved;
+  }
 }

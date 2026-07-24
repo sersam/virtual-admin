@@ -6,5 +6,10 @@ export interface IncidentListFilters {
 
 export interface IncidentRepository {
   listBySession(sessionId: string, filters?: IncidentListFilters): Promise<CommunityIncident[]>;
+  resolve(
+    sessionId: string,
+    incidentId: string,
+    resolvedAt: Date,
+  ): Promise<CommunityIncident | undefined>;
   save(incident: CommunityIncident): Promise<void>;
 }

@@ -14,6 +14,8 @@ describe('ListIncidents', () => {
       priority: 'alta',
       suggestedResponsible: 'Fontanería',
       createdAt: new Date('2026-06-27T10:00:00.000Z'),
+      status: 'pendiente',
+      resolvedAt: null,
     });
     await repository.save({
       id: 'inc-0002',
@@ -23,6 +25,8 @@ describe('ListIncidents', () => {
       priority: 'alta',
       suggestedResponsible: 'Mantenimiento de ascensores',
       createdAt: new Date('2026-06-27T10:05:00.000Z'),
+      status: 'pendiente',
+      resolvedAt: null,
     });
 
     const useCase = new ListIncidents({ repository });

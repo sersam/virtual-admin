@@ -26,7 +26,7 @@ describe('draftCommunityNotice api', () => {
 
     expect(response.draft.subject).toBe('Corte de agua');
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      'http://localhost:3000/api/communications/draft',
+      '/api/communications/draft',
       expect.objectContaining({
         body: JSON.stringify({
           message: 'Redacta un comunicado sobre el corte de agua.',
@@ -75,7 +75,7 @@ describe('draftCommunityNotice api', () => {
     await draftCommunityNotice('Redacta un comunicado sobre el corte de agua.', controller.signal);
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      'http://localhost:3000/api/communications/draft',
+      '/api/communications/draft',
       expect.objectContaining({ signal: controller.signal }),
     );
   });

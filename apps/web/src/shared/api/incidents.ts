@@ -2,9 +2,11 @@ import {
   CreateIncidentRequestSchema,
   CreateIncidentResponseSchema,
   IncidentListResponseSchema,
+  ResolveIncidentResponseSchema,
   type CreateIncidentResponse,
   type Incident,
   type IncidentType,
+  type ResolveIncidentResponse,
 } from '@admin/contracts';
 import { apiBaseUrl } from './apiConfig';
 
@@ -32,10 +34,13 @@ export async function listIncidents(
   type?: IncidentType,
   signal?: AbortSignal,
 ): Promise<Incident[]> {
-  const url = new URL(`${apiBaseUrl}/api/incidents`);
-  if (type) url.searchParams.set('type', type);
+  const query = new URLSearchParams();
+  if (type) query.set('type', type);
+  const queryString = query.toString();
+  const incidentsUrl = `${apiBaseUrl}/api/incidents`;
+  const requestUrl = queryString ? `${incidentsUrl}?${queryString}` : incidentsUrl;
 
-  const response = await fetch(url.toString(), {
+  const response = await fetch(requestUrl, {
     credentials: 'include',
     method: 'GET',
     signal,
@@ -46,4 +51,24 @@ export async function listIncidents(
   }
 
   return IncidentListResponseSchema.parse(await response.json()).incidents;
+}
+
+export async function resolveIncident(
+  incidentId: string,
+  signal?: AbortSignal,
+): Promise<ResolveIncidentResponse['incident']> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/incidents/${encodeURIComponent(incidentId)}/resolve`,
+    {
+      credentials: 'include',
+      method: 'PATCH',
+      signal,
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`No se pudo resolver la incidencia (HTTP ${response.status}).`);
+  }
+
+  return ResolveIncidentResponseSchema.parse(await response.json()).incident;
 }

@@ -30,6 +30,8 @@ describe('CreateIncident', () => {
       priority: 'urgente',
       suggestedResponsible: 'Fontanería',
       createdAt: '2026-06-27T10:00:00.000Z',
+      status: 'pendiente',
+      resolvedAt: null,
     });
     await expect(repository.listBySession('session-a')).resolves.toEqual([
       expect.objectContaining({

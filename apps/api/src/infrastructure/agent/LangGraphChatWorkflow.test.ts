@@ -146,6 +146,8 @@ describe('LangGraphChatWorkflow', () => {
             priority: 'urgente',
             suggestedResponsible: 'Fontanería',
             createdAt: '2026-07-23T10:00:00.000Z',
+            status: 'pendiente',
+            resolvedAt: null,
           };
         },
       },

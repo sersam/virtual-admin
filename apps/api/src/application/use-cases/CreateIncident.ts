@@ -41,6 +41,8 @@ export class CreateIncident {
       description,
       ...classification,
       createdAt: this.dependencies.clock.now(),
+      status: 'pendiente',
+      resolvedAt: null,
     };
 
     await this.dependencies.repository.save(incident);
@@ -50,7 +52,7 @@ export class CreateIncident {
 }
 
 export function presentIncident(incident: CommunityIncident): Incident {
-  return {
+  const common = {
     id: incident.id,
     description: incident.description,
     type: incident.type,
@@ -58,4 +60,8 @@ export function presentIncident(incident: CommunityIncident): Incident {
     suggestedResponsible: incident.suggestedResponsible,
     createdAt: incident.createdAt.toISOString(),
   };
+
+  return incident.status === 'resuelta'
+    ? { ...common, status: 'resuelta', resolvedAt: incident.resolvedAt.toISOString() }
+    : { ...common, status: 'pendiente', resolvedAt: null };
 }

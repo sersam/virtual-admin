@@ -220,9 +220,11 @@ test('registra incidencias y filtra por tipo', async ({ page }, testInfo) => {
     priority: 'alta' | 'urgente';
     suggestedResponsible: string;
     createdAt: string;
+    status: 'pendiente' | 'resuelta';
+    resolvedAt: string | null;
   }> = [];
 
-  await page.route(/^http:\/\/127\.0\.0\.1:3000\/api\/incidents(?:\?.*)?$/, async (route) => {
+  await page.route(/\/api\/incidents(?:\/[^/?]+\/resolve)?(?:\?.*)?$/, async (route) => {
     const request = route.request();
     const url = new URL(request.url());
 
@@ -238,6 +240,23 @@ test('registra incidencias y filtra por tipo', async ({ page }, testInfo) => {
       return;
     }
 
+    if (request.method() === 'PATCH') {
+      const incidentId = url.pathname.split('/').at(-2);
+      const index = incidents.findIndex((incident) => incident.id === incidentId);
+      const incident = {
+        ...incidents[index]!,
+        status: 'resuelta' as const,
+        resolvedAt: '2026-06-27T12:30:00.000Z',
+      };
+      incidents[index] = incident;
+      await route.fulfill({
+        contentType: 'application/json',
+        json: { incident },
+        status: 200,
+      });
+      return;
+    }
+
     const payload = request.postDataJSON() as { readonly description: string };
     const isLiftIncident = payload.description.toLowerCase().includes('ascensor');
     const incident = {
@@ -247,6 +266,8 @@ test('registra incidencias y filtra por tipo', async ({ page }, testInfo) => {
       priority: isLiftIncident ? ('alta' as const) : ('urgente' as const),
       suggestedResponsible: isLiftIncident ? 'Mantenimiento de ascensores' : 'Fontanería',
       createdAt: '2026-06-27T10:00:00.000Z',
+      status: 'pendiente' as const,
+      resolvedAt: null,
     };
     incidents.push(incident);
 
@@ -277,6 +298,10 @@ test('registra incidencias y filtra por tipo', async ({ page }, testInfo) => {
   await expect(waterIncident.getByText('Agua', { exact: true })).toBeVisible();
   await expect(waterIncident.getByText('Urgente', { exact: true })).toBeVisible();
   await expect(waterIncident.getByText('Fontanería')).toBeVisible();
+  await expect(waterIncident.getByText('Pendiente', { exact: true })).toBeVisible();
+  await waterIncident.getByRole('button', { name: 'Marcar como resuelta' }).click();
+  await expect(waterIncident.getByText('Resuelta', { exact: true })).toBeVisible();
+  await expect(waterIncident.getByText('Resolución', { exact: true })).toBeVisible();
 
   await page
     .getByLabel('Descripción de la incidencia')
