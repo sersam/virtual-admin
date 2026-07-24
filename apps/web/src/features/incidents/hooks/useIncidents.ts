@@ -30,6 +30,7 @@ export function useIncidents() {
     status: 'idle',
   });
   const latestLoadRequestId = useRef(0);
+  const resolvingIncidentIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -111,6 +112,9 @@ export function useIncidents() {
   }
 
   async function resolve(incidentId: string): Promise<void> {
+    if (resolvingIncidentIdRef.current) return;
+    resolvingIncidentIdRef.current = incidentId;
+
     setState((current) => ({
       ...current,
       error: undefined,
@@ -136,6 +140,8 @@ export function useIncidents() {
         resolvingIncidentId: undefined,
         status: 'error',
       }));
+    } finally {
+      resolvingIncidentIdRef.current = undefined;
     }
   }
 

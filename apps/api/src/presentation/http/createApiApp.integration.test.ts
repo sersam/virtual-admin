@@ -235,6 +235,13 @@ describe('createApiApp', () => {
     expect(response.body.error.code).toBe('INCIDENT_NOT_FOUND');
   });
 
+  it('valida el identificador de incidencia al resolver', async () => {
+    const response = await request(buildApp()).patch('/api/incidents/%20/resolve');
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
   it('registra desde el chat una incidencia visible en el listado de la sesión', async () => {
     const agent = request.agent(buildApp());
     const chatResponse = await agent.post('/api/chat/messages').send({

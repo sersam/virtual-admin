@@ -68,6 +68,24 @@ describe('incidents api', () => {
     );
   });
 
+  it('rechaza errores HTTP al resolver incidencias', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: 'INCIDENT_NOT_FOUND' } }), { status: 404 }),
+    );
+
+    await expect(resolveIncident(incident.id)).rejects.toThrow('No se pudo resolver la incidencia');
+  });
+
+  it('rechaza respuestas inválidas al resolver incidencias', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ incident: { ...resolvedIncident, resolvedAt: null } }), {
+        status: 200,
+      }),
+    );
+
+    await expect(resolveIncident(incident.id)).rejects.toThrow();
+  });
+
   it('rechaza errores HTTP y respuestas inválidas', async () => {
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(

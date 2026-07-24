@@ -1,7 +1,6 @@
-import type { Incident } from '@admin/contracts';
 import type { Clock } from '../ports/Clock.js';
 import type { IncidentRepository } from '../ports/IncidentRepository.js';
-import { presentIncident } from './CreateIncident.js';
+import type { CommunityIncident } from '../../domain/incident/CommunityIncident.js';
 
 interface ResolveIncidentDependencies {
   readonly clock: Clock;
@@ -22,7 +21,7 @@ export class IncidentNotFoundError extends Error {
 export class ResolveIncident {
   constructor(private readonly dependencies: ResolveIncidentDependencies) {}
 
-  async execute(input: ResolveIncidentInput): Promise<Incident> {
+  async execute(input: ResolveIncidentInput): Promise<CommunityIncident> {
     const incident = await this.dependencies.repository.resolve(
       input.sessionId,
       input.incidentId,
@@ -30,6 +29,6 @@ export class ResolveIncident {
     );
     if (!incident) throw new IncidentNotFoundError();
 
-    return presentIncident(incident);
+    return incident;
   }
 }

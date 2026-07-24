@@ -4,6 +4,7 @@ import {
   CreateIncidentResponseSchema,
   IncidentListQuerySchema,
   IncidentListResponseSchema,
+  ResolveIncidentParamsSchema,
   ResolveIncidentResponseSchema,
 } from './incidents.js';
 
@@ -92,6 +93,34 @@ describe('incident contracts', () => {
         },
       }),
     ).toThrow();
+
+    expect(() =>
+      ResolveIncidentResponseSchema.parse({
+        incident: {
+          id: 'inc-0001',
+          description: 'Hay una fuga de agua urgente en el garaje.',
+          type: 'agua',
+          priority: 'urgente',
+          suggestedResponsible: 'Fontanería',
+          createdAt: '2026-06-27T10:00:00.000Z',
+          status: 'resuelta',
+          resolvedAt: null,
+        },
+      }),
+    ).toThrow();
+  });
+
+  it('valida parámetros de resolución de incidencia', () => {
+    expect(ResolveIncidentParamsSchema.parse({ incidentId: ' inc-0001 ' })).toEqual({
+      incidentId: 'inc-0001',
+    });
+    expect(ResolveIncidentParamsSchema.parse({ incidentId: 'a'.repeat(80) })).toEqual({
+      incidentId: 'a'.repeat(80),
+    });
+
+    expect(() => ResolveIncidentParamsSchema.parse({ incidentId: ' ' })).toThrow();
+    expect(() => ResolveIncidentParamsSchema.parse({ incidentId: 'a'.repeat(81) })).toThrow();
+    expect(() => ResolveIncidentParamsSchema.parse({})).toThrow();
   });
 
   it('rechaza descripciones cortas, tipos inválidos y fechas inválidas', () => {

@@ -32,13 +32,14 @@ describe('ResolveIncident', () => {
       useCase.execute({ incidentId: 'inc-0001', sessionId: 'session-a' }),
     ).resolves.toEqual({
       id: 'inc-0001',
+      sessionId: 'session-a',
       description: 'Hay una fuga de agua en el garaje.',
       type: 'agua',
       priority: 'alta',
       suggestedResponsible: 'Fontanería',
-      createdAt: createdAt.toISOString(),
+      createdAt,
       status: 'resuelta',
-      resolvedAt: firstResolution.toISOString(),
+      resolvedAt: firstResolution,
     });
   });
 
@@ -57,7 +58,7 @@ describe('ResolveIncident', () => {
       sessionId: 'session-a',
     });
 
-    expect(incident.resolvedAt).toBe(firstResolution.toISOString());
+    expect(incident.resolvedAt).toBe(firstResolution);
   });
 
   it('rechaza incidencias inexistentes o pertenecientes a otra sesión', async () => {

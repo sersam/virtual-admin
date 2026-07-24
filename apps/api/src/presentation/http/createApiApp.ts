@@ -33,6 +33,7 @@ import { CoordinateChatMessage } from '../../application/use-cases/CoordinateCha
 import {
   CreateIncident,
   InvalidIncidentDescriptionError,
+  presentIncident,
 } from '../../application/use-cases/CreateIncident.js';
 import { DraftCommunityNotice } from '../../application/use-cases/DraftCommunityNotice.js';
 import { DraftMeetingMinutes } from '../../application/use-cases/DraftMeetingMinutes.js';
@@ -301,7 +302,7 @@ export function createApiApp(options: ApiAppOptions) {
         });
 
         attachSessionCookie(response, session.id, options);
-        response.json(ResolveIncidentResponseSchema.parse({ incident }));
+        response.json(ResolveIncidentResponseSchema.parse({ incident: presentIncident(incident) }));
       } catch (error) {
         next(error);
       }

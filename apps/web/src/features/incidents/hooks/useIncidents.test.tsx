@@ -109,6 +109,39 @@ describe('useIncidents', () => {
     expect(result.current.incidents).toEqual([resolvedWaterIncident, liftIncident]);
   });
 
+  it('ignora nuevas resoluciones mientras otra está en curso', async () => {
+    const firstResolution = deferred<Response>();
+    const secondResolution = deferred<Response>();
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ incidents: [waterIncident, liftIncident] }), { status: 200 }),
+      )
+      .mockReturnValueOnce(firstResolution.promise)
+      .mockReturnValueOnce(secondResolution.promise);
+    const { result } = renderHook(() => useIncidents());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    let firstResolvePromise: Promise<void> = Promise.resolve();
+    await act(async () => {
+      firstResolvePromise = result.current.resolve(waterIncident.id);
+    });
+    await act(() => result.current.resolve(liftIncident.id));
+
+    expect(result.current.resolvingIncidentId).toBe(waterIncident.id);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      firstResolution.resolve(
+        new Response(JSON.stringify({ incident: resolvedWaterIncident }), { status: 200 }),
+      );
+      await firstResolvePromise;
+    });
+
+    expect(result.current.status).toBe('ready');
+    expect(result.current.incidents).toEqual([resolvedWaterIncident, liftIncident]);
+  });
+
   it('conserva la incidencia pendiente y muestra error si falla la resolución', async () => {
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(

@@ -37,15 +37,14 @@ export async function listIncidents(
   const query = new URLSearchParams();
   if (type) query.set('type', type);
   const queryString = query.toString();
+  const incidentsUrl = `${apiBaseUrl}/api/incidents`;
+  const requestUrl = queryString ? `${incidentsUrl}?${queryString}` : incidentsUrl;
 
-  const response = await fetch(
-    `${apiBaseUrl}/api/incidents${queryString ? `?${queryString}` : ''}`,
-    {
-      credentials: 'include',
-      method: 'GET',
-      signal,
-    },
-  );
+  const response = await fetch(requestUrl, {
+    credentials: 'include',
+    method: 'GET',
+    signal,
+  });
 
   if (!response.ok) {
     throw new Error(`No se pudieron listar las incidencias (HTTP ${response.status}).`);
