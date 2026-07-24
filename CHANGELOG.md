@@ -4,6 +4,13 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-24 · PR [#15](https://github.com/sersam/virtual-admin/pull/15)
+
+### Changed
+
+- Se desglosa el backlog pendiente del MVP en historias incrementales de la US-010 a la
+US-025.
+
 ## 2026-07-24 · PR [#14](https://github.com/sersam/virtual-admin/pull/14)
 
 ### Added
