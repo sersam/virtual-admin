@@ -40,7 +40,7 @@ export class DraftMeetingAgenda {
       this.dependencies.pendingAgreementRepository.listBySession(input.sessionId),
     ]);
     const items = [
-      ...incidents.map(presentIncidentItem),
+      ...incidents.filter((incident) => incident.status === 'pendiente').map(presentIncidentItem),
       ...pendingAgreements.map(presentPendingAgreementItem),
     ]
       .sort(compareAgendaItems)

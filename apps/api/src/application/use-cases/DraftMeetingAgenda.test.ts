@@ -136,6 +136,32 @@ describe('DraftMeetingAgenda', () => {
     });
   });
 
+  it('ignora incidencias resueltas al preparar el orden del día', async () => {
+    const useCase = new DraftMeetingAgenda({
+      incidentRepository: createIncidentRepository([
+        createIncident({
+          id: 'inc-pending',
+          description: 'Revisar puerta del garaje',
+        }),
+        createResolvedIncident({
+          id: 'inc-resolved',
+          description: 'Fuga de agua ya reparada',
+        }),
+      ]),
+      pendingAgreementRepository: createPendingAgreementRepository([]),
+    });
+
+    const response = await useCase.execute({ sessionId: 'session-a' });
+
+    expect(response.draft.items).toEqual([
+      expect.objectContaining({
+        description: 'Revisar puerta del garaje',
+        sourceId: 'inc-pending',
+      }),
+    ]);
+    expect(response.draft.body).not.toContain('Fuga de agua ya reparada');
+  });
+
   it('limita el orden del día a las 100 entradas más prioritarias', async () => {
     const useCase = new DraftMeetingAgenda({
       incidentRepository: createIncidentRepository(
@@ -246,6 +272,23 @@ function createIncident(overrides: PendingIncidentOverrides = {}): CommunityInci
     ...overrides,
     status: 'pendiente',
     resolvedAt: null,
+  };
+}
+
+function createResolvedIncident(
+  overrides: Partial<Omit<CommunityIncident, 'resolvedAt' | 'status'>> = {},
+): CommunityIncident {
+  return {
+    id: 'inc-resolved',
+    sessionId: 'session-a',
+    description: 'Incidencia resuelta',
+    type: 'otro',
+    priority: 'media',
+    suggestedResponsible: 'Administrador',
+    createdAt: new Date('2026-06-23T10:00:00.000Z'),
+    ...overrides,
+    status: 'resuelta',
+    resolvedAt: new Date('2026-06-24T10:00:00.000Z'),
   };
 }
 
