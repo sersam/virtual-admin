@@ -5,6 +5,7 @@ import { LexicalDocumentRetriever } from '../../infrastructure/document/LexicalD
 import { residencialSierraNevadaDocuments } from '../../infrastructure/document/residencialSierraNevadaDocuments.js';
 import { InMemoryUploadedDocumentRepository } from '../../infrastructure/document/InMemoryUploadedDocumentRepository.js';
 import { InMemorySessionRepository } from '../../infrastructure/session/InMemorySessionRepository.js';
+import { OpenAiProviderError } from '../../infrastructure/openai/OpenAiProviderError.js';
 import { createApiApp } from './createApiApp.js';
 
 const documentRetriever = new LexicalDocumentRetriever(residencialSierraNevadaDocuments);
@@ -13,9 +14,10 @@ const uploadedDocumentTextExtractor = {
     'El contrato de mantenimiento del ascensor del portal B vence el 30 de septiembre.',
 };
 
-function buildApp(requestsLimit = 3) {
+function buildApp(requestsLimit = 3, overrides: Partial<Parameters<typeof createApiApp>[0]> = {}) {
   let idSequence = 0;
   return createApiApp({
+    ...overrides,
     clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
     cookieSecret: 'test-secret',
     documentRetriever,
@@ -26,6 +28,7 @@ function buildApp(requestsLimit = 3) {
     uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
     uploadedDocumentTextExtractor,
     version: 'test',
+    ...overrides,
   });
 }
 
@@ -188,6 +191,47 @@ describe('createApiApp', () => {
     expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
   });
 
+  it('redacta comunicados con el proveedor IA configurado', async () => {
+    const agent = request.agent(
+      buildApp(3, {
+        aiProviders: {
+          communityNoticeGenerator: {
+            draft: async () => ({
+              draft: {
+                subject: 'Corte de agua',
+                body: 'Estimados vecinos:\n\nOpenAI ha preparado el aviso.',
+              },
+              mode: 'openai',
+            }),
+          },
+          incidentClassifier: {
+            classify: async () => ({
+              classification: {
+                type: 'otro',
+                priority: 'media',
+                suggestedResponsible: 'Administrador',
+              },
+              mode: 'openai',
+            }),
+          },
+        },
+      }),
+    );
+
+    const response = await agent
+      .post('/api/communications/draft')
+      .send({ message: 'Redacta un aviso de corte de agua.' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      draft: {
+        subject: 'Corte de agua',
+        body: expect.stringContaining('OpenAI'),
+      },
+      mode: 'openai',
+    });
+  });
+
   it('genera actas desde el endpoint dedicado', async () => {
     const agent = request.agent(buildApp());
     const response = await agent.post('/api/meeting-minutes/draft').send({
@@ -285,6 +329,69 @@ describe('createApiApp', () => {
       mode: 'deterministic-demo',
     });
     expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
+  });
+
+  it('crea incidencias con el clasificador IA configurado', async () => {
+    const agent = request.agent(
+      buildApp(3, {
+        aiProviders: {
+          communityNoticeGenerator: {
+            draft: async () => ({
+              draft: { subject: 'Aviso', body: 'Contenido válido' },
+              mode: 'openai',
+            }),
+          },
+          incidentClassifier: {
+            classify: async () => ({
+              classification: {
+                type: 'ascensor',
+                priority: 'alta',
+                suggestedResponsible: 'Mantenimiento de ascensores',
+              },
+              mode: 'openai',
+            }),
+          },
+        },
+      }),
+    );
+
+    const response = await agent.post('/api/incidents').send({
+      description: 'El ascensor del portal B no funciona desde esta mañana.',
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({
+      incident: {
+        type: 'ascensor',
+        priority: 'alta',
+        suggestedResponsible: 'Mantenimiento de ascensores',
+      },
+      mode: 'openai',
+    });
+  });
+
+  it('devuelve un error controlado cuando falla OpenAI', async () => {
+    const response = await request(
+      buildApp(3, {
+        aiProviders: {
+          communityNoticeGenerator: {
+            draft: async () => {
+              throw new OpenAiProviderError();
+            },
+          },
+          incidentClassifier: {
+            classify: async () => {
+              throw new OpenAiProviderError();
+            },
+          },
+        },
+      }),
+    )
+      .post('/api/communications/draft')
+      .send({ message: 'Redacta un aviso de corte de agua.' });
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.code).toBe('AI_PROVIDER_ERROR');
   });
 
   it('marca una incidencia como resuelta y conserva la resolución al repetir la operación', async () => {

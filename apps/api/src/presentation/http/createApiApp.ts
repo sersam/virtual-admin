@@ -61,12 +61,14 @@ import type { UploadedDocumentRepository } from '../../application/ports/Uploade
 import type { UploadedDocumentTextExtractor } from '../../application/ports/UploadedDocumentTextExtractor.js';
 import type { Clock } from '../../application/ports/Clock.js';
 import type { IdGenerator } from '../../application/ports/IdGenerator.js';
+import type { AiProviders } from '../../infrastructure/openai/createAiProviders.js';
 import { LangGraphChatWorkflow } from '../../infrastructure/agent/LangGraphChatWorkflow.js';
 import { DeterministicCommunityNoticeGenerator } from '../../infrastructure/communication/DeterministicCommunityNoticeGenerator.js';
 import { UploadedSessionDocumentRetriever } from '../../infrastructure/document/UploadedSessionDocumentRetriever.js';
 import { DeterministicIncidentClassifier } from '../../infrastructure/incident/DeterministicIncidentClassifier.js';
 import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemoryIncidentRepository.js';
 import { InMemoryPendingAgreementRepository } from '../../infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
+import { OpenAiProviderError } from '../../infrastructure/openai/OpenAiProviderError.js';
 import { presentSession } from './sessionPresenter.js';
 
 const SESSION_COOKIE = 'va_session';
@@ -77,6 +79,7 @@ const uploadPdf = multer({
 });
 
 interface ApiAppOptions {
+  readonly aiProviders?: AiProviders;
   readonly clock: Clock;
   readonly cookieSecret: string;
   readonly documentRetriever: DocumentRetriever;
@@ -100,8 +103,12 @@ export function createApiApp(options: ApiAppOptions) {
     sessionRetriever: uploadedSessionDocumentRetriever,
   });
   const incidentRepository = new InMemoryIncidentRepository();
+  const aiProviders = options.aiProviders ?? {
+    communityNoticeGenerator: new DeterministicCommunityNoticeGenerator(),
+    incidentClassifier: new DeterministicIncidentClassifier(),
+  };
   const createIncident = new CreateIncident({
-    classifier: new DeterministicIncidentClassifier(),
+    classifier: aiProviders.incidentClassifier,
     clock: options.clock,
     ids: options.ids,
     repository: incidentRepository,
@@ -113,7 +120,7 @@ export function createApiApp(options: ApiAppOptions) {
     pendingAgreementRepository,
   });
   const draftCommunityNotice = new DraftCommunityNotice({
-    generator: new DeterministicCommunityNoticeGenerator(),
+    generator: aiProviders.communityNoticeGenerator,
   });
   const draftMeetingMinutes = new DraftMeetingMinutes({
     clock: options.clock,
@@ -493,6 +500,11 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
 
   if (error instanceof IncidentNotFoundError) {
     sendError(response, 404, 'INCIDENT_NOT_FOUND', error.message);
+    return;
+  }
+
+  if (error instanceof OpenAiProviderError) {
+    sendError(response, 502, 'AI_PROVIDER_ERROR', 'No se pudo completar la operación con OpenAI.');
     return;
   }
 

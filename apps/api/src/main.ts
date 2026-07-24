@@ -6,11 +6,13 @@ import { LexicalDocumentRetriever } from './infrastructure/document/LexicalDocum
 import { residencialSierraNevadaDocuments } from './infrastructure/document/residencialSierraNevadaDocuments.js';
 import { InMemoryUploadedDocumentRepository } from './infrastructure/document/InMemoryUploadedDocumentRepository.js';
 import { PdfParseUploadedDocumentTextExtractor } from './infrastructure/document/PdfParseUploadedDocumentTextExtractor.js';
+import { createAiProviders } from './infrastructure/openai/createAiProviders.js';
 
 const port = Number(process.env.PORT ?? 3000);
 const cookieSecret = readRequiredEnvironmentVariable('COOKIE_SECRET');
 
 const app = createApiApp({
+  aiProviders: createAiProviders({ openAiApiKey: process.env.OPENAI_API_KEY }),
   clock: new SystemClock(),
   cookieSecret,
   documentRetriever: new LexicalDocumentRetriever(residencialSierraNevadaDocuments),
