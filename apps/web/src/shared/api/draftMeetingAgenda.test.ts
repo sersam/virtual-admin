@@ -13,7 +13,7 @@ describe('draftMeetingAgenda api', () => {
 
     expect(response.draft.title).toBe('Orden del día');
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      'http://localhost:3000/api/meeting-agendas/draft',
+      '/api/meeting-agendas/draft',
       expect.objectContaining({
         body: JSON.stringify({}),
         credentials: 'include',
@@ -37,7 +37,7 @@ describe('draftMeetingAgenda api', () => {
     await draftMeetingAgenda(controller.signal);
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      'http://localhost:3000/api/meeting-agendas/draft',
+      '/api/meeting-agendas/draft',
       expect.objectContaining({ signal: controller.signal }),
     );
   });
