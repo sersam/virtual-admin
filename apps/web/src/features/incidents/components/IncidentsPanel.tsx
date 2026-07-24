@@ -2,6 +2,7 @@ import type { FormEvent } from 'react';
 import type { Incident, IncidentPriority, IncidentType } from '@admin/contracts';
 import { CheckCircle2, ClipboardList, Filter, SendHorizontal, Wrench } from 'lucide-react';
 import { useState } from 'react';
+import { formatAiProviderMode } from '../../../shared/config/aiProviderMode';
 import { useIncidents } from '../hooks/useIncidents';
 
 const suggestedDescriptions = [
@@ -36,6 +37,7 @@ export function IncidentsPanel() {
     error,
     filterByType,
     incidents,
+    providerMode,
     resolve,
     resolvingIncidentId,
     selectedType,
@@ -113,6 +115,11 @@ export function IncidentsPanel() {
                 Incidencias registradas
               </h2>
             </div>
+            {providerMode ? (
+              <span className="mt-2 inline-flex items-center rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-800">
+                {formatAiProviderMode(providerMode)}
+              </span>
+            ) : null}
           </div>
 
           <label

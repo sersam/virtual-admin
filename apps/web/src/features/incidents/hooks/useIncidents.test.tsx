@@ -70,6 +70,23 @@ describe('useIncidents', () => {
 
     expect(result.current.status).toBe('ready');
     expect(result.current.incidents).toEqual([waterIncident]);
+    expect(result.current.providerMode).toBe('deterministic-demo');
+  });
+
+  it('expone el proveedor OpenAI tras crear una incidencia', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ incidents: [] }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ incident: liftIncident, mode: 'openai' }), {
+          status: 201,
+        }),
+      );
+    const { result } = renderHook(() => useIncidents());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await act(() => result.current.create('El ascensor no funciona desde esta mañana.'));
+
+    expect(result.current.providerMode).toBe('openai');
   });
 
   it('filtra incidencias por tipo desde la API', async () => {

@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react';
 import { ClipboardCheck, FilePenLine, SendHorizontal } from 'lucide-react';
 import { useState } from 'react';
+import { formatAiProviderMode } from '../../../shared/config/aiProviderMode';
 import { useCommunityNoticeDraft } from '../hooks/useCommunityNoticeDraft';
 
 const suggestedMessages = [
@@ -92,7 +93,7 @@ export function CommunityNoticePanel() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-sky-100">
                   <ClipboardCheck aria-hidden="true" size={14} />
-                  Demo determinista
+                  {formatAiProviderMode(result.mode)}
                 </span>
               </div>
               <h3 className="mt-4 font-display text-2xl font-extrabold">{result.draft.subject}</h3>

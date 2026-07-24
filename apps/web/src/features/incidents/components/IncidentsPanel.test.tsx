@@ -60,6 +60,30 @@ describe('IncidentsPanel', () => {
     expect(within(incident).getByText('Agua')).toBeInTheDocument();
     expect(within(incident).getByText('Urgente')).toBeInTheDocument();
     expect(within(incident).getByText('Fontanería')).toBeInTheDocument();
+    expect(screen.getByText('Demo determinista')).toBeInTheDocument();
+  });
+
+  it('muestra el proveedor OpenAI al crear una incidencia con IA', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ incidents: [] }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ incident: liftIncident, mode: 'openai' }), {
+          status: 201,
+        }),
+      );
+
+    render(<IncidentsPanel />);
+    expect(await screen.findByText('Sin incidencias registradas')).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText('Descripción de la incidencia'));
+    await user.type(
+      screen.getByLabelText('Descripción de la incidencia'),
+      'El ascensor no funciona desde esta mañana.',
+    );
+    await user.click(screen.getByRole('button', { name: 'Registrar incidencia' }));
+
+    expect(await screen.findByText('OpenAI · GPT-5.6 Luna')).toBeInTheDocument();
   });
 
   it('filtra el listado por tipo de incidencia', async () => {
