@@ -11,7 +11,7 @@ describe('useMeetingAgendaDraft', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(createAgendaResponse('Orden del día'));
     const { result } = renderHook(() => useMeetingAgendaDraft());
 
-    await act(() => result.current.generate());
+    await result.current.generate();
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(result.current.result?.draft.title).toBe('Orden del día');
@@ -22,7 +22,7 @@ describe('useMeetingAgendaDraft', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const { result } = renderHook(() => useMeetingAgendaDraft());
 
-    await act(() => result.current.generate());
+    await result.current.generate();
 
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect(result.current.error).toBe('No se pudo preparar el orden del día.');
