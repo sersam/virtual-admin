@@ -7,7 +7,7 @@ import type {
 import { OpenAiProviderError } from './OpenAiProviderError.js';
 
 describe('OpenAiCommunityNoticeGenerator', () => {
-  it('genera comunicados con GPT-5.6 Luna y registra telemetría', async () => {
+  it('genera comunicados con GPT-5 nano y registra telemetría', async () => {
     const telemetry = new RecordingTelemetryReporter();
     const requests: unknown[] = [];
     const generator = new OpenAiCommunityNoticeGenerator({
@@ -37,7 +37,7 @@ describe('OpenAiCommunityNoticeGenerator', () => {
     });
     expect(requests).toEqual([
       expect.objectContaining({
-        model: 'gpt-5.6-luna',
+        model: 'gpt-5-nano',
         promptVersion: 'community-notice.v1',
         schemaName: 'community_notice_v1',
       }),
@@ -45,7 +45,7 @@ describe('OpenAiCommunityNoticeGenerator', () => {
     expect(telemetry.events).toEqual([
       expect.objectContaining({
         operation: 'community-notice',
-        model: 'gpt-5.6-luna',
+        model: 'gpt-5-nano',
         promptVersion: 'community-notice.v1',
         inputTokens: 1_000,
         outputTokens: 300,

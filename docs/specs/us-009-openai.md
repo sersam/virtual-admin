@@ -16,7 +16,7 @@ Cuando no exista `OPENAI_API_KEY`, el sistema debe conservar el comportamiento d
 ## Criterios de aceptación
 
 - OpenAI se invoca solo desde el backend.
-- El modelo OpenAI de la historia es `gpt-5.6-luna`.
+- El modelo OpenAI de la historia es `gpt-5-nano`.
 - La generacion de comunicados se consume mediante un puerto de aplicacion.
 - La clasificacion de incidencias se consume mediante un puerto de aplicacion.
 - Los adaptadores OpenAI validan la respuesta externa con Zod antes de exponerla al resto del sistema.
@@ -40,7 +40,7 @@ Cuando no exista `OPENAI_API_KEY`, el sistema debe conservar el comportamiento d
 - No se introducen tools, memoria conversacional ni RAG nuevo.
 - No se persiste telemetria en base de datos.
 - No se expone el detalle de telemetria en contratos publicos.
-- No se agrega selector dinamico de modelo; `gpt-5.6-luna` queda fijado para esta historia.
+- No se agrega selector dinamico de modelo; `gpt-5-nano` queda fijado para esta historia.
 - No se modifica el stack frontend.
 
 ## Estrategia de pruebas

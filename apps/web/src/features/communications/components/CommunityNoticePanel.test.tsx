@@ -56,6 +56,6 @@ describe('CommunityNoticePanel', () => {
 
     await user.click(screen.getByRole('button', { name: 'Redactar comunicado' }));
 
-    await waitFor(() => expect(screen.getByText('OpenAI · GPT-5.6 Luna')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('OpenAI · GPT-5 nano')).toBeInTheDocument());
   });
 });

@@ -1,7 +1,7 @@
 import { CommunityNoticeDraftSchema, type CommunityNoticeDraftResponse } from '@admin/contracts';
 import type { AiTelemetryReporter } from '../../application/ports/AiTelemetryReporter.js';
 import type { CommunityNoticeGenerator } from '../../application/ports/CommunityNoticeGenerator.js';
-import { estimateGpt56LunaCostUsd, GPT_5_6_LUNA_MODEL } from './openAiPricing.js';
+import { estimateOpenAiTextCostUsd, OPENAI_TEXT_MODEL } from './openAiPricing.js';
 import { communityNoticePrompt } from './versionedPrompts.js';
 import type { OpenAiResponsesClient, OpenAiUsage } from './OpenAiResponsesClient.js';
 import { OpenAiProviderError } from './OpenAiProviderError.js';
@@ -28,7 +28,7 @@ export class OpenAiCommunityNoticeGenerator implements CommunityNoticeGenerator 
         input: message,
         instructions: communityNoticePrompt.instructions,
         maxOutputTokens: 700,
-        model: GPT_5_6_LUNA_MODEL,
+        model: OPENAI_TEXT_MODEL,
         promptVersion: communityNoticePrompt.version,
         schema: CommunityNoticeDraftSchema,
         schemaName: 'community_notice_v1',
@@ -56,10 +56,10 @@ export class OpenAiCommunityNoticeGenerator implements CommunityNoticeGenerator 
   ): Promise<void> {
     await this.dependencies.telemetry.record({
       cachedInputTokens: usage.cachedInputTokens,
-      estimatedCostUsd: estimateGpt56LunaCostUsd(usage),
+      estimatedCostUsd: estimateOpenAiTextCostUsd(usage),
       inputTokens: usage.inputTokens,
       latencyMs: this.nowMs() - startedAt,
-      model: GPT_5_6_LUNA_MODEL,
+      model: OPENAI_TEXT_MODEL,
       operation: 'community-notice',
       outputTokens: usage.outputTokens,
       promptVersion: communityNoticePrompt.version,

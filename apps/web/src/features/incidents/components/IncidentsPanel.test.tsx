@@ -83,7 +83,7 @@ describe('IncidentsPanel', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Registrar incidencia' }));
 
-    expect(await screen.findByText('OpenAI · GPT-5.6 Luna')).toBeInTheDocument();
+    expect(await screen.findByText('OpenAI · GPT-5 nano')).toBeInTheDocument();
   });
 
   it('filtra el listado por tipo de incidencia', async () => {

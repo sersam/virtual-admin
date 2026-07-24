@@ -5,7 +5,7 @@ import type {
   IncidentClassificationResult,
   IncidentClassifier,
 } from '../../application/ports/IncidentClassifier.js';
-import { estimateGpt56LunaCostUsd, GPT_5_6_LUNA_MODEL } from './openAiPricing.js';
+import { estimateOpenAiTextCostUsd, OPENAI_TEXT_MODEL } from './openAiPricing.js';
 import { incidentClassificationPrompt } from './versionedPrompts.js';
 import type { OpenAiResponsesClient, OpenAiUsage } from './OpenAiResponsesClient.js';
 import { OpenAiProviderError } from './OpenAiProviderError.js';
@@ -38,7 +38,7 @@ export class OpenAiIncidentClassifier implements IncidentClassifier {
         input: description,
         instructions: incidentClassificationPrompt.instructions,
         maxOutputTokens: 250,
-        model: GPT_5_6_LUNA_MODEL,
+        model: OPENAI_TEXT_MODEL,
         promptVersion: incidentClassificationPrompt.version,
         schema: IncidentClassificationOutputSchema,
         schemaName: 'incident_classification_v1',
@@ -66,10 +66,10 @@ export class OpenAiIncidentClassifier implements IncidentClassifier {
   ): Promise<void> {
     await this.dependencies.telemetry.record({
       cachedInputTokens: usage.cachedInputTokens,
-      estimatedCostUsd: estimateGpt56LunaCostUsd(usage),
+      estimatedCostUsd: estimateOpenAiTextCostUsd(usage),
       inputTokens: usage.inputTokens,
       latencyMs: this.nowMs() - startedAt,
-      model: GPT_5_6_LUNA_MODEL,
+      model: OPENAI_TEXT_MODEL,
       operation: 'incident-classification',
       outputTokens: usage.outputTokens,
       promptVersion: incidentClassificationPrompt.version,
