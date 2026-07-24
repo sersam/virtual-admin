@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-24 · PR [#12](https://github.com/sersam/virtual-admin/pull/12)
+
+### Added
+
+- Añade el preparador de juntas con orden del día determinista desde incidencias y acuerdos pendientes de la sesión, integrado en API, chat y pantalla editable con trazabilidad.
+
 ## 2026-07-24 · PR [#13](https://github.com/sersam/virtual-admin/pull/13)
 
 ### Added
