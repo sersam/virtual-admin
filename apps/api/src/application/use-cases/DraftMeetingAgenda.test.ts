@@ -14,6 +14,8 @@ describe('DraftMeetingAgenda', () => {
             priority: 'baja',
             suggestedResponsible: 'Administrador',
             createdAt: new Date('2026-06-23T10:00:00.000Z'),
+            status: 'pendiente',
+            resolvedAt: null,
           },
           {
             id: 'inc-urgent',
@@ -23,8 +25,11 @@ describe('DraftMeetingAgenda', () => {
             priority: 'urgente',
             suggestedResponsible: 'Fontanería',
             createdAt: new Date('2026-06-23T11:00:00.000Z'),
+            status: 'pendiente',
+            resolvedAt: null,
           },
         ],
+        resolve: async () => undefined,
         save: async () => {
           /* no-op */
         },
@@ -104,6 +109,7 @@ describe('DraftMeetingAgenda', () => {
     const useCase = new DraftMeetingAgenda({
       incidentRepository: {
         listBySession: async () => [],
+        resolve: async () => undefined,
         save: async () => {
           /* no-op */
         },
