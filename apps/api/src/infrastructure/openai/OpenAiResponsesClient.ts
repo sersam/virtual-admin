@@ -38,7 +38,7 @@ interface ParsedResponsesApi {
       instructions: string;
       max_output_tokens: number;
       model: string;
-      reasoning?: { effort: 'none' };
+      reasoning?: { effort: 'minimal' };
       text: { format: unknown };
     },
     options?: unknown,
@@ -60,7 +60,7 @@ export class OfficialOpenAiResponsesClient implements OpenAiResponsesClient {
       instructions: request.instructions,
       max_output_tokens: request.maxOutputTokens,
       model: request.model,
-      reasoning: { effort: 'none' },
+      reasoning: { effort: 'minimal' },
       text: { format: zodTextFormat(request.schema, request.schemaName) },
     });
 
