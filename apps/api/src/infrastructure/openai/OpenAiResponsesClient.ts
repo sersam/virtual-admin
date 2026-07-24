@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { zodTextFormat } from 'openai/helpers/zod';
 import type { ResponseUsage } from 'openai/resources/responses/responses';
 import type { z } from 'zod';
+import { OpenAiProviderError } from './OpenAiProviderError.js';
 
 export interface OpenAiUsage {
   readonly cachedInputTokens: number;
@@ -37,6 +38,7 @@ interface ParsedResponsesApi {
       instructions: string;
       max_output_tokens: number;
       model: string;
+      reasoning?: { effort: 'none' };
       text: { format: unknown };
     },
     options?: unknown,
@@ -58,8 +60,15 @@ export class OfficialOpenAiResponsesClient implements OpenAiResponsesClient {
       instructions: request.instructions,
       max_output_tokens: request.maxOutputTokens,
       model: request.model,
+      reasoning: { effort: 'none' },
       text: { format: zodTextFormat(request.schema, request.schemaName) },
     });
+
+    if (response.output_parsed === null) {
+      throw new OpenAiProviderError('OpenAI no devolvió una salida estructurada válida.', {
+        cause: new Error('output_parsed es null'),
+      });
+    }
 
     return {
       output: response.output_parsed,
