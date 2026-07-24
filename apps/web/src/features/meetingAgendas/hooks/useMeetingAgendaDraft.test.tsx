@@ -36,12 +36,8 @@ describe('useMeetingAgendaDraft', () => {
       .mockReturnValueOnce(secondRequest.promise);
     const { result } = renderHook(() => useMeetingAgendaDraft());
 
-    await act(async () => {
-      void result.current.generate();
-    });
-    await act(async () => {
-      void result.current.generate();
-    });
+    void result.current.generate();
+    void result.current.generate();
 
     await act(async () => {
       secondRequest.resolve(createAgendaResponse('Orden nuevo'));
