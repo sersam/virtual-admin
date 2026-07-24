@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { OpenAiIncidentClassifier } from './OpenAiIncidentClassifier.js';
+import { OpenAiProviderError } from './OpenAiProviderError.js';
 import type {
   AiTelemetryEvent,
   AiTelemetryReporter,
@@ -43,6 +44,55 @@ describe('OpenAiIncidentClassifier', () => {
       }),
     ]);
   });
+
+  it('mantiene la clasificación aunque falle la telemetría', async () => {
+    const classifier = new OpenAiIncidentClassifier({
+      nowMs: sequenceNow(1_000, 1_090),
+      responses: {
+        createStructuredResponse: async () => ({
+          output: {
+            type: 'ascensor',
+            priority: 'alta',
+            suggestedResponsible: 'Mantenimiento de ascensores',
+          },
+          usage: { inputTokens: 700, cachedInputTokens: 100, outputTokens: 80 },
+        }),
+      },
+      telemetry: new RejectingTelemetryReporter(),
+    });
+
+    await expect(
+      classifier.classify('El ascensor del portal B no funciona desde esta mañana.'),
+    ).resolves.toEqual({
+      classification: {
+        type: 'ascensor',
+        priority: 'alta',
+        suggestedResponsible: 'Mantenimiento de ascensores',
+      },
+      mode: 'openai',
+    });
+  });
+
+  it('mantiene el error funcional aunque falle la telemetría de fallo', async () => {
+    const classifier = new OpenAiIncidentClassifier({
+      nowMs: sequenceNow(1_000, 1_060),
+      responses: {
+        createStructuredResponse: async () => ({
+          output: {
+            type: 'desconocido',
+            priority: 'alta',
+            suggestedResponsible: 'Mantenimiento',
+          },
+          usage: { inputTokens: 700, cachedInputTokens: 100, outputTokens: 80 },
+        }),
+      },
+      telemetry: new RejectingTelemetryReporter(),
+    });
+
+    await expect(
+      classifier.classify('El ascensor del portal B no funciona desde esta mañana.'),
+    ).rejects.toBeInstanceOf(OpenAiProviderError);
+  });
 });
 
 class RecordingTelemetryReporter implements AiTelemetryReporter {
@@ -50,6 +100,12 @@ class RecordingTelemetryReporter implements AiTelemetryReporter {
 
   async record(event: AiTelemetryEvent): Promise<void> {
     this.events.push(event);
+  }
+}
+
+class RejectingTelemetryReporter implements AiTelemetryReporter {
+  async record(): Promise<void> {
+    throw new Error('telemetry failure');
   }
 }
 

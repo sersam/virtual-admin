@@ -1,10 +1,9 @@
 import { CommunityNoticeDraftSchema, type CommunityNoticeDraftResponse } from '@admin/contracts';
 import type { AiTelemetryReporter } from '../../application/ports/AiTelemetryReporter.js';
 import type { CommunityNoticeGenerator } from '../../application/ports/CommunityNoticeGenerator.js';
-import { estimateOpenAiTextCostUsd, OPENAI_TEXT_MODEL } from './openAiPricing.js';
+import { executeOpenAiStructuredOperation } from './executeOpenAiStructuredOperation.js';
 import { communityNoticePrompt } from './versionedPrompts.js';
-import type { OpenAiResponsesClient, OpenAiUsage } from './OpenAiResponsesClient.js';
-import { OpenAiProviderError } from './OpenAiProviderError.js';
+import type { OpenAiResponsesClient } from './OpenAiResponsesClient.js';
 
 interface OpenAiCommunityNoticeGeneratorDependencies {
   readonly nowMs?: () => number;
@@ -20,54 +19,17 @@ export class OpenAiCommunityNoticeGenerator implements CommunityNoticeGenerator 
   }
 
   async draft(message: string): Promise<CommunityNoticeDraftResponse> {
-    const startedAt = this.nowMs();
-    let usage = emptyUsage();
-
-    try {
-      const response = await this.dependencies.responses.createStructuredResponse({
-        input: message,
-        instructions: communityNoticePrompt.instructions,
-        maxOutputTokens: 700,
-        model: OPENAI_TEXT_MODEL,
-        promptVersion: communityNoticePrompt.version,
-        schema: CommunityNoticeDraftSchema,
-        schemaName: 'community_notice_v1',
-      });
-      usage = response.usage;
-      const draft = CommunityNoticeDraftSchema.parse(response.output);
-
-      await this.recordTelemetry(startedAt, usage, 'success');
-
-      return { draft, mode: 'openai' };
-    } catch (error) {
-      await this.recordTelemetry(startedAt, usage, 'failure');
-      throw error instanceof OpenAiProviderError
-        ? error
-        : new OpenAiProviderError('No se pudo generar el comunicado con OpenAI.', {
-            cause: error,
-          });
-    }
-  }
-
-  private async recordTelemetry(
-    startedAt: number,
-    usage: OpenAiUsage,
-    result: 'success' | 'failure',
-  ): Promise<void> {
-    await this.dependencies.telemetry.record({
-      cachedInputTokens: usage.cachedInputTokens,
-      estimatedCostUsd: estimateOpenAiTextCostUsd(usage),
-      inputTokens: usage.inputTokens,
-      latencyMs: this.nowMs() - startedAt,
-      model: OPENAI_TEXT_MODEL,
+    const draft = await executeOpenAiStructuredOperation(this.dependencies, {
+      errorMessage: 'No se pudo generar el comunicado con OpenAI.',
+      input: message,
+      instructions: communityNoticePrompt.instructions,
+      maxOutputTokens: 700,
       operation: 'community-notice',
-      outputTokens: usage.outputTokens,
       promptVersion: communityNoticePrompt.version,
-      result,
+      schema: CommunityNoticeDraftSchema,
+      schemaName: 'community_notice_v1',
     });
-  }
-}
 
-function emptyUsage(): OpenAiUsage {
-  return { cachedInputTokens: 0, inputTokens: 0, outputTokens: 0 };
+    return { draft, mode: 'openai' };
+  }
 }

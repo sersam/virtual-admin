@@ -15,6 +15,15 @@ describe('createAiProviders', () => {
     expect(providers.incidentClassifier).toBeInstanceOf(DeterministicIncidentClassifier);
   });
 
+  it('usa proveedores demo cuando OPENAI_API_KEY solo contiene espacios', () => {
+    const providers = createAiProviders({ openAiApiKey: '   ' });
+
+    expect(providers.communityNoticeGenerator).toBeInstanceOf(
+      DeterministicCommunityNoticeGenerator,
+    );
+    expect(providers.incidentClassifier).toBeInstanceOf(DeterministicIncidentClassifier);
+  });
+
   it('usa proveedores OpenAI cuando existe OPENAI_API_KEY', () => {
     const providers = createAiProviders({ openAiApiKey: 'sk-test' });
 

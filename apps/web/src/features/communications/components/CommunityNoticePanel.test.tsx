@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CommunityNoticePanel } from './CommunityNoticePanel';
@@ -32,7 +32,7 @@ describe('CommunityNoticePanel', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Redactar comunicado' }));
 
-    await waitFor(() => expect(screen.getByText('Corte de agua')).toBeInTheDocument());
+    expect(await screen.findByText('Corte de agua')).toBeInTheDocument();
     expect(screen.getByText(/Estimados vecinos:/)).toBeInTheDocument();
     expect(screen.getByText('Demo determinista')).toBeInTheDocument();
   });
@@ -56,6 +56,6 @@ describe('CommunityNoticePanel', () => {
 
     await user.click(screen.getByRole('button', { name: 'Redactar comunicado' }));
 
-    await waitFor(() => expect(screen.getByText('OpenAI · GPT-5 nano')).toBeInTheDocument());
+    expect(await screen.findByText('OpenAI · GPT-5 nano')).toBeInTheDocument();
   });
 });

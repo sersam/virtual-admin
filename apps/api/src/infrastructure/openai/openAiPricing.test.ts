@@ -11,4 +11,14 @@ describe('estimateOpenAiTextCostUsd', () => {
       }),
     ).toBeCloseTo(0.00023875, 8);
   });
+
+  it('no factura tokens de entrada negativos si la caché supera la entrada', () => {
+    expect(
+      estimateOpenAiTextCostUsd({
+        inputTokens: 100,
+        cachedInputTokens: 200,
+        outputTokens: 0,
+      }),
+    ).toBeCloseTo(0.000001, 8);
+  });
 });

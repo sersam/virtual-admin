@@ -108,6 +108,28 @@ describe('useIncidents', () => {
     expect(result.current.incidents).toEqual([liftIncident]);
   });
 
+  it('conserva el proveedor usado al filtrar incidencias', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ incidents: [] }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ incident: liftIncident, mode: 'openai' }), {
+          status: 201,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ incidents: [liftIncident] }), { status: 200 }),
+      );
+    const { result } = renderHook(() => useIncidents());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await act(() => result.current.create('El ascensor no funciona desde esta mañana.'));
+    await act(() => result.current.filterByType('ascensor'));
+
+    expect(result.current.providerMode).toBe('openai');
+    expect(result.current.selectedType).toBe('ascensor');
+    expect(result.current.incidents).toEqual([liftIncident]);
+  });
+
   it('resuelve una incidencia y actualiza solo ese elemento del listado', async () => {
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(

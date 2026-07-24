@@ -31,7 +31,7 @@ export interface OpenAiResponsesClient {
   ): Promise<StructuredResponse>;
 }
 
-interface ParsedResponsesApi {
+export interface ParsedResponsesApi {
   parse<Output>(
     body: {
       input: string;
@@ -39,6 +39,7 @@ interface ParsedResponsesApi {
       max_output_tokens: number;
       model: string;
       reasoning?: { effort: 'minimal' };
+      store: false;
       text: { format: unknown };
     },
     options?: unknown,
@@ -46,21 +47,23 @@ interface ParsedResponsesApi {
 }
 
 export class OfficialOpenAiResponsesClient implements OpenAiResponsesClient {
-  private readonly client: OpenAI & { responses: ParsedResponsesApi };
+  private readonly responses: ParsedResponsesApi;
 
-  constructor(apiKey: string) {
-    this.client = new OpenAI({ apiKey }) as OpenAI & { responses: ParsedResponsesApi };
+  constructor(apiKey: string, responses?: ParsedResponsesApi) {
+    this.responses =
+      responses ?? (new OpenAI({ apiKey }) as OpenAI & { responses: ParsedResponsesApi }).responses;
   }
 
   async createStructuredResponse<Output>(
     request: StructuredResponseRequest<Output>,
   ): Promise<StructuredResponse> {
-    const response = await this.client.responses.parse<Output>({
+    const response = await this.responses.parse<Output>({
       input: request.input,
       instructions: request.instructions,
       max_output_tokens: request.maxOutputTokens,
       model: request.model,
       reasoning: { effort: 'minimal' },
+      store: false,
       text: { format: zodTextFormat(request.schema, request.schemaName) },
     });
 
@@ -79,7 +82,7 @@ export class OfficialOpenAiResponsesClient implements OpenAiResponsesClient {
 
 function presentUsage(usage: ResponseUsage | null | undefined): OpenAiUsage {
   return {
-    cachedInputTokens: usage?.input_tokens_details.cached_tokens ?? 0,
+    cachedInputTokens: usage?.input_tokens_details?.cached_tokens ?? 0,
     inputTokens: usage?.input_tokens ?? 0,
     outputTokens: usage?.output_tokens ?? 0,
   };

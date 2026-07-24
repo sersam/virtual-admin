@@ -5,10 +5,9 @@ import type {
   IncidentClassificationResult,
   IncidentClassifier,
 } from '../../application/ports/IncidentClassifier.js';
-import { estimateOpenAiTextCostUsd, OPENAI_TEXT_MODEL } from './openAiPricing.js';
+import { executeOpenAiStructuredOperation } from './executeOpenAiStructuredOperation.js';
 import { incidentClassificationPrompt } from './versionedPrompts.js';
-import type { OpenAiResponsesClient, OpenAiUsage } from './OpenAiResponsesClient.js';
-import { OpenAiProviderError } from './OpenAiProviderError.js';
+import type { OpenAiResponsesClient } from './OpenAiResponsesClient.js';
 
 const IncidentClassificationOutputSchema = z.object({
   priority: IncidentPrioritySchema,
@@ -30,54 +29,17 @@ export class OpenAiIncidentClassifier implements IncidentClassifier {
   }
 
   async classify(description: string): Promise<IncidentClassificationResult> {
-    const startedAt = this.nowMs();
-    let usage = emptyUsage();
-
-    try {
-      const response = await this.dependencies.responses.createStructuredResponse({
-        input: description,
-        instructions: incidentClassificationPrompt.instructions,
-        maxOutputTokens: 250,
-        model: OPENAI_TEXT_MODEL,
-        promptVersion: incidentClassificationPrompt.version,
-        schema: IncidentClassificationOutputSchema,
-        schemaName: 'incident_classification_v1',
-      });
-      usage = response.usage;
-      const classification = IncidentClassificationOutputSchema.parse(response.output);
-
-      await this.recordTelemetry(startedAt, usage, 'success');
-
-      return { classification, mode: 'openai' };
-    } catch (error) {
-      await this.recordTelemetry(startedAt, usage, 'failure');
-      throw error instanceof OpenAiProviderError
-        ? error
-        : new OpenAiProviderError('No se pudo clasificar la incidencia con OpenAI.', {
-            cause: error,
-          });
-    }
-  }
-
-  private async recordTelemetry(
-    startedAt: number,
-    usage: OpenAiUsage,
-    result: 'success' | 'failure',
-  ): Promise<void> {
-    await this.dependencies.telemetry.record({
-      cachedInputTokens: usage.cachedInputTokens,
-      estimatedCostUsd: estimateOpenAiTextCostUsd(usage),
-      inputTokens: usage.inputTokens,
-      latencyMs: this.nowMs() - startedAt,
-      model: OPENAI_TEXT_MODEL,
+    const classification = await executeOpenAiStructuredOperation(this.dependencies, {
+      errorMessage: 'No se pudo clasificar la incidencia con OpenAI.',
+      input: description,
+      instructions: incidentClassificationPrompt.instructions,
+      maxOutputTokens: 250,
       operation: 'incident-classification',
-      outputTokens: usage.outputTokens,
       promptVersion: incidentClassificationPrompt.version,
-      result,
+      schema: IncidentClassificationOutputSchema,
+      schemaName: 'incident_classification_v1',
     });
-  }
-}
 
-function emptyUsage(): OpenAiUsage {
-  return { cachedInputTokens: 0, inputTokens: 0, outputTokens: 0 };
+    return { classification, mode: 'openai' };
+  }
 }

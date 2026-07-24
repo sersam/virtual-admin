@@ -55,12 +55,22 @@ export function useIncidents() {
     try {
       const incidents = await listIncidents(type, signal);
       if (latestLoadRequestId.current !== requestId) return;
-      setState({ incidents, selectedType: type, status: 'ready' });
+      setState((current) => ({
+        incidents,
+        providerMode: current.providerMode,
+        selectedType: type,
+        status: 'ready',
+      }));
     } catch (error) {
       if (signal?.aborted) return;
       if (latestLoadRequestId.current !== requestId) return;
       console.error('[useIncidents] No se pudieron cargar las incidencias de sesión.', error);
-      setState({ incidents: [], selectedType: type, status: 'fallback' });
+      setState((current) => ({
+        incidents: [],
+        providerMode: current.providerMode,
+        selectedType: type,
+        status: 'fallback',
+      }));
     }
   }
 
