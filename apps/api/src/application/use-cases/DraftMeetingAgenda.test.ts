@@ -204,6 +204,44 @@ describe('DraftMeetingAgenda', () => {
     ]);
   });
 
+  it('usa únicamente entradas de la sesión solicitada', async () => {
+    const useCase = new DraftMeetingAgenda({
+      incidentRepository: createIncidentRepository([
+        createIncident({
+          id: 'inc-session-a',
+          description: 'Revisar cerradura del portal',
+          sessionId: 'session-a',
+        }),
+        createIncident({
+          id: 'inc-session-b',
+          description: 'Incidencia de otra sesión',
+          sessionId: 'session-b',
+        }),
+      ]),
+      pendingAgreementRepository: createPendingAgreementRepository([
+        createPendingAgreement({
+          id: 'pending-session-a',
+          description: 'Pedir presupuesto de jardinería',
+          sessionId: 'session-a',
+        }),
+        createPendingAgreement({
+          id: 'pending-session-b',
+          description: 'Acuerdo de otra sesión',
+          sessionId: 'session-b',
+        }),
+      ]),
+    });
+
+    const response = await useCase.execute({ sessionId: 'session-a' });
+
+    expect(response.draft.items.map((item) => item.sourceId)).toEqual([
+      'inc-session-a',
+      'pending-session-a',
+    ]);
+    expect(response.draft.body).not.toContain('Incidencia de otra sesión');
+    expect(response.draft.body).not.toContain('Acuerdo de otra sesión');
+  });
+
   it('propaga errores al listar incidencias', async () => {
     const useCase = new DraftMeetingAgenda({
       incidentRepository: {
@@ -239,7 +277,8 @@ describe('DraftMeetingAgenda', () => {
 
 function createIncidentRepository(incidents: readonly CommunityIncident[]): IncidentRepository {
   return {
-    listBySession: async () => [...incidents],
+    listBySession: async (sessionId) =>
+      incidents.filter((incident) => incident.sessionId === sessionId),
     resolve: async () => undefined,
     save: async () => {
       /* no-op */
@@ -251,7 +290,8 @@ function createPendingAgreementRepository(
   agreements: readonly PendingAgreement[],
 ): PendingAgreementRepository {
   return {
-    listBySession: async () => [...agreements],
+    listBySession: async (sessionId) =>
+      agreements.filter((agreement) => agreement.sessionId === sessionId),
     save: async () => {
       /* no-op */
     },
