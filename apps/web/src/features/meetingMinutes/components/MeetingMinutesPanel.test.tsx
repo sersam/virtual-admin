@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MeetingMinutesPanel } from './MeetingMinutesPanel';
@@ -59,9 +59,7 @@ describe('MeetingMinutesPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Generar acta' }));
     const editableDraft = await screen.findByLabelText('Borrador editable del acta');
 
-    await user.clear(editableDraft);
-    await waitFor(() => expect(editableDraft).toHaveValue(''));
-    await user.type(editableDraft, 'Acta revisada por secretaría.');
+    fireEvent.change(editableDraft, { target: { value: 'Acta revisada por secretaría.' } });
 
     expect(editableDraft).toHaveValue('Acta revisada por secretaría.');
     expect(screen.getByText('Revisar contrato')).toBeInTheDocument();

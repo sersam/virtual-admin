@@ -27,7 +27,7 @@ describe('draftMeetingMinutes api', () => {
 
     expect(response.draft.title).toBe('Acta de reunión');
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      'http://localhost:3000/api/meeting-minutes/draft',
+      '/api/meeting-minutes/draft',
       expect.objectContaining({
         body: JSON.stringify({
           notes: 'Acuerdo: aprobar presupuesto.',
@@ -74,7 +74,7 @@ describe('draftMeetingMinutes api', () => {
     await draftMeetingMinutes('Acuerdo: aprobar presupuesto.', controller.signal);
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      'http://localhost:3000/api/meeting-minutes/draft',
+      '/api/meeting-minutes/draft',
       expect.objectContaining({ signal: controller.signal }),
     );
   });

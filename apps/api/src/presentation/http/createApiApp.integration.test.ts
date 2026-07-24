@@ -41,6 +41,17 @@ describe('createApiApp', () => {
     });
   });
 
+  it('permite el preflight CORS para resolver incidencias', async () => {
+    const response = await request(buildApp())
+      .options('/api/incidents/inc-0001/resolve')
+      .set('Origin', 'http://localhost:5173')
+      .set('Access-Control-Request-Method', 'PATCH');
+
+    expect(response.status).toBe(204);
+    expect(response.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+    expect(response.headers['access-control-allow-methods']).toContain('PATCH');
+  });
+
   it('crea cookies firmadas y reutiliza la sesión del mismo navegador', async () => {
     const agent = request.agent(buildApp());
     const first = await agent.get('/api/session');
@@ -189,10 +200,46 @@ describe('createApiApp', () => {
         priority: 'urgente',
         suggestedResponsible: 'Fontanería',
         createdAt: '2026-06-23T08:00:00.000Z',
+        status: 'pendiente',
+        resolvedAt: null,
       },
       mode: 'deterministic-demo',
     });
     expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
+  });
+
+  it('marca una incidencia como resuelta y conserva la resolución al repetir la operación', async () => {
+    const agent = request.agent(buildApp(6));
+    const created = await agent.post('/api/incidents').send({
+      description: 'Hay una fuga de agua urgente en el garaje.',
+    });
+
+    const first = await agent.patch(`/api/incidents/${created.body.incident.id}/resolve`);
+    const second = await agent.patch(`/api/incidents/${created.body.incident.id}/resolve`);
+
+    expect(first.status).toBe(200);
+    expect(first.body.incident).toMatchObject({
+      id: created.body.incident.id,
+      status: 'resuelta',
+      resolvedAt: '2026-06-23T08:00:00.000Z',
+    });
+    expect(second.body.incident.resolvedAt).toBe(first.body.incident.resolvedAt);
+    expect((await agent.get('/api/incidents')).body.incidents).toContainEqual(first.body.incident);
+  });
+
+  it('no permite resolver incidencias inexistentes en la sesión', async () => {
+    const agent = request.agent(buildApp());
+    const response = await agent.patch('/api/incidents/inc-missing/resolve');
+
+    expect(response.status).toBe(404);
+    expect(response.body.error.code).toBe('INCIDENT_NOT_FOUND');
+  });
+
+  it('valida el identificador de incidencia al resolver', async () => {
+    const response = await request(buildApp()).patch('/api/incidents/%20/resolve');
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
   });
 
   it('registra desde el chat una incidencia visible en el listado de la sesión', async () => {

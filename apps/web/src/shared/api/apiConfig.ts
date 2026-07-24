@@ -8,9 +8,9 @@ export function resolveApiBaseUrl(
   location: ApiLocation | null = globalThis.location === undefined ? null : globalThis.location,
 ): string {
   if (configuredBaseUrl) return configuredBaseUrl;
-  if (!location) return 'http://127.0.0.1:3000';
+  if (location) return '';
 
-  return `${location.protocol}//${location.hostname}:3000`;
+  return 'http://127.0.0.1:3000';
 }
 
 export const apiBaseUrl = resolveApiBaseUrl();

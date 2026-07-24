@@ -11,13 +11,13 @@ describe('resolveApiBaseUrl', () => {
     ).toBe('http://api.local:4000');
   });
 
-  it('usa el mismo hostname del navegador para conservar la sesión local', () => {
+  it('usa rutas relativas en navegador para evitar CORS en desarrollo local', () => {
     expect(
       resolveApiBaseUrl(undefined, {
         hostname: 'localhost',
         protocol: 'http:',
       }),
-    ).toBe('http://localhost:3000');
+    ).toBe('');
   });
 
   it('mantiene el fallback estable fuera del navegador', () => {
