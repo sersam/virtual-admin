@@ -1,4 +1,4 @@
-import type { Incident } from '@admin/contracts';
+import type { CreateIncidentResponse, Incident } from '@admin/contracts';
 import type { IncidentClassifier } from '../ports/IncidentClassifier.js';
 import type { IncidentRepository } from '../ports/IncidentRepository.js';
 import type { Clock } from '../ports/Clock.js';
@@ -28,18 +28,18 @@ export class InvalidIncidentDescriptionError extends Error {
 export class CreateIncident {
   constructor(private readonly dependencies: CreateIncidentDependencies) {}
 
-  async execute(input: CreateIncidentInput): Promise<Incident> {
+  async execute(input: CreateIncidentInput): Promise<CreateIncidentResponse> {
     const description = input.description.trim();
     if (description.length < MIN_DESCRIPTION_LENGTH) {
       throw new InvalidIncidentDescriptionError();
     }
 
-    const classification = this.dependencies.classifier.classify(description);
+    const classificationResult = await this.dependencies.classifier.classify(description);
     const incident: CommunityIncident = {
       id: this.dependencies.ids.randomId(),
       sessionId: input.sessionId,
       description,
-      ...classification,
+      ...classificationResult.classification,
       createdAt: this.dependencies.clock.now(),
       status: 'pendiente',
       resolvedAt: null,
@@ -47,7 +47,7 @@ export class CreateIncident {
 
     await this.dependencies.repository.save(incident);
 
-    return presentIncident(incident);
+    return { incident: presentIncident(incident), mode: classificationResult.mode };
   }
 }
 

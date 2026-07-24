@@ -1,9 +1,11 @@
 import { classifyIncident } from '@admin/incidents';
-import type { IncidentClassifier } from '../../application/ports/IncidentClassifier.js';
-import type { IncidentClassification } from '../../domain/incident/CommunityIncident.js';
+import type {
+  IncidentClassificationResult,
+  IncidentClassifier,
+} from '../../application/ports/IncidentClassifier.js';
 
 export class DeterministicIncidentClassifier implements IncidentClassifier {
-  classify(description: string): IncidentClassification {
-    return classifyIncident(description);
+  async classify(description: string): Promise<IncidentClassificationResult> {
+    return { classification: classifyIncident(description), mode: 'deterministic-demo' };
   }
 }

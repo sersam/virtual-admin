@@ -41,8 +41,8 @@ describe('ListIncidents', () => {
     let nextId = 0;
     const createIncident = new CreateIncident({
       classifier: {
-        classify: (description) =>
-          description.includes('ascensor')
+        classify: async (description) => ({
+          classification: description.includes('ascensor')
             ? {
                 type: 'ascensor',
                 priority: 'alta',
@@ -53,6 +53,8 @@ describe('ListIncidents', () => {
                 priority: 'alta',
                 suggestedResponsible: 'Fontanería',
               },
+          mode: 'deterministic-demo',
+        }),
       },
       clock: { now: () => new Date('2026-06-27T10:00:00.000Z') },
       ids: {

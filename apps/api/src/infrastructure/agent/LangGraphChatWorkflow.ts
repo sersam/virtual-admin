@@ -1,9 +1,10 @@
 import type {
   ChatAgent,
   ChatMessageResponse,
+  CommunityNoticeDraftResponse,
+  CreateIncidentResponse,
   DocumentQueryResponse,
   DocumentSource,
-  Incident,
   MeetingAgendaDraftResponse,
   MeetingMinutesDraftResponse,
 } from '@admin/contracts';
@@ -11,14 +12,20 @@ import { ChatMessageResponseSchema } from '@admin/contracts';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import type { ChatWorkflow, ChatWorkflowContext } from '../../application/ports/ChatWorkflow.js';
 import { classifyIntent } from '../../domain/agent/IntentClassifier.js';
-import { draftCommunityNotice } from '../../domain/communication/CommunityNoticeDraft.js';
 
 interface DocumentAnswerer {
   execute(question: string, context?: ChatWorkflowContext): Promise<DocumentQueryResponse>;
 }
 
 interface IncidentCreator {
-  execute(input: { readonly description: string; readonly sessionId: string }): Promise<Incident>;
+  execute(input: {
+    readonly description: string;
+    readonly sessionId: string;
+  }): Promise<CreateIncidentResponse>;
+}
+
+interface CommunityNoticeDrafter {
+  execute(message: string): Promise<CommunityNoticeDraftResponse>;
 }
 
 interface MeetingMinutesDrafter {
@@ -34,6 +41,7 @@ interface MeetingAgendaDrafter {
 
 interface LangGraphChatWorkflowDependencies {
   readonly documentAnswerer: DocumentAnswerer;
+  readonly communityNoticeDrafter: CommunityNoticeDrafter;
   readonly incidentCreator: IncidentCreator;
   readonly meetingAgendaDrafter: MeetingAgendaDrafter;
   readonly meetingMinutesDrafter: MeetingMinutesDrafter;
@@ -96,7 +104,8 @@ export class LangGraphChatWorkflow implements ChatWorkflow {
       return { answer: response.answer, sources: response.sources };
     }
     if (agent === 'comunicados') {
-      return { answer: draftCommunityNotice(message), sources: [] };
+      const response = await this.dependencies.communityNoticeDrafter.execute(message);
+      return { answer: formatCommunityNoticeAnswer(response), sources: [] };
     }
     if (agent === 'actas') {
       const response = await this.dependencies.meetingMinutesDrafter.execute(message, {
@@ -111,11 +120,11 @@ export class LangGraphChatWorkflow implements ChatWorkflow {
           sources: [],
         };
       }
-      const incident = await this.dependencies.incidentCreator.execute({
+      const response = await this.dependencies.incidentCreator.execute({
         description: message,
         sessionId,
       });
-      return { answer: formatIncidentAnswer(incident), sources: [] };
+      return { answer: formatIncidentAnswer(response.incident), sources: [] };
     }
     if (agent === 'juntas') {
       if (!sessionId) {
@@ -143,7 +152,11 @@ const futureAgentAnswer: Record<
     'Soy el coordinador de la demo. Puedo derivar peticiones sobre documentos, comunicados, actas, incidencias y preparación de juntas.',
 };
 
-function formatIncidentAnswer(incident: Incident): string {
+function formatCommunityNoticeAnswer(response: CommunityNoticeDraftResponse): string {
+  return [`Asunto: ${response.draft.subject}`, '', response.draft.body].join('\n');
+}
+
+function formatIncidentAnswer(incident: CreateIncidentResponse['incident']): string {
   return [
     'Incidencia registrada.',
     `Categoría: ${capitalize(incident.type)}`,

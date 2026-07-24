@@ -18,6 +18,12 @@ const unusedIncidentCreator = {
   },
 };
 
+const unusedCommunityNoticeDrafter = {
+  execute: async () => {
+    throw new Error('No debería redactar comunicados');
+  },
+};
+
 const unusedMeetingMinutesDrafter = {
   execute: async () => {
     throw new Error('No debería redactar actas');
@@ -34,6 +40,7 @@ describe('LangGraphChatWorkflow', () => {
   it('clasifica consultas documentales y reutiliza el RAG existente', async () => {
     let receivedSessionId: string | undefined;
     const workflow = new LangGraphChatWorkflow({
+      communityNoticeDrafter: unusedCommunityNoticeDrafter,
       documentAnswerer: {
         execute: async (_question, context) => {
           receivedSessionId = context?.sessionId;
@@ -63,6 +70,15 @@ describe('LangGraphChatWorkflow', () => {
 
   it('redacta comunicados demo sin consultar fuentes documentales', async () => {
     const workflow = new LangGraphChatWorkflow({
+      communityNoticeDrafter: {
+        execute: async () => ({
+          draft: {
+            subject: 'Limpieza del garaje',
+            body: 'Estimados vecinos:\n\nSe realizará la limpieza del garaje.',
+          },
+          mode: 'deterministic-demo',
+        }),
+      },
       documentAnswerer: {
         execute: async () => {
           throw new Error('No debería consultar documentos');
@@ -86,6 +102,7 @@ describe('LangGraphChatWorkflow', () => {
     let receivedNotes: string | undefined;
     let receivedSessionId: string | undefined;
     const workflow = new LangGraphChatWorkflow({
+      communityNoticeDrafter: unusedCommunityNoticeDrafter,
       documentAnswerer: {
         execute: async () => {
           throw new Error('No debería consultar documentos');
@@ -129,6 +146,7 @@ describe('LangGraphChatWorkflow', () => {
     let receivedSessionId: string | undefined;
     let receivedDescription: string | undefined;
     const workflow = new LangGraphChatWorkflow({
+      communityNoticeDrafter: unusedCommunityNoticeDrafter,
       documentAnswerer: {
         execute: async () => {
           throw new Error('No debería consultar documentos');
@@ -140,14 +158,17 @@ describe('LangGraphChatWorkflow', () => {
           receivedSessionId = sessionId;
 
           return {
-            id: 'incident-1',
-            description,
-            type: 'agua',
-            priority: 'urgente',
-            suggestedResponsible: 'Fontanería',
-            createdAt: '2026-07-23T10:00:00.000Z',
-            status: 'pendiente',
-            resolvedAt: null,
+            incident: {
+              id: 'incident-1',
+              description,
+              type: 'agua',
+              priority: 'urgente',
+              suggestedResponsible: 'Fontanería',
+              createdAt: '2026-07-23T10:00:00.000Z',
+              status: 'pendiente',
+              resolvedAt: null,
+            },
+            mode: 'openai',
           };
         },
       },
@@ -172,6 +193,7 @@ describe('LangGraphChatWorkflow', () => {
 
   it('no intenta registrar una incidencia cuando falta la sesión', async () => {
     const workflow = new LangGraphChatWorkflow({
+      communityNoticeDrafter: unusedCommunityNoticeDrafter,
       documentAnswerer: {
         execute: async () => {
           throw new Error('No debería consultar documentos');
@@ -192,6 +214,7 @@ describe('LangGraphChatWorkflow', () => {
   it('prepara juntas usando el caso de uso real de orden del día', async () => {
     let receivedSessionId: string | undefined;
     const workflow = new LangGraphChatWorkflow({
+      communityNoticeDrafter: unusedCommunityNoticeDrafter,
       documentAnswerer: {
         execute: async () => {
           throw new Error('No debería consultar documentos');
@@ -237,6 +260,7 @@ describe('LangGraphChatWorkflow', () => {
 
   it('no intenta preparar juntas cuando falta la sesión', async () => {
     const workflow = new LangGraphChatWorkflow({
+      communityNoticeDrafter: unusedCommunityNoticeDrafter,
       documentAnswerer: {
         execute: async () => {
           throw new Error('No debería consultar documentos');

@@ -1,11 +1,14 @@
 import type { CommunityNoticeDraftResponse } from '@admin/contracts';
-import { createCommunityNoticeDraft } from '../../domain/communication/CommunityNoticeDraft.js';
+import type { CommunityNoticeGenerator } from '../ports/CommunityNoticeGenerator.js';
+
+interface DraftCommunityNoticeDependencies {
+  readonly generator: CommunityNoticeGenerator;
+}
 
 export class DraftCommunityNotice {
+  constructor(private readonly dependencies: DraftCommunityNoticeDependencies) {}
+
   async execute(message: string): Promise<CommunityNoticeDraftResponse> {
-    return {
-      draft: createCommunityNoticeDraft(message),
-      mode: 'deterministic-demo',
-    };
+    return this.dependencies.generator.draft(message);
   }
 }

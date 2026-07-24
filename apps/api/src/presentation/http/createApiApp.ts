@@ -62,6 +62,7 @@ import type { UploadedDocumentTextExtractor } from '../../application/ports/Uplo
 import type { Clock } from '../../application/ports/Clock.js';
 import type { IdGenerator } from '../../application/ports/IdGenerator.js';
 import { LangGraphChatWorkflow } from '../../infrastructure/agent/LangGraphChatWorkflow.js';
+import { DeterministicCommunityNoticeGenerator } from '../../infrastructure/communication/DeterministicCommunityNoticeGenerator.js';
 import { UploadedSessionDocumentRetriever } from '../../infrastructure/document/UploadedSessionDocumentRetriever.js';
 import { DeterministicIncidentClassifier } from '../../infrastructure/incident/DeterministicIncidentClassifier.js';
 import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemoryIncidentRepository.js';
@@ -111,7 +112,9 @@ export function createApiApp(options: ApiAppOptions) {
     incidentRepository,
     pendingAgreementRepository,
   });
-  const draftCommunityNotice = new DraftCommunityNotice();
+  const draftCommunityNotice = new DraftCommunityNotice({
+    generator: new DeterministicCommunityNoticeGenerator(),
+  });
   const draftMeetingMinutes = new DraftMeetingMinutes({
     clock: options.clock,
     ids: options.ids,
@@ -123,6 +126,7 @@ export function createApiApp(options: ApiAppOptions) {
   });
   const coordinateChatMessage = new CoordinateChatMessage({
     workflow: new LangGraphChatWorkflow({
+      communityNoticeDrafter: draftCommunityNotice,
       documentAnswerer: answerDocumentQuestion,
       incidentCreator: createIncident,
       meetingAgendaDrafter: draftMeetingAgenda,
@@ -291,9 +295,7 @@ export function createApiApp(options: ApiAppOptions) {
       });
 
       attachSessionCookie(response, session.id, options);
-      response
-        .status(201)
-        .json(CreateIncidentResponseSchema.parse({ incident, mode: 'deterministic-demo' }));
+      response.status(201).json(CreateIncidentResponseSchema.parse(incident));
     } catch (error) {
       next(error);
     }
