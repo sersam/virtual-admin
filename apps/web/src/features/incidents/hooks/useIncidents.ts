@@ -1,4 +1,4 @@
-import type { Incident, IncidentType } from '@admin/contracts';
+import type { AiProviderMode, Incident, IncidentType } from '@admin/contracts';
 import { classifyIncident, type IncidentClassification } from '@admin/incidents';
 import { useEffect, useRef, useState } from 'react';
 import { createIncident, listIncidents, resolveIncident } from '../../../shared/api/incidents';
@@ -19,6 +19,7 @@ interface IncidentsState {
   readonly error?: string;
   readonly incidents: Incident[];
   readonly localClassification?: IncidentClassification;
+  readonly providerMode?: AiProviderMode;
   readonly resolvingIncidentId?: string;
   readonly selectedType?: IncidentType;
   readonly status: IncidentsStatus;
@@ -54,12 +55,22 @@ export function useIncidents() {
     try {
       const incidents = await listIncidents(type, signal);
       if (latestLoadRequestId.current !== requestId) return;
-      setState({ incidents, selectedType: type, status: 'ready' });
+      setState((current) => ({
+        incidents,
+        providerMode: current.providerMode,
+        selectedType: type,
+        status: 'ready',
+      }));
     } catch (error) {
       if (signal?.aborted) return;
       if (latestLoadRequestId.current !== requestId) return;
       console.error('[useIncidents] No se pudieron cargar las incidencias de sesión.', error);
-      setState({ incidents: [], selectedType: type, status: 'fallback' });
+      setState((current) => ({
+        incidents: [],
+        providerMode: current.providerMode,
+        selectedType: type,
+        status: 'fallback',
+      }));
     }
   }
 
@@ -92,6 +103,7 @@ export function useIncidents() {
           current.selectedType && response.incident.type !== current.selectedType
             ? current.incidents
             : [...current.incidents, response.incident],
+        providerMode: response.mode,
         selectedType: current.selectedType,
         status: 'ready',
       }));

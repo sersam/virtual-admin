@@ -70,6 +70,23 @@ describe('useIncidents', () => {
 
     expect(result.current.status).toBe('ready');
     expect(result.current.incidents).toEqual([waterIncident]);
+    expect(result.current.providerMode).toBe('deterministic-demo');
+  });
+
+  it('expone el proveedor OpenAI tras crear una incidencia', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ incidents: [] }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ incident: liftIncident, mode: 'openai' }), {
+          status: 201,
+        }),
+      );
+    const { result } = renderHook(() => useIncidents());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await act(() => result.current.create('El ascensor no funciona desde esta mañana.'));
+
+    expect(result.current.providerMode).toBe('openai');
   });
 
   it('filtra incidencias por tipo desde la API', async () => {
@@ -87,6 +104,28 @@ describe('useIncidents', () => {
 
     await act(() => result.current.filterByType('ascensor'));
 
+    expect(result.current.selectedType).toBe('ascensor');
+    expect(result.current.incidents).toEqual([liftIncident]);
+  });
+
+  it('conserva el proveedor usado al filtrar incidencias', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ incidents: [] }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ incident: liftIncident, mode: 'openai' }), {
+          status: 201,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ incidents: [liftIncident] }), { status: 200 }),
+      );
+    const { result } = renderHook(() => useIncidents());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await act(() => result.current.create('El ascensor no funciona desde esta mañana.'));
+    await act(() => result.current.filterByType('ascensor'));
+
+    expect(result.current.providerMode).toBe('openai');
     expect(result.current.selectedType).toBe('ascensor');
     expect(result.current.incidents).toEqual([liftIncident]);
   });

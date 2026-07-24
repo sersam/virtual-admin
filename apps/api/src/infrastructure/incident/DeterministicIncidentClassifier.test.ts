@@ -2,33 +2,44 @@ import { describe, expect, it } from 'vitest';
 import { DeterministicIncidentClassifier } from './DeterministicIncidentClassifier.js';
 
 describe('DeterministicIncidentClassifier', () => {
-  it('delega en las reglas deterministas compartidas', () => {
+  it('delega en las reglas deterministas compartidas', async () => {
     expect(
-      new DeterministicIncidentClassifier().classify('Hay una fuga de agua urgente en el garaje.'),
+      await new DeterministicIncidentClassifier().classify(
+        'Hay una fuga de agua urgente en el garaje.',
+      ),
     ).toEqual({
-      type: 'agua',
-      priority: 'urgente',
-      suggestedResponsible: 'Fontanería',
+      classification: {
+        type: 'agua',
+        priority: 'urgente',
+        suggestedResponsible: 'Fontanería',
+      },
+      mode: 'deterministic-demo',
     });
   });
 
-  it('mantiene la prioridad no urgente de las reglas compartidas', () => {
+  it('mantiene la prioridad no urgente de las reglas compartidas', async () => {
     expect(
-      new DeterministicIncidentClassifier().classify('Hay bolsas de basura en el portal.'),
+      await new DeterministicIncidentClassifier().classify('Hay bolsas de basura en el portal.'),
     ).toEqual({
-      type: 'limpieza',
-      priority: 'baja',
-      suggestedResponsible: 'Servicio de limpieza',
+      classification: {
+        type: 'limpieza',
+        priority: 'baja',
+        suggestedResponsible: 'Servicio de limpieza',
+      },
+      mode: 'deterministic-demo',
     });
   });
 
-  it('usa el fallback compartido para descripciones desconocidas', () => {
+  it('usa el fallback compartido para descripciones desconocidas', async () => {
     expect(
-      new DeterministicIncidentClassifier().classify('La zona común requiere revisión.'),
+      await new DeterministicIncidentClassifier().classify('La zona común requiere revisión.'),
     ).toEqual({
-      type: 'otro',
-      priority: 'media',
-      suggestedResponsible: 'Administrador',
+      classification: {
+        type: 'otro',
+        priority: 'media',
+        suggestedResponsible: 'Administrador',
+      },
+      mode: 'deterministic-demo',
     });
   });
 });

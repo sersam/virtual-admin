@@ -35,7 +35,6 @@ import { CoordinateChatMessage } from '../../application/use-cases/CoordinateCha
 import {
   CreateIncident,
   InvalidIncidentDescriptionError,
-  presentIncident,
 } from '../../application/use-cases/CreateIncident.js';
 import { DraftCommunityNotice } from '../../application/use-cases/DraftCommunityNotice.js';
 import { DraftMeetingAgenda } from '../../application/use-cases/DraftMeetingAgenda.js';
@@ -61,11 +60,14 @@ import type { UploadedDocumentRepository } from '../../application/ports/Uploade
 import type { UploadedDocumentTextExtractor } from '../../application/ports/UploadedDocumentTextExtractor.js';
 import type { Clock } from '../../application/ports/Clock.js';
 import type { IdGenerator } from '../../application/ports/IdGenerator.js';
-import { LangGraphChatWorkflow } from '../../infrastructure/agent/LangGraphChatWorkflow.js';
-import { UploadedSessionDocumentRetriever } from '../../infrastructure/document/UploadedSessionDocumentRetriever.js';
-import { DeterministicIncidentClassifier } from '../../infrastructure/incident/DeterministicIncidentClassifier.js';
-import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemoryIncidentRepository.js';
-import { InMemoryPendingAgreementRepository } from '../../infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
+import type { ChatWorkflow } from '../../application/ports/ChatWorkflow.js';
+import type { CommunityNoticeGenerator } from '../../application/ports/CommunityNoticeGenerator.js';
+import type { IncidentClassifier } from '../../application/ports/IncidentClassifier.js';
+import type { IncidentRepository } from '../../application/ports/IncidentRepository.js';
+import type { PendingAgreementRepository } from '../../application/ports/PendingAgreementRepository.js';
+import type { SessionDocumentRetriever } from '../../application/ports/SessionDocumentRetriever.js';
+import { AiProviderError } from '../../application/ports/AiProviderError.js';
+import { presentIncident } from './incidentPresenter.js';
 import { presentSession } from './sessionPresenter.js';
 
 const SESSION_COOKIE = 'va_session';
@@ -77,12 +79,24 @@ const uploadPdf = multer({
 
 interface ApiAppOptions {
   readonly clock: Clock;
+  readonly chatWorkflowFactory: (dependencies: {
+    readonly answerDocumentQuestion: AnswerDocumentQuestion;
+    readonly createIncident: CreateIncident;
+    readonly draftCommunityNotice: DraftCommunityNotice;
+    readonly draftMeetingAgenda: DraftMeetingAgenda;
+    readonly draftMeetingMinutes: DraftMeetingMinutes;
+  }) => ChatWorkflow;
   readonly cookieSecret: string;
+  readonly communityNoticeGenerator: CommunityNoticeGenerator;
   readonly documentRetriever: DocumentRetriever;
   readonly ids: IdGenerator;
+  readonly incidentClassifier: IncidentClassifier;
+  readonly incidentRepository: IncidentRepository;
+  readonly pendingAgreementRepository: PendingAgreementRepository;
   readonly repository: SessionRepository;
   readonly requestsLimit?: number;
   readonly secureCookies?: boolean;
+  readonly sessionDocumentRetriever?: SessionDocumentRetriever;
   readonly ttlMs?: number;
   readonly uploadedDocumentRepository: UploadedDocumentRepository;
   readonly uploadedDocumentTextExtractor: UploadedDocumentTextExtractor;
@@ -91,42 +105,40 @@ interface ApiAppOptions {
 
 export function createApiApp(options: ApiAppOptions) {
   const app = express();
-  const uploadedSessionDocumentRetriever = new UploadedSessionDocumentRetriever(
-    options.uploadedDocumentRepository,
-  );
   const answerDocumentQuestion = new AnswerDocumentQuestion({
     retriever: options.documentRetriever,
-    sessionRetriever: uploadedSessionDocumentRetriever,
+    sessionRetriever: options.sessionDocumentRetriever,
   });
-  const incidentRepository = new InMemoryIncidentRepository();
   const createIncident = new CreateIncident({
-    classifier: new DeterministicIncidentClassifier(),
+    classifier: options.incidentClassifier,
     clock: options.clock,
     ids: options.ids,
-    repository: incidentRepository,
+    repository: options.incidentRepository,
   });
-  const pendingAgreementRepository = new InMemoryPendingAgreementRepository();
-  const listIncidents = new ListIncidents({ repository: incidentRepository });
+  const listIncidents = new ListIncidents({ repository: options.incidentRepository });
   const draftMeetingAgenda = new DraftMeetingAgenda({
-    incidentRepository,
-    pendingAgreementRepository,
+    incidentRepository: options.incidentRepository,
+    pendingAgreementRepository: options.pendingAgreementRepository,
   });
-  const draftCommunityNotice = new DraftCommunityNotice();
+  const draftCommunityNotice = new DraftCommunityNotice({
+    generator: options.communityNoticeGenerator,
+  });
   const draftMeetingMinutes = new DraftMeetingMinutes({
     clock: options.clock,
     ids: options.ids,
-    pendingAgreementRepository,
+    pendingAgreementRepository: options.pendingAgreementRepository,
   });
   const resolveIncident = new ResolveIncident({
     clock: options.clock,
-    repository: incidentRepository,
+    repository: options.incidentRepository,
   });
   const coordinateChatMessage = new CoordinateChatMessage({
-    workflow: new LangGraphChatWorkflow({
-      documentAnswerer: answerDocumentQuestion,
-      incidentCreator: createIncident,
-      meetingAgendaDrafter: draftMeetingAgenda,
-      meetingMinutesDrafter: draftMeetingMinutes,
+    workflow: options.chatWorkflowFactory({
+      answerDocumentQuestion,
+      createIncident,
+      draftCommunityNotice,
+      draftMeetingAgenda,
+      draftMeetingMinutes,
     }),
   });
   const ensureSession = new EnsureDemoSession({
@@ -291,9 +303,12 @@ export function createApiApp(options: ApiAppOptions) {
       });
 
       attachSessionCookie(response, session.id, options);
-      response
-        .status(201)
-        .json(CreateIncidentResponseSchema.parse({ incident, mode: 'deterministic-demo' }));
+      response.status(201).json(
+        CreateIncidentResponseSchema.parse({
+          incident: presentIncident(incident.incident),
+          mode: incident.mode,
+        }),
+      );
     } catch (error) {
       next(error);
     }
@@ -314,7 +329,11 @@ export function createApiApp(options: ApiAppOptions) {
       });
 
       attachSessionCookie(response, session.id, options);
-      response.json(IncidentListResponseSchema.parse({ incidents }));
+      response.json(
+        IncidentListResponseSchema.parse({
+          incidents: incidents.map(presentIncident),
+        }),
+      );
     } catch (error) {
       next(error);
     }
@@ -494,9 +513,35 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
     return;
   }
 
+  if (error instanceof AiProviderError) {
+    console.error('openai.error', sanitizeOpenAiError(error.cause));
+    sendError(response, 502, 'AI_PROVIDER_ERROR', 'No se pudo completar la operación con OpenAI.');
+    return;
+  }
+
   sendError(response, 500, 'INTERNAL_ERROR', 'No se pudo procesar la petición.');
 };
 
 function sendError(response: Response, status: number, code: string, message: string): void {
   response.status(status).json(ErrorResponseSchema.parse({ error: { code, message } }));
+}
+
+function sanitizeOpenAiError(error: unknown): Record<string, unknown> {
+  if (!(error instanceof Error)) return { message: String(error) };
+
+  const candidate = error as Error & {
+    readonly code?: unknown;
+    readonly requestID?: unknown;
+    readonly status?: unknown;
+    readonly type?: unknown;
+  };
+
+  return {
+    code: candidate.code,
+    message: candidate.message,
+    name: candidate.name,
+    requestID: candidate.requestID,
+    status: candidate.status,
+    type: candidate.type,
+  };
 }

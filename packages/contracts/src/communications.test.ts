@@ -40,6 +40,13 @@ describe('communication contracts', () => {
       message: 'a'.repeat(500),
     });
 
+    expect(
+      CommunityNoticeDraftResponseSchema.parse({
+        draft: { subject: 'Aviso', body: 'Contenido válido generado por OpenAI' },
+        mode: 'openai',
+      }).mode,
+    ).toBe('openai');
+
     expect(() => CommunityNoticeDraftRequestSchema.parse({ message: '  ab  ' })).toThrow();
 
     expect(() =>

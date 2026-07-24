@@ -1,9 +1,9 @@
-import type { Incident } from '@admin/contracts';
 import type { IncidentClassifier } from '../ports/IncidentClassifier.js';
 import type { IncidentRepository } from '../ports/IncidentRepository.js';
 import type { Clock } from '../ports/Clock.js';
 import type { IdGenerator } from '../ports/IdGenerator.js';
 import type { CommunityIncident } from '../../domain/incident/CommunityIncident.js';
+import type { AiProviderMode } from '../ports/AiProviderMode.js';
 
 const MIN_DESCRIPTION_LENGTH = 10;
 
@@ -19,6 +19,11 @@ interface CreateIncidentInput {
   readonly sessionId: string;
 }
 
+export interface CreateIncidentResult {
+  readonly incident: CommunityIncident;
+  readonly mode: AiProviderMode;
+}
+
 export class InvalidIncidentDescriptionError extends Error {
   constructor() {
     super('La descripción de la incidencia debe tener al menos 10 caracteres.');
@@ -28,18 +33,18 @@ export class InvalidIncidentDescriptionError extends Error {
 export class CreateIncident {
   constructor(private readonly dependencies: CreateIncidentDependencies) {}
 
-  async execute(input: CreateIncidentInput): Promise<Incident> {
+  async execute(input: CreateIncidentInput): Promise<CreateIncidentResult> {
     const description = input.description.trim();
     if (description.length < MIN_DESCRIPTION_LENGTH) {
       throw new InvalidIncidentDescriptionError();
     }
 
-    const classification = this.dependencies.classifier.classify(description);
+    const classificationResult = await this.dependencies.classifier.classify(description);
     const incident: CommunityIncident = {
       id: this.dependencies.ids.randomId(),
       sessionId: input.sessionId,
       description,
-      ...classification,
+      ...classificationResult.classification,
       createdAt: this.dependencies.clock.now(),
       status: 'pendiente',
       resolvedAt: null,
@@ -47,21 +52,6 @@ export class CreateIncident {
 
     await this.dependencies.repository.save(incident);
 
-    return presentIncident(incident);
+    return { incident, mode: classificationResult.mode };
   }
-}
-
-export function presentIncident(incident: CommunityIncident): Incident {
-  const common = {
-    id: incident.id,
-    description: incident.description,
-    type: incident.type,
-    priority: incident.priority,
-    suggestedResponsible: incident.suggestedResponsible,
-    createdAt: incident.createdAt.toISOString(),
-  };
-
-  return incident.status === 'resuelta'
-    ? { ...common, status: 'resuelta', resolvedAt: incident.resolvedAt.toISOString() }
-    : { ...common, status: 'pendiente', resolvedAt: null };
 }

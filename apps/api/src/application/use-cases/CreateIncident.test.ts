@@ -7,10 +7,13 @@ describe('CreateIncident', () => {
     const repository = new InMemoryIncidentRepository();
     const useCase = new CreateIncident({
       classifier: {
-        classify: () => ({
-          type: 'agua',
-          priority: 'urgente',
-          suggestedResponsible: 'Fontanería',
+        classify: async () => ({
+          classification: {
+            type: 'agua',
+            priority: 'urgente',
+            suggestedResponsible: 'Fontanería',
+          },
+          mode: 'openai',
         }),
       },
       clock: { now: () => new Date('2026-06-27T10:00:00.000Z') },
@@ -18,20 +21,24 @@ describe('CreateIncident', () => {
       repository,
     });
 
-    const incident = await useCase.execute({
+    const response = await useCase.execute({
       sessionId: 'session-a',
       description: '  Hay una fuga de agua urgente en el garaje.  ',
     });
 
-    expect(incident).toEqual({
-      id: 'inc-0001',
-      description: 'Hay una fuga de agua urgente en el garaje.',
-      type: 'agua',
-      priority: 'urgente',
-      suggestedResponsible: 'Fontanería',
-      createdAt: '2026-06-27T10:00:00.000Z',
-      status: 'pendiente',
-      resolvedAt: null,
+    expect(response).toEqual({
+      incident: {
+        id: 'inc-0001',
+        sessionId: 'session-a',
+        description: 'Hay una fuga de agua urgente en el garaje.',
+        type: 'agua',
+        priority: 'urgente',
+        suggestedResponsible: 'Fontanería',
+        createdAt: new Date('2026-06-27T10:00:00.000Z'),
+        status: 'pendiente',
+        resolvedAt: null,
+      },
+      mode: 'openai',
     });
     await expect(repository.listBySession('session-a')).resolves.toEqual([
       expect.objectContaining({
@@ -42,13 +49,53 @@ describe('CreateIncident', () => {
     ]);
   });
 
+  it('propaga el modo demo del clasificador determinista', async () => {
+    const repository = new InMemoryIncidentRepository();
+    const useCase = new CreateIncident({
+      classifier: {
+        classify: async () => ({
+          classification: {
+            type: 'agua',
+            priority: 'urgente',
+            suggestedResponsible: 'Fontanería',
+          },
+          mode: 'deterministic-demo',
+        }),
+      },
+      clock: { now: () => new Date('2026-06-27T10:00:00.000Z') },
+      ids: { randomId: () => 'inc-0001' },
+      repository,
+    });
+
+    const response = await useCase.execute({
+      sessionId: 'session-a',
+      description: 'Hay una fuga de agua urgente en el garaje.',
+    });
+
+    expect(response.mode).toBe('deterministic-demo');
+    expect(response.incident).toEqual({
+      id: 'inc-0001',
+      sessionId: 'session-a',
+      description: 'Hay una fuga de agua urgente en el garaje.',
+      type: 'agua',
+      priority: 'urgente',
+      suggestedResponsible: 'Fontanería',
+      createdAt: new Date('2026-06-27T10:00:00.000Z'),
+      status: 'pendiente',
+      resolvedAt: null,
+    });
+  });
+
   it('rechaza descripciones demasiado cortas', async () => {
     const useCase = new CreateIncident({
       classifier: {
-        classify: () => ({
-          type: 'otro',
-          priority: 'media',
-          suggestedResponsible: 'Administrador',
+        classify: async () => ({
+          classification: {
+            type: 'otro',
+            priority: 'media',
+            suggestedResponsible: 'Administrador',
+          },
+          mode: 'deterministic-demo',
         }),
       },
       clock: { now: () => new Date('2026-06-27T10:00:00.000Z') },
@@ -68,10 +115,13 @@ describe('CreateIncident', () => {
     const repository = new InMemoryIncidentRepository();
     const useCase = new CreateIncident({
       classifier: {
-        classify: () => ({
-          type: 'otro',
-          priority: 'media',
-          suggestedResponsible: 'Administrador',
+        classify: async () => ({
+          classification: {
+            type: 'otro',
+            priority: 'media',
+            suggestedResponsible: 'Administrador',
+          },
+          mode: 'deterministic-demo',
         }),
       },
       clock: { now: () => new Date('2026-06-27T10:00:00.000Z') },
@@ -79,12 +129,12 @@ describe('CreateIncident', () => {
       repository,
     });
 
-    const incident = await useCase.execute({
+    const response = await useCase.execute({
       sessionId: 'session-a',
       description: '1234567890',
     });
 
-    expect(incident.description).toBe('1234567890');
+    expect(response.incident.description).toBe('1234567890');
     await expect(repository.listBySession('session-a')).resolves.toEqual([
       expect.objectContaining({
         id: 'inc-0002',

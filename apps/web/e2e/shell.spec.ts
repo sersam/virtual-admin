@@ -299,6 +299,7 @@ test('registra incidencias y filtra por tipo', async ({ page }, testInfo) => {
   await expect(waterIncident.getByText('Urgente', { exact: true })).toBeVisible();
   await expect(waterIncident.getByText('Fontanería')).toBeVisible();
   await expect(waterIncident.getByText('Pendiente', { exact: true })).toBeVisible();
+  await expect(page.getByText('Demo determinista')).toBeVisible();
   await waterIncident.getByRole('button', { name: 'Marcar como resuelta' }).click();
   await expect(waterIncident.getByText('Resuelta', { exact: true })).toBeVisible();
   await expect(waterIncident.getByText('Resolución', { exact: true })).toBeVisible();
