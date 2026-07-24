@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AiProviderModeSchema } from './communications.js';
 
 export const IncidentTypeSchema = z.enum([
   'agua',
@@ -35,7 +36,7 @@ export const IncidentSchema = IncidentBaseSchema.and(
 
 export const CreateIncidentResponseSchema = z.object({
   incident: IncidentSchema,
-  mode: z.literal('deterministic-demo'),
+  mode: AiProviderModeSchema,
 });
 
 export const IncidentListQuerySchema = z.object({

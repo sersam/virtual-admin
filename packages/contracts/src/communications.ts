@@ -9,11 +9,14 @@ export const CommunityNoticeDraftSchema = z.object({
   body: z.string().trim().min(1).max(2_000),
 });
 
+export const AiProviderModeSchema = z.enum(['deterministic-demo', 'openai']);
+
 export const CommunityNoticeDraftResponseSchema = z.object({
   draft: CommunityNoticeDraftSchema,
-  mode: z.literal('deterministic-demo'),
+  mode: AiProviderModeSchema,
 });
 
 export type CommunityNoticeDraftRequest = z.infer<typeof CommunityNoticeDraftRequestSchema>;
 export type CommunityNoticeDraft = z.infer<typeof CommunityNoticeDraftSchema>;
+export type AiProviderMode = z.infer<typeof AiProviderModeSchema>;
 export type CommunityNoticeDraftResponse = z.infer<typeof CommunityNoticeDraftResponseSchema>;

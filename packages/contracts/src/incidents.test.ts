@@ -137,6 +137,21 @@ describe('incident contracts', () => {
     ).toThrow();
     expect(() => CreateIncidentRequestSchema.parse({ description: 'a'.repeat(1_001) })).toThrow();
     expect(() => IncidentListQuerySchema.parse({ type: 'jardineria' })).toThrow();
+    expect(
+      CreateIncidentResponseSchema.parse({
+        incident: {
+          id: 'inc-0004',
+          description: 'Hay una fuga de agua urgente en el garaje.',
+          type: 'agua',
+          priority: 'urgente',
+          suggestedResponsible: 'Fontanería',
+          createdAt: '2026-06-27T10:00:00.000Z',
+          status: 'pendiente',
+          resolvedAt: null,
+        },
+        mode: 'openai',
+      }).mode,
+    ).toBe('openai');
     expect(() =>
       CreateIncidentResponseSchema.parse({
         incident: {
