@@ -1,15 +1,16 @@
 import {
   CommunityNoticeDraftRequestSchema,
   CommunityNoticeDraftResponseSchema,
+  type CommunityNoticeDraftRequest,
   type CommunityNoticeDraftResponse,
 } from '@admin/contracts';
 import { apiBaseUrl } from './apiConfig';
 
 export async function draftCommunityNotice(
-  message: string,
+  input: CommunityNoticeDraftRequest,
   signal?: AbortSignal,
 ): Promise<CommunityNoticeDraftResponse> {
-  const payload = CommunityNoticeDraftRequestSchema.parse({ message });
+  const payload = CommunityNoticeDraftRequestSchema.parse(input);
   const response = await fetch(`${apiBaseUrl}/api/communications/draft`, {
     body: JSON.stringify(payload),
     credentials: 'include',

@@ -18,7 +18,6 @@ describe('OpenAiCommunityNoticeGenerator', () => {
 
           return {
             output: {
-              subject: 'Corte de agua',
               body: 'Estimados vecinos:\n\nEl suministro se interrumpirá mañana.',
             },
             usage: { inputTokens: 1_000, cachedInputTokens: 0, outputTokens: 300 },
@@ -28,7 +27,14 @@ describe('OpenAiCommunityNoticeGenerator', () => {
       telemetry,
     });
 
-    await expect(generator.draft('Redacta un aviso de corte de agua.')).resolves.toEqual({
+    await expect(
+      generator.draft({
+        subject: 'Corte de agua',
+        type: 'urgente',
+        audience: 'residentes',
+        tone: 'directo',
+      }),
+    ).resolves.toEqual({
       draft: {
         subject: 'Corte de agua',
         body: 'Estimados vecinos:\n\nEl suministro se interrumpirá mañana.',
@@ -38,15 +44,21 @@ describe('OpenAiCommunityNoticeGenerator', () => {
     expect(requests).toEqual([
       expect.objectContaining({
         model: 'gpt-5-nano',
-        promptVersion: 'community-notice.v1',
-        schemaName: 'community_notice_v1',
+        promptVersion: 'community-notice.v2',
+        schemaName: 'community_notice_body_v2',
+        input: JSON.stringify({
+          subject: 'Corte de agua',
+          type: 'urgente',
+          audience: 'residentes',
+          tone: 'directo',
+        }),
       }),
     ]);
     expect(telemetry.events).toEqual([
       expect.objectContaining({
         operation: 'community-notice',
         model: 'gpt-5-nano',
-        promptVersion: 'community-notice.v1',
+        promptVersion: 'community-notice.v2',
         inputTokens: 1_000,
         outputTokens: 300,
         latencyMs: 75,
@@ -61,14 +73,21 @@ describe('OpenAiCommunityNoticeGenerator', () => {
       nowMs: sequenceNow(200, 260),
       responses: {
         createStructuredResponse: async () => ({
-          output: { subject: '', body: '' },
+          output: { body: '' },
           usage: { inputTokens: 100, cachedInputTokens: 0, outputTokens: 20 },
         }),
       },
       telemetry,
     });
 
-    await expect(generator.draft('Redacta un aviso.')).rejects.toBeInstanceOf(OpenAiProviderError);
+    await expect(
+      generator.draft({
+        subject: 'Aviso',
+        type: 'informativo',
+        audience: 'todos',
+        tone: 'formal',
+      }),
+    ).rejects.toBeInstanceOf(OpenAiProviderError);
     expect(telemetry.events).toEqual([
       expect.objectContaining({
         inputTokens: 100,

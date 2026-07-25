@@ -2,6 +2,7 @@ import type {
   CommunityNoticeDraftResult,
   CommunityNoticeGenerator,
 } from '../ports/CommunityNoticeGenerator.js';
+import type { CommunityNoticeDraftInput } from '../../domain/communication/CommunityNoticeDraft.js';
 
 interface DraftCommunityNoticeDependencies {
   readonly generator: CommunityNoticeGenerator;
@@ -10,7 +11,7 @@ interface DraftCommunityNoticeDependencies {
 export class DraftCommunityNotice {
   constructor(private readonly dependencies: DraftCommunityNoticeDependencies) {}
 
-  async execute(message: string): Promise<CommunityNoticeDraftResult> {
-    return this.dependencies.generator.draft(message);
+  async execute(input: CommunityNoticeDraftInput): Promise<CommunityNoticeDraftResult> {
+    return this.dependencies.generator.draft(input);
   }
 }

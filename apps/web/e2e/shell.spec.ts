@@ -103,15 +103,65 @@ test('redacta comunicados para vecinos', async ({ page }, testInfo) => {
     page.getByRole('heading', { level: 1, name: 'Redacta comunicados para vecinos' }),
   ).toBeVisible();
 
-  await page
-    .getByLabel('Necesidad del comunicado')
-    .fill('Redacta un comunicado sobre el corte de agua.');
+  await page.getByLabel('Asunto').fill('Corte de agua');
+  await page.getByLabel('Tipo').selectOption('recordatorio');
+  await page.getByLabel('Audiencia').selectOption('residentes');
+  await page.getByLabel('Tono').selectOption('cercano');
   await page.getByRole('button', { name: 'Redactar comunicado' }).click();
 
   const draftRegion = page.getByLabel('Comunicado generado');
   await expect(draftRegion.getByRole('heading', { name: 'Corte de agua' })).toBeVisible();
-  await expect(draftRegion.getByText(/Estimados vecinos:/)).toBeVisible();
+  await expect(draftRegion.getByLabel('Asunto editable')).toHaveValue('Corte de agua');
+  await expect(draftRegion.getByLabel('Cuerpo editable del comunicado')).toHaveValue(
+    /Estimados residentes:/,
+  );
   await expect(draftRegion.getByText('Demo determinista')).toBeVisible();
+});
+
+test('continua desde chat a comunicados, copia y descarga PDF', async ({
+  context,
+  page,
+}, testInfo) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.route('**/api/chat/messages', (route) => route.abort());
+  await page.route('**/api/communications/draft', (route) => route.abort());
+  await page.goto('/chat');
+
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Comunicados' }).scrollIntoViewIfNeeded();
+  }
+
+  await page.getByRole('button', { name: 'Comunicados' }).click();
+  await page.getByRole('button', { name: 'Enviar mensaje' }).click();
+
+  const answerRegion = page.getByLabel('Respuesta del coordinador');
+  await expect(answerRegion.getByText('Agente de comunicados')).toBeVisible();
+  await answerRegion.getByRole('button', { name: 'Continuar en Comunicados' }).click();
+
+  await expect(page).toHaveURL(/\/comunicados$/);
+  await expect(page.getByLabel('Asunto')).toHaveValue('Corte de agua del jueves');
+
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Redactar comunicado' }).scrollIntoViewIfNeeded();
+  }
+
+  await page.getByRole('button', { name: 'Redactar comunicado' }).click();
+  const draftRegion = page.getByLabel('Comunicado generado');
+  await draftRegion.getByLabel('Asunto editable').fill('Corte de agua actualizado');
+  await draftRegion
+    .getByLabel('Cuerpo editable del comunicado')
+    .fill('Contenido editado para reutilizar fuera de la aplicación.');
+
+  await draftRegion.getByRole('button', { name: 'Copiar comunicado' }).click();
+  await expect(draftRegion.getByText('Comunicado copiado.')).toBeVisible();
+  await expect(page.evaluate(() => navigator.clipboard.readText())).resolves.toBe(
+    'Asunto: Corte de agua actualizado\n\nContenido editado para reutilizar fuera de la aplicación.',
+  );
+
+  const downloadPromise = page.waitForEvent('download');
+  await draftRegion.getByRole('button', { name: 'Descargar PDF' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('comunicado.pdf');
 });
 
 test('genera actas desde notas de reunión', async ({ page }, testInfo) => {

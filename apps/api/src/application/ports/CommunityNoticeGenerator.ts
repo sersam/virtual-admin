@@ -1,4 +1,7 @@
-import type { CommunityNoticeDraftContent } from '../../domain/communication/CommunityNoticeDraft.js';
+import type {
+  CommunityNoticeDraftContent,
+  CommunityNoticeDraftInput,
+} from '../../domain/communication/CommunityNoticeDraft.js';
 import type { AiProviderMode } from './AiProviderMode.js';
 
 export interface CommunityNoticeDraftResult {
@@ -7,5 +10,5 @@ export interface CommunityNoticeDraftResult {
 }
 
 export interface CommunityNoticeGenerator {
-  draft(message: string): Promise<CommunityNoticeDraftResult>;
+  draft(input: CommunityNoticeDraftInput): Promise<CommunityNoticeDraftResult>;
 }

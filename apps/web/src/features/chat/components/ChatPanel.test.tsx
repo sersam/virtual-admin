@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { ChatPanel } from './ChatPanel';
 
 describe('ChatPanel', () => {
@@ -32,7 +33,7 @@ describe('ChatPanel', () => {
       ),
     );
 
-    render(<ChatPanel />);
+    renderChatPanel();
     await user.clear(screen.getByLabelText('Mensaje'));
     await user.type(screen.getByLabelText('Mensaje'), '¿Qué dicen las normas de la piscina?');
     await user.click(screen.getByRole('button', { name: 'Enviar mensaje' }));
@@ -57,7 +58,7 @@ describe('ChatPanel', () => {
       ),
     );
 
-    render(<ChatPanel />);
+    renderChatPanel();
 
     expect(screen.getByRole('button', { name: 'Documentos' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Comunicados' })).toBeInTheDocument();
@@ -82,7 +83,7 @@ describe('ChatPanel', () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network'));
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
-    render(<ChatPanel />);
+    renderChatPanel();
     await user.clear(screen.getByLabelText('Mensaje'));
     await user.type(
       screen.getByLabelText('Mensaje'),
@@ -100,4 +101,55 @@ describe('ChatPanel', () => {
     expect(within(answerRegion).getByText(/Acuerdos:/)).toBeInTheDocument();
     expect(within(answerRegion).getByText(/Revisar contrato/)).toBeInTheDocument();
   });
+
+  it('muestra CTA solo para comunicados y navega con el asunto extraido', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          agent: 'comunicados',
+          answer: 'Asunto: Corte de agua del jueves\n\nEstimados vecinos...',
+          mode: 'langgraph-demo',
+          sources: [],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/chat']}>
+        <Routes>
+          <Route path="/chat" element={<ChatPanel />} />
+          <Route path="/comunicados" element={<HandoffStatePreview />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.clear(screen.getByLabelText('Mensaje'));
+    await user.type(
+      screen.getByLabelText('Mensaje'),
+      'Redacta un comunicado para avisar del corte de agua del jueves.',
+    );
+    await user.click(screen.getByRole('button', { name: 'Enviar mensaje' }));
+    await user.click(await screen.findByRole('button', { name: 'Continuar en Comunicados' }));
+
+    expect(await screen.findByText('Formulario: Corte de agua del jueves')).toBeInTheDocument();
+  });
 });
+
+function renderChatPanel() {
+  render(
+    <MemoryRouter>
+      <ChatPanel />
+    </MemoryRouter>,
+  );
+}
+
+function HandoffStatePreview() {
+  const location = useLocation();
+  const state = location.state as {
+    readonly communityNoticeDraftInput?: { readonly subject?: string };
+  } | null;
+
+  return <p>Formulario: {state?.communityNoticeDraftInput?.subject}</p>;
+}

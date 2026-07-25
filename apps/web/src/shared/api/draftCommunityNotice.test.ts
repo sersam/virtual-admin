@@ -19,27 +19,42 @@ describe('draftCommunityNotice api', () => {
     );
   }
 
-  it('envía mensajes al endpoint de comunicados y valida la respuesta', async () => {
+  it('envía el input estructurado al endpoint de comunicados y valida la respuesta', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(validDraftResponse());
 
-    const response = await draftCommunityNotice('Redacta un comunicado sobre el corte de agua.');
+    const response = await draftCommunityNotice({
+      subject: 'Corte de agua',
+      type: 'informativo',
+      audience: 'todos',
+      tone: 'formal',
+    });
 
     expect(response.draft.subject).toBe('Corte de agua');
     expect(globalThis.fetch).toHaveBeenCalledWith(
       '/api/communications/draft',
       expect.objectContaining({
         body: JSON.stringify({
-          message: 'Redacta un comunicado sobre el corte de agua.',
+          subject: 'Corte de agua',
+          type: 'informativo',
+          audience: 'todos',
+          tone: 'formal',
         }),
         method: 'POST',
       }),
     );
   });
 
-  it('rechaza mensajes inválidos sin llamar a la API', async () => {
+  it('rechaza asuntos inválidos sin llamar a la API', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
-    await expect(draftCommunityNotice('ok')).rejects.toThrow();
+    await expect(
+      draftCommunityNotice({
+        subject: 'ok',
+        type: 'informativo',
+        audience: 'todos',
+        tone: 'formal',
+      }),
+    ).rejects.toThrow();
 
     expect(fetchSpy).not.toHaveBeenCalled();
   });
@@ -48,7 +63,12 @@ describe('draftCommunityNotice api', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 503 }));
 
     await expect(
-      draftCommunityNotice('Redacta un comunicado sobre el corte de agua.'),
+      draftCommunityNotice({
+        subject: 'Corte de agua',
+        type: 'informativo',
+        audience: 'todos',
+        tone: 'formal',
+      }),
     ).rejects.toThrow('No se pudo redactar el comunicado (HTTP 503).');
   });
 
@@ -64,7 +84,12 @@ describe('draftCommunityNotice api', () => {
     );
 
     await expect(
-      draftCommunityNotice('Redacta un comunicado sobre el corte de agua.'),
+      draftCommunityNotice({
+        subject: 'Corte de agua',
+        type: 'informativo',
+        audience: 'todos',
+        tone: 'formal',
+      }),
     ).rejects.toThrow();
   });
 
@@ -72,7 +97,15 @@ describe('draftCommunityNotice api', () => {
     const controller = new AbortController();
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(validDraftResponse());
 
-    await draftCommunityNotice('Redacta un comunicado sobre el corte de agua.', controller.signal);
+    await draftCommunityNotice(
+      {
+        subject: 'Corte de agua',
+        type: 'informativo',
+        audience: 'todos',
+        tone: 'formal',
+      },
+      controller.signal,
+    );
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       '/api/communications/draft',

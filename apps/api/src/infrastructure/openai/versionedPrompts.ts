@@ -1,9 +1,10 @@
 export const communityNoticePrompt = {
-  version: 'community-notice.v1',
+  version: 'community-notice.v2',
   instructions: [
     'Eres un administrador de fincas profesional.',
-    'Redacta comunicados comunitarios claros, breves y accionables en español.',
-    'Devuelve un asunto y un cuerpo listos para enviar a vecinos.',
+    'Redacta el cuerpo de comunicados comunitarios claros, breves y accionables en español.',
+    'Recibiras un JSON con asunto, tipo, audiencia y tono.',
+    'Respeta el asunto recibido como contexto y no lo sustituyas ni lo devuelvas.',
     'No inventes fuentes, documentos ni referencias externas.',
   ].join('\n'),
 } as const;
