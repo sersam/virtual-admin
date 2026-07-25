@@ -4,10 +4,11 @@ import type {
   CommunityNoticeTone,
   CommunityNoticeType,
 } from '@admin/contracts';
-import { ClipboardCheck, FilePenLine, SendHorizontal } from 'lucide-react';
+import { ClipboardCheck, ClipboardCopy, Download, FilePenLine, SendHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import { formatAiProviderMode } from '../../../shared/config/aiProviderMode';
 import { useCommunityNoticeDraft } from '../hooks/useCommunityNoticeDraft';
+import { downloadCommunityNoticePdf } from '../model/communityNoticePdf';
 
 const suggestedSubjects = ['Corte de agua', 'Limpieza del garaje', 'Revisión del ascensor'];
 
@@ -16,12 +17,42 @@ export function CommunityNoticePanel() {
   const [type, setType] = useState<CommunityNoticeType>('informativo');
   const [audience, setAudience] = useState<CommunityNoticeAudience>('todos');
   const [tone, setTone] = useState<CommunityNoticeTone>('formal');
+  const [editableSubject, setEditableSubject] = useState('');
+  const [editableBody, setEditableBody] = useState('');
+  const [copyError, setCopyError] = useState('');
+  const [copySuccess, setCopySuccess] = useState('');
   const { error, result, status, submit } = useCommunityNoticeDraft();
   const loading = status === 'loading';
+  const hasEditableDraft = editableSubject.trim().length > 0 && editableBody.trim().length > 0;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await submit({ subject, type, audience, tone });
+    const generated = await submit({ subject, type, audience, tone });
+    if (generated) {
+      setEditableSubject(generated.draft.subject);
+      setEditableBody(generated.draft.body);
+      setCopyError('');
+      setCopySuccess('');
+    }
+  }
+
+  async function handleCopy() {
+    if (!hasEditableDraft) return;
+
+    try {
+      await navigator.clipboard.writeText(formatClipboardText(editableSubject, editableBody));
+      setCopyError('');
+      setCopySuccess('Comunicado copiado.');
+    } catch {
+      setCopySuccess('');
+      setCopyError('No se pudo copiar el comunicado.');
+    }
+  }
+
+  function handleDownloadPdf() {
+    if (!hasEditableDraft) return;
+
+    downloadCommunityNoticePdf({ body: editableBody, subject: editableSubject });
   }
 
   return (
@@ -142,13 +173,66 @@ export function CommunityNoticePanel() {
                 </span>
               </div>
               <h3 className="mt-4 font-display text-2xl font-extrabold">{result.draft.subject}</h3>
-              <p className="mt-4 whitespace-pre-line text-sm leading-6 text-sky-50">
-                {result.draft.body}
-              </p>
+              <label
+                className="mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-sky-100"
+                htmlFor="editable-notice-subject"
+              >
+                Asunto editable
+              </label>
+              <input
+                className="mt-2 w-full rounded-2xl border border-white/15 bg-white p-4 text-sm leading-6 text-navy-950 shadow-inner outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                id="editable-notice-subject"
+                onChange={(event) => setEditableSubject(event.target.value)}
+                value={editableSubject}
+              />
+              <label
+                className="mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-sky-100"
+                htmlFor="editable-notice-body"
+              >
+                Cuerpo editable del comunicado
+              </label>
+              <textarea
+                className="mt-2 min-h-64 w-full rounded-2xl border border-white/15 bg-white p-4 text-sm leading-6 text-navy-950 shadow-inner outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                id="editable-notice-body"
+                onChange={(event) => setEditableBody(event.target.value)}
+                value={editableBody}
+              />
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  className="primary-button"
+                  disabled={!hasEditableDraft}
+                  onClick={handleCopy}
+                  type="button"
+                >
+                  <ClipboardCopy aria-hidden="true" size={17} />
+                  Copiar comunicado
+                </button>
+                <button
+                  className="primary-button"
+                  disabled={!hasEditableDraft}
+                  onClick={handleDownloadPdf}
+                  type="button"
+                >
+                  <Download aria-hidden="true" size={17} />
+                  Descargar PDF
+                </button>
+              </div>
+              {copySuccess && (
+                <p className="mt-3 text-sm font-semibold text-emerald-100">{copySuccess}</p>
+              )}
+              {copyError && (
+                <p className="mt-3 text-sm font-semibold text-red-100" role="alert">
+                  {copyError}
+                </p>
+              )}
             </div>
           </div>
         )}
       </section>
     </div>
   );
+}
+
+function formatClipboardText(subject: string, body: string): string {
+  return [`Asunto: ${subject.trim()}`, '', body.trim()].join('\n');
 }
