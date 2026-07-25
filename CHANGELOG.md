@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-25 · PR [#16](https://github.com/sersam/virtual-admin/pull/16)
+
+### Changed
+
+- Permite preparar comunicados con asunto, tipo, audiencia, tono, copia al portapapeles y exportacion PDF.
+
 ## 2026-07-24 · PR [#15](https://github.com/sersam/virtual-admin/pull/15)
 
 ### Changed
