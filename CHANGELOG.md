@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-25 · PR [#17](https://github.com/sersam/virtual-admin/pull/17)
+
+### Added
+
+- Añade un comunicado sugerido persistido a cada incidencia, visible y copiable desde la pantalla de Incidencias, con clasificador OpenAI actualizado a `incident-classification.v2`.
+
 ## 2026-07-25 · PR [#16](https://github.com/sersam/virtual-admin/pull/16)
 
 ### Changed
