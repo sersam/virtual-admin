@@ -45,15 +45,20 @@ describe('DraftCommunityNotice', () => {
   });
 
   it('propaga el modo del proveedor OpenAI', async () => {
+    const receivedInputs: unknown[] = [];
     const useCase = new DraftCommunityNotice({
       generator: {
-        draft: async (input) => ({
-          draft: {
-            subject: input.subject,
-            body: `Aviso generado para: ${input.subject}`,
-          },
-          mode: 'openai',
-        }),
+        draft: async (input) => {
+          receivedInputs.push(input);
+
+          return {
+            draft: {
+              subject: input.subject,
+              body: `Aviso generado para: ${input.subject}`,
+            },
+            mode: 'openai',
+          };
+        },
       },
     });
 
@@ -71,5 +76,33 @@ describe('DraftCommunityNotice', () => {
       },
       mode: 'openai',
     });
+    expect(receivedInputs).toEqual([
+      {
+        subject: 'Corte de agua',
+        type: 'urgente',
+        audience: 'residentes',
+        tone: 'directo',
+      },
+    ]);
+  });
+
+  it('propaga errores del generador sin sustituirlos', async () => {
+    const error = new Error('provider failed');
+    const useCase = new DraftCommunityNotice({
+      generator: {
+        draft: async () => {
+          throw error;
+        },
+      },
+    });
+
+    await expect(
+      useCase.execute({
+        subject: 'Corte de agua',
+        type: 'informativo',
+        audience: 'todos',
+        tone: 'formal',
+      }),
+    ).rejects.toBe(error);
   });
 });

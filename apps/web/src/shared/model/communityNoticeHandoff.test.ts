@@ -48,4 +48,23 @@ describe('communityNoticeHandoff', () => {
       }),
     ).toBeUndefined();
   });
+
+  it('usa un asunto valido cuando el asunto derivado es demasiado corto', () => {
+    expect(createCommunityNoticeHandoffState('ok')).toEqual({
+      communityNoticeDraftInput: {
+        subject: 'Corte de agua',
+        type: 'informativo',
+        audience: 'todos',
+        tone: 'formal',
+      },
+    });
+  });
+
+  it('recorta asuntos derivados que superan el limite del contrato', () => {
+    const subject = 'a'.repeat(121);
+
+    expect(createCommunityNoticeHandoffState(subject).communityNoticeDraftInput.subject).toBe(
+      'A'.concat('a'.repeat(119)),
+    );
+  });
 });

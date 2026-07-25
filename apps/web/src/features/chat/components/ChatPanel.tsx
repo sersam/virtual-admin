@@ -46,21 +46,28 @@ const mvpAreaExamples = [
 export function ChatPanel() {
   const [message, setMessage] = useState('¿Qué dicen las normas de la piscina?');
   const [lastSubmittedMessage, setLastSubmittedMessage] = useState('');
+  const [handoffError, setHandoffError] = useState('');
   const { error, result, status, submit } = useChatMessage();
   const navigate = useNavigate();
   const loading = status === 'loading';
+  const displayedError = error ?? handoffError;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const submittedMessage = message;
+    setHandoffError('');
     setLastSubmittedMessage(submittedMessage);
     await submit(submittedMessage);
   }
 
   function handleContinueToCommunications() {
-    navigate('/comunicados', {
-      state: createCommunityNoticeHandoffState(lastSubmittedMessage),
-    });
+    try {
+      navigate('/comunicados', {
+        state: createCommunityNoticeHandoffState(lastSubmittedMessage),
+      });
+    } catch {
+      setHandoffError('No se pudo preparar el formulario de comunicados.');
+    }
   }
 
   return (
@@ -99,7 +106,7 @@ export function ChatPanel() {
             <SendHorizontal aria-hidden="true" size={17} />
             {loading ? 'Enviando...' : 'Enviar mensaje'}
           </button>
-          {error && <p className="text-sm font-semibold text-red-700">{error}</p>}
+          {displayedError && <p className="text-sm font-semibold text-red-700">{displayedError}</p>}
         </form>
       </section>
 

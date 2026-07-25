@@ -37,12 +37,21 @@ export function useCommunityNoticeDraft() {
       return result;
     } catch (error) {
       console.error('[useCommunityNoticeDraft] Se usa redacción local determinista.', error);
-      const result = createLocalCommunityNoticeDraft({ ...input, subject: trimmedSubject });
-      setState({
-        result,
-        status: 'fallback',
-      });
-      return result;
+      try {
+        const result = createLocalCommunityNoticeDraft({ ...input, subject: trimmedSubject });
+        setState({
+          result,
+          status: 'fallback',
+        });
+        return result;
+      } catch (fallbackError) {
+        console.error('[useCommunityNoticeDraft] Falló la redacción local.', fallbackError);
+        setState({
+          error: 'No se pudo redactar el comunicado.',
+          status: 'error',
+        });
+        return undefined;
+      }
     }
   }
 

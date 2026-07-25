@@ -64,7 +64,7 @@ describe('createCommunityNoticeDraft', () => {
         audience: 'todos',
         tone: 'formal',
       }).body,
-    ).toContain('Les informamos con caracter urgente sobre Fuga en el garaje.');
+    ).toContain('Les informamos con carácter urgente sobre Fuga en el garaje.');
   });
 
   it('ajusta el cierre por tono', () => {
@@ -84,7 +84,7 @@ describe('createCommunityNoticeDraft', () => {
         audience: 'todos',
         tone: 'directo',
       }).body,
-    ).toContain('Por favor, revisen este aviso y actuen en consecuencia.');
+    ).toContain('Por favor, revisen este aviso y actúen en consecuencia.');
   });
 
   it('calcula valores por defecto coherentes desde texto de chat', () => {

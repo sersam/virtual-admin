@@ -29,13 +29,13 @@ const greetings: Record<CommunityNoticeAudience, string> = {
 const purposes: Record<CommunityNoticeType, (subject: string) => string> = {
   informativo: (subject) => `Les informamos sobre ${subject}.`,
   recordatorio: (subject) => `Les recordamos ${subject}.`,
-  urgente: (subject) => `Les informamos con caracter urgente sobre ${subject}.`,
+  urgente: (subject) => `Les informamos con carácter urgente sobre ${subject}.`,
 };
 
 const closings: Record<CommunityNoticeTone, string> = {
   formal: 'Gracias por vuestra colaboración.',
   cercano: 'Gracias por ayudarnos a mantener una convivencia agradable.',
-  directo: 'Por favor, revisen este aviso y actuen en consecuencia.',
+  directo: 'Por favor, revisen este aviso y actúen en consecuencia.',
 };
 
 export function createCommunityNoticeDraft(

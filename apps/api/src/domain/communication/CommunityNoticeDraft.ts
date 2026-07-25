@@ -1,17 +1,144 @@
-import {
-  buildCommunityNoticeInputFromText,
-  createCommunityNoticeDraft,
-} from '@admin/community-notices';
+export interface CommunityNoticeDraftContent {
+  readonly subject: string;
+  readonly body: string;
+}
 
-export {
-  buildCommunityNoticeInputFromText,
-  createCommunityNoticeDraft,
-  type CommunityNoticeDraftContent,
-  type CommunityNoticeDraftInput,
-} from '@admin/community-notices';
+export type CommunityNoticeType = 'informativo' | 'recordatorio' | 'urgente';
+export type CommunityNoticeAudience = 'todos' | 'propietarios' | 'residentes';
+export type CommunityNoticeTone = 'formal' | 'cercano' | 'directo';
+
+export interface CommunityNoticeDraftInput {
+  readonly subject: string;
+  readonly type: CommunityNoticeType;
+  readonly audience: CommunityNoticeAudience;
+  readonly tone: CommunityNoticeTone;
+}
+
+const DEFAULT_TOPIC = 'el aviso de la comunidad';
+const TOPIC_MARKERS = ['sobre ', 'de la ', 'de los ', 'de las ', 'del '] as const;
+const TRAILING_TOPIC_PUNCTUATION = new Set(['.', '?', '!', '¡', '¿']);
+const GENERIC_REQUEST_PATTERN =
+  /\b(?:ayuda|aviso|avisar|comunicacion|comunicado|redacta|redactar)\b/u;
+
+const greetings: Record<CommunityNoticeAudience, string> = {
+  todos: 'Estimados vecinos:',
+  propietarios: 'Estimados propietarios:',
+  residentes: 'Estimados residentes:',
+};
+
+const purposes: Record<CommunityNoticeType, (subject: string) => string> = {
+  informativo: (subject) => `Les informamos sobre ${subject}.`,
+  recordatorio: (subject) => `Les recordamos ${subject}.`,
+  urgente: (subject) => `Les informamos con carácter urgente sobre ${subject}.`,
+};
+
+const closings: Record<CommunityNoticeTone, string> = {
+  formal: 'Gracias por vuestra colaboración.',
+  cercano: 'Gracias por ayudarnos a mantener una convivencia agradable.',
+  directo: 'Por favor, revisen este aviso y actúen en consecuencia.',
+};
+
+export function createCommunityNoticeDraft(
+  input: CommunityNoticeDraftInput,
+): CommunityNoticeDraftContent {
+  const subject = input.subject.trim();
+  const body = [
+    greetings[input.audience],
+    '',
+    `${purposes[input.type](subject)} Rogamos que tengan en cuenta este aviso y que sigan las indicaciones de la administración de la comunidad.`,
+    '',
+    closings[input.tone],
+    '',
+    'La administración de la comunidad',
+  ].join('\n');
+
+  return { subject, body };
+}
+
+export function buildCommunityNoticeInputFromText(message: string): CommunityNoticeDraftInput {
+  const topic = extractTopic(message);
+
+  return {
+    subject: toSentenceCase(removeLeadingArticle(topic)),
+    type: 'informativo',
+    audience: 'todos',
+    tone: 'formal',
+  };
+}
 
 export function draftCommunityNotice(message: string): string {
   const draft = createCommunityNoticeDraft(buildCommunityNoticeInputFromText(message));
 
   return [`Asunto: ${draft.subject}`, '', draft.body].join('\n');
+}
+
+function extractTopic(message: string): string {
+  const trimmedMessage = trimTopic(message);
+  const topicStart = findTopicStart(trimmedMessage);
+  const topic = topicStart === undefined ? undefined : trimTopic(trimmedMessage.slice(topicStart));
+
+  if (topic && topic.length > 0) return topic;
+
+  const normalized = normalize(trimmedMessage);
+
+  return normalized && !GENERIC_REQUEST_PATTERN.test(normalized) ? trimmedMessage : DEFAULT_TOPIC;
+}
+
+function normalize(text: string): string {
+  return text
+    .normalize('NFD')
+    .replaceAll(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/gu, ' ')
+    .trim();
+}
+
+function toSentenceCase(text: string): string {
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+}
+
+function removeLeadingArticle(text: string): string {
+  return text.replace(/^(el|la|los|las)\s+/iu, '');
+}
+
+function findTopicStart(text: string): number | undefined {
+  const lowerCaseText = text.toLocaleLowerCase('es');
+
+  for (const marker of TOPIC_MARKERS) {
+    let markerIndex = lowerCaseText.indexOf(marker);
+
+    while (markerIndex >= 0) {
+      if (isTopicMarkerBoundary(lowerCaseText, markerIndex)) {
+        return markerIndex + marker.length;
+      }
+
+      markerIndex = lowerCaseText.indexOf(marker, markerIndex + 1);
+    }
+  }
+
+  return undefined;
+}
+
+function isTopicMarkerBoundary(text: string, markerIndex: number): boolean {
+  if (markerIndex === 0) return true;
+
+  const previousCharacter = text.codePointAt(markerIndex - 1);
+
+  return previousCharacter === undefined || !isAsciiLetterOrDigit(previousCharacter);
+}
+
+function isAsciiLetterOrDigit(characterCode: number): boolean {
+  return (
+    (characterCode >= 48 && characterCode <= 57) || (characterCode >= 97 && characterCode <= 122)
+  );
+}
+
+function trimTopic(text: string): string {
+  let endIndex = text.trimEnd().length;
+
+  while (endIndex > 0 && TRAILING_TOPIC_PUNCTUATION.has(text[endIndex - 1] ?? '')) {
+    endIndex -= 1;
+  }
+
+  return text.slice(0, endIndex).trim();
 }

@@ -86,8 +86,10 @@ export function CommunityNoticePanel({ initialInput }: CommunityNoticePanelProps
             value={subject}
           />
           <div className="grid gap-4 md:grid-cols-3">
-            <label className="block text-sm font-bold text-navy-950" htmlFor="notice-type">
-              Tipo
+            <div>
+              <label className="block text-sm font-bold text-navy-950" htmlFor="notice-type">
+                Tipo
+              </label>
               <select
                 id="notice-type"
                 className="mt-2 w-full rounded-2xl border border-slate-200 bg-white p-3 text-sm font-semibold text-navy-950 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
@@ -98,9 +100,11 @@ export function CommunityNoticePanel({ initialInput }: CommunityNoticePanelProps
                 <option value="recordatorio">Recordatorio</option>
                 <option value="urgente">Urgente</option>
               </select>
-            </label>
-            <label className="block text-sm font-bold text-navy-950" htmlFor="notice-audience">
-              Audiencia
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-navy-950" htmlFor="notice-audience">
+                Audiencia
+              </label>
               <select
                 id="notice-audience"
                 className="mt-2 w-full rounded-2xl border border-slate-200 bg-white p-3 text-sm font-semibold text-navy-950 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
@@ -111,9 +115,11 @@ export function CommunityNoticePanel({ initialInput }: CommunityNoticePanelProps
                 <option value="propietarios">Propietarios</option>
                 <option value="residentes">Residentes</option>
               </select>
-            </label>
-            <label className="block text-sm font-bold text-navy-950" htmlFor="notice-tone">
-              Tono
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-navy-950" htmlFor="notice-tone">
+                Tono
+              </label>
               <select
                 id="notice-tone"
                 className="mt-2 w-full rounded-2xl border border-slate-200 bg-white p-3 text-sm font-semibold text-navy-950 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
@@ -124,7 +130,7 @@ export function CommunityNoticePanel({ initialInput }: CommunityNoticePanelProps
                 <option value="cercano">Cercano</option>
                 <option value="directo">Directo</option>
               </select>
-            </label>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {suggestedSubjects.map((suggestion) => (

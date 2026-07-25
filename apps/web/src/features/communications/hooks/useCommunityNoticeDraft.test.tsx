@@ -70,4 +70,22 @@ describe('useCommunityNoticeDraft', () => {
     expect(result.current.error).toContain('entre 3 y 120 caracteres');
     expect(fetchSpy).not.toHaveBeenCalled();
   });
+
+  it('muestra error si también falla el fallback local', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network'));
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { result } = renderHook(() => useCommunityNoticeDraft());
+
+    await act(() =>
+      result.current.submit({
+        subject: 'Corte de agua',
+        type: 'otro',
+        audience: 'todos',
+        tone: 'formal',
+      } as never),
+    );
+
+    expect(result.current.status).toBe('error');
+    expect(result.current.error).toBe('No se pudo redactar el comunicado.');
+  });
 });
