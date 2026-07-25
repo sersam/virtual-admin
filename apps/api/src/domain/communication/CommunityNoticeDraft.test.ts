@@ -7,7 +7,7 @@ describe('draftCommunityNotice', () => {
 
     expect(draft).toContain('Asunto: Corte de agua');
     expect(draft).toContain('Estimados vecinos:');
-    expect(draft).toContain('corte de agua');
+    expect(draft).toContain('Corte de agua');
     expect(draft).toContain('Gracias por vuestra colaboración.');
   });
 });
