@@ -2,11 +2,20 @@ import { describe, expect, it } from 'vitest';
 import {
   CreateIncidentRequestSchema,
   CreateIncidentResponseSchema,
+  IncidentSchema,
   IncidentListQuerySchema,
   IncidentListResponseSchema,
   ResolveIncidentParamsSchema,
   ResolveIncidentResponseSchema,
 } from './incidents.js';
+
+const suggestedNotice = [
+  'Estimados vecinos:',
+  '',
+  'Se ha registrado la siguiente incidencia: Hay una fuga de agua urgente en el garaje.',
+  '',
+  'La administración comunicará cualquier novedad relevante.',
+].join('\n');
 
 describe('incident contracts', () => {
   it('valida peticiones y respuestas de creación de incidencia', () => {
@@ -26,6 +35,7 @@ describe('incident contracts', () => {
           type: 'agua',
           priority: 'urgente',
           suggestedResponsible: 'Fontanería',
+          suggestedNotice,
           createdAt: '2026-06-27T10:00:00.000Z',
           status: 'pendiente',
           resolvedAt: null,
@@ -37,6 +47,7 @@ describe('incident contracts', () => {
         type: 'agua',
         priority: 'urgente',
         suggestedResponsible: 'Fontanería',
+        suggestedNotice,
       },
     });
   });
@@ -54,6 +65,13 @@ describe('incident contracts', () => {
             type: 'ascensor',
             priority: 'alta',
             suggestedResponsible: 'Mantenimiento de ascensores',
+            suggestedNotice: [
+              'Estimados vecinos:',
+              '',
+              'Se ha registrado la siguiente incidencia: El ascensor no funciona.',
+              '',
+              'La administración comunicará cualquier novedad relevante.',
+            ].join('\n'),
             createdAt: '2026-06-27T10:05:00.000Z',
             status: 'resuelta',
             resolvedAt: '2026-06-27T12:30:00.000Z',
@@ -72,6 +90,7 @@ describe('incident contracts', () => {
           type: 'agua',
           priority: 'urgente',
           suggestedResponsible: 'Fontanería',
+          suggestedNotice,
           createdAt: '2026-06-27T10:00:00.000Z',
           status: 'resuelta',
           resolvedAt: '2026-06-27T12:30:00.000Z',
@@ -87,6 +106,7 @@ describe('incident contracts', () => {
           type: 'agua',
           priority: 'urgente',
           suggestedResponsible: 'Fontanería',
+          suggestedNotice,
           createdAt: '2026-06-27T10:00:00.000Z',
           status: 'pendiente',
           resolvedAt: '2026-06-27T12:30:00.000Z',
@@ -102,6 +122,7 @@ describe('incident contracts', () => {
           type: 'agua',
           priority: 'urgente',
           suggestedResponsible: 'Fontanería',
+          suggestedNotice,
           createdAt: '2026-06-27T10:00:00.000Z',
           status: 'resuelta',
           resolvedAt: null,
@@ -145,6 +166,7 @@ describe('incident contracts', () => {
           type: 'agua',
           priority: 'urgente',
           suggestedResponsible: 'Fontanería',
+          suggestedNotice,
           createdAt: '2026-06-27T10:00:00.000Z',
           status: 'pendiente',
           resolvedAt: null,
@@ -160,9 +182,54 @@ describe('incident contracts', () => {
           type: 'otro',
           priority: 'media',
           suggestedResponsible: 'Administrador',
+          suggestedNotice,
           createdAt: 'hoy',
         },
         mode: 'deterministic-demo',
+      }),
+    ).toThrow();
+  });
+
+  it('exige un comunicado sugerido normalizado dentro de la incidencia', () => {
+    expect(
+      IncidentSchema.parse({
+        id: 'inc-0001',
+        description: 'Hay una fuga de agua urgente en el garaje.',
+        type: 'agua',
+        priority: 'urgente',
+        suggestedResponsible: 'Fontanería',
+        suggestedNotice: `  ${suggestedNotice}  `,
+        createdAt: '2026-06-27T10:00:00.000Z',
+        status: 'pendiente',
+        resolvedAt: null,
+      }).suggestedNotice,
+    ).toBe(suggestedNotice);
+
+    expect(() =>
+      IncidentSchema.parse({
+        id: 'inc-0001',
+        description: 'Hay una fuga de agua urgente en el garaje.',
+        type: 'agua',
+        priority: 'urgente',
+        suggestedResponsible: 'Fontanería',
+        suggestedNotice: ' ',
+        createdAt: '2026-06-27T10:00:00.000Z',
+        status: 'pendiente',
+        resolvedAt: null,
+      }),
+    ).toThrow();
+
+    expect(() =>
+      IncidentSchema.parse({
+        id: 'inc-0001',
+        description: 'Hay una fuga de agua urgente en el garaje.',
+        type: 'agua',
+        priority: 'urgente',
+        suggestedResponsible: 'Fontanería',
+        suggestedNotice: 'a'.repeat(2_001),
+        createdAt: '2026-06-27T10:00:00.000Z',
+        status: 'pendiente',
+        resolvedAt: null,
       }),
     ).toThrow();
   });

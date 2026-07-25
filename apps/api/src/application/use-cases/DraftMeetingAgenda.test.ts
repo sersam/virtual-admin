@@ -5,6 +5,16 @@ import type { PendingAgreementRepository } from '../ports/PendingAgreementReposi
 import { describe, expect, it } from 'vitest';
 import { DraftMeetingAgenda } from './DraftMeetingAgenda.js';
 
+function suggestedNoticeFor(description: string): string {
+  return [
+    'Estimados vecinos:',
+    '',
+    `Se ha registrado la siguiente incidencia: ${description}`,
+    '',
+    'La administración comunicará cualquier novedad relevante.',
+  ].join('\n');
+}
+
 describe('DraftMeetingAgenda', () => {
   it('combina incidencias y acuerdos pendientes priorizados para la sesión', async () => {
     const useCase = new DraftMeetingAgenda({
@@ -17,6 +27,7 @@ describe('DraftMeetingAgenda', () => {
             type: 'otro',
             priority: 'baja',
             suggestedResponsible: 'Administrador',
+            suggestedNotice: suggestedNoticeFor('Pintura desconchada en el portal'),
             createdAt: new Date('2026-06-23T10:00:00.000Z'),
             status: 'pendiente',
             resolvedAt: null,
@@ -28,6 +39,7 @@ describe('DraftMeetingAgenda', () => {
             type: 'agua',
             priority: 'urgente',
             suggestedResponsible: 'Fontanería',
+            suggestedNotice: suggestedNoticeFor('Fuga de agua urgente en el garaje'),
             createdAt: new Date('2026-06-23T11:00:00.000Z'),
             status: 'pendiente',
             resolvedAt: null,
@@ -308,6 +320,7 @@ function createIncident(overrides: PendingIncidentOverrides = {}): CommunityInci
     type: 'otro',
     priority: 'media',
     suggestedResponsible: 'Administrador',
+    suggestedNotice: suggestedNoticeFor('Incidencia pendiente'),
     createdAt: new Date('2026-06-23T10:00:00.000Z'),
     ...overrides,
     status: 'pendiente',
@@ -325,6 +338,7 @@ function createResolvedIncident(
     type: 'otro',
     priority: 'media',
     suggestedResponsible: 'Administrador',
+    suggestedNotice: suggestedNoticeFor('Incidencia resuelta'),
     createdAt: new Date('2026-06-23T10:00:00.000Z'),
     ...overrides,
     status: 'resuelta',

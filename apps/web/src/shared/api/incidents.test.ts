@@ -7,6 +7,13 @@ const incident = {
   type: 'agua',
   priority: 'urgente',
   suggestedResponsible: 'Fontanería',
+  suggestedNotice: [
+    'Estimados vecinos:',
+    '',
+    'Se ha registrado la siguiente incidencia: Hay una fuga de agua urgente en el garaje.',
+    '',
+    'La administración comunicará cualquier novedad relevante.',
+  ].join('\n'),
   createdAt: '2026-06-27T10:00:00.000Z',
   status: 'pendiente',
   resolvedAt: null,

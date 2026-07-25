@@ -262,13 +262,23 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
   await expect(draftRegion.getByText('Revisar contrato de limpieza')).toBeVisible();
 });
 
-test('registra incidencias y filtra por tipo', async ({ page }, testInfo) => {
+test('registra incidencias y filtra por tipo', async ({ context, page }, testInfo) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const suggestedNoticeFor = (description: string) =>
+    [
+      'Estimados vecinos:',
+      '',
+      `Se ha registrado la siguiente incidencia: ${description}`,
+      '',
+      'La administración comunicará cualquier novedad relevante.',
+    ].join('\n');
   const incidents: Array<{
     id: string;
     description: string;
     type: 'agua' | 'ascensor';
     priority: 'alta' | 'urgente';
     suggestedResponsible: string;
+    suggestedNotice: string;
     createdAt: string;
     status: 'pendiente' | 'resuelta';
     resolvedAt: string | null;
@@ -315,6 +325,7 @@ test('registra incidencias y filtra por tipo', async ({ page }, testInfo) => {
       type: isLiftIncident ? ('ascensor' as const) : ('agua' as const),
       priority: isLiftIncident ? ('alta' as const) : ('urgente' as const),
       suggestedResponsible: isLiftIncident ? 'Mantenimiento de ascensores' : 'Fontanería',
+      suggestedNotice: suggestedNoticeFor(payload.description),
       createdAt: '2026-06-27T10:00:00.000Z',
       status: 'pendiente' as const,
       resolvedAt: null,
@@ -348,8 +359,17 @@ test('registra incidencias y filtra por tipo', async ({ page }, testInfo) => {
   await expect(waterIncident.getByText('Agua', { exact: true })).toBeVisible();
   await expect(waterIncident.getByText('Urgente', { exact: true })).toBeVisible();
   await expect(waterIncident.getByText('Fontanería')).toBeVisible();
+  await expect(waterIncident.getByRole('heading', { name: 'Comunicado sugerido' })).toBeVisible();
+  await expect(
+    waterIncident.getByText(suggestedNoticeFor('Hay una fuga de agua urgente en el garaje.')),
+  ).toBeVisible();
   await expect(waterIncident.getByText('Pendiente', { exact: true })).toBeVisible();
   await expect(page.getByText('Demo determinista')).toBeVisible();
+  await waterIncident.getByRole('button', { name: 'Copiar comunicado sugerido' }).click();
+  await expect(waterIncident.getByText('Comunicado copiado.')).toBeVisible();
+  await expect(page.evaluate(() => navigator.clipboard.readText())).resolves.toBe(
+    suggestedNoticeFor('Hay una fuga de agua urgente en el garaje.'),
+  );
   await waterIncident.getByRole('button', { name: 'Marcar como resuelta' }).click();
   await expect(waterIncident.getByText('Resuelta', { exact: true })).toBeVisible();
   await expect(waterIncident.getByText('Resolución', { exact: true })).toBeVisible();

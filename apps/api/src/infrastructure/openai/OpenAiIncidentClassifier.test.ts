@@ -6,6 +6,14 @@ import type {
   AiTelemetryReporter,
 } from '../../application/ports/AiTelemetryReporter.js';
 
+const suggestedNotice = [
+  'Estimados vecinos:',
+  '',
+  'Se ha registrado una avería en el ascensor del portal B.',
+  '',
+  'La administración comunicará cualquier novedad relevante.',
+].join('\n');
+
 describe('OpenAiIncidentClassifier', () => {
   it('clasifica incidencias con salida validada y modo OpenAI', async () => {
     const telemetry = new RecordingTelemetryReporter();
@@ -17,6 +25,7 @@ describe('OpenAiIncidentClassifier', () => {
             type: 'ascensor',
             priority: 'alta',
             suggestedResponsible: 'Mantenimiento de ascensores',
+            suggestedNotice,
           },
           usage: { inputTokens: 800, cachedInputTokens: 200, outputTokens: 120 },
         }),
@@ -31,13 +40,14 @@ describe('OpenAiIncidentClassifier', () => {
         type: 'ascensor',
         priority: 'alta',
         suggestedResponsible: 'Mantenimiento de ascensores',
+        suggestedNotice,
       },
       mode: 'openai',
     });
     expect(telemetry.events).toEqual([
       expect.objectContaining({
         operation: 'incident-classification',
-        promptVersion: 'incident-classification.v1',
+        promptVersion: 'incident-classification.v2',
         cachedInputTokens: 200,
         latencyMs: 120,
         result: 'success',
@@ -54,6 +64,7 @@ describe('OpenAiIncidentClassifier', () => {
             type: 'ascensor',
             priority: 'alta',
             suggestedResponsible: 'Mantenimiento de ascensores',
+            suggestedNotice,
           },
           usage: { inputTokens: 700, cachedInputTokens: 100, outputTokens: 80 },
         }),
@@ -68,6 +79,7 @@ describe('OpenAiIncidentClassifier', () => {
         type: 'ascensor',
         priority: 'alta',
         suggestedResponsible: 'Mantenimiento de ascensores',
+        suggestedNotice,
       },
       mode: 'openai',
     });
@@ -82,6 +94,7 @@ describe('OpenAiIncidentClassifier', () => {
             type: 'desconocido',
             priority: 'alta',
             suggestedResponsible: 'Mantenimiento',
+            suggestedNotice,
           },
           usage: { inputTokens: 700, cachedInputTokens: 100, outputTokens: 80 },
         }),
@@ -92,6 +105,36 @@ describe('OpenAiIncidentClassifier', () => {
     await expect(
       classifier.classify('El ascensor del portal B no funciona desde esta mañana.'),
     ).rejects.toBeInstanceOf(OpenAiProviderError);
+  });
+
+  it('rechaza salidas sin comunicado sugerido valido', async () => {
+    const telemetry = new RecordingTelemetryReporter();
+    const classifier = new OpenAiIncidentClassifier({
+      nowMs: sequenceNow(1_000, 1_080),
+      responses: {
+        createStructuredResponse: async () => ({
+          output: {
+            type: 'ascensor',
+            priority: 'alta',
+            suggestedResponsible: 'Mantenimiento de ascensores',
+            suggestedNotice: '',
+          },
+          usage: { inputTokens: 700, cachedInputTokens: 100, outputTokens: 80 },
+        }),
+      },
+      telemetry,
+    });
+
+    await expect(
+      classifier.classify('El ascensor del portal B no funciona desde esta mañana.'),
+    ).rejects.toBeInstanceOf(OpenAiProviderError);
+    expect(telemetry.events).toEqual([
+      expect.objectContaining({
+        operation: 'incident-classification',
+        promptVersion: 'incident-classification.v2',
+        result: 'failure',
+      }),
+    ]);
   });
 });
 

@@ -4,6 +4,13 @@ import { IncidentNotFoundError, ResolveIncident } from './ResolveIncident.js';
 
 const createdAt = new Date('2026-06-27T10:00:00.000Z');
 const firstResolution = new Date('2026-06-27T12:30:00.000Z');
+const suggestedNotice = [
+  'Estimados vecinos:',
+  '',
+  'Se ha registrado la siguiente incidencia: Hay una fuga de agua en el garaje.',
+  '',
+  'La administración comunicará cualquier novedad relevante.',
+].join('\n');
 
 async function savePendingIncident(repository: InMemoryIncidentRepository): Promise<void> {
   await repository.save({
@@ -13,6 +20,7 @@ async function savePendingIncident(repository: InMemoryIncidentRepository): Prom
     type: 'agua',
     priority: 'alta',
     suggestedResponsible: 'Fontanería',
+    suggestedNotice,
     createdAt,
     status: 'pendiente',
     resolvedAt: null,
@@ -37,6 +45,7 @@ describe('ResolveIncident', () => {
       type: 'agua',
       priority: 'alta',
       suggestedResponsible: 'Fontanería',
+      suggestedNotice,
       createdAt,
       status: 'resuelta',
       resolvedAt: firstResolution,

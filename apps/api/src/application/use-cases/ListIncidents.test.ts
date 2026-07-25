@@ -3,6 +3,16 @@ import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemo
 import { CreateIncident } from './CreateIncident.js';
 import { ListIncidents } from './ListIncidents.js';
 
+function suggestedNoticeFor(description: string): string {
+  return [
+    'Estimados vecinos:',
+    '',
+    `Se ha registrado la siguiente incidencia: ${description}`,
+    '',
+    'La administración comunicará cualquier novedad relevante.',
+  ].join('\n');
+}
+
 describe('ListIncidents', () => {
   it('lista únicamente incidencias de la sesión indicada', async () => {
     const repository = new InMemoryIncidentRepository();
@@ -13,6 +23,7 @@ describe('ListIncidents', () => {
       type: 'agua',
       priority: 'alta',
       suggestedResponsible: 'Fontanería',
+      suggestedNotice: suggestedNoticeFor('Hay una fuga de agua en el garaje.'),
       createdAt: new Date('2026-06-27T10:00:00.000Z'),
       status: 'pendiente',
       resolvedAt: null,
@@ -24,6 +35,7 @@ describe('ListIncidents', () => {
       type: 'ascensor',
       priority: 'alta',
       suggestedResponsible: 'Mantenimiento de ascensores',
+      suggestedNotice: suggestedNoticeFor('El ascensor no funciona.'),
       createdAt: new Date('2026-06-27T10:05:00.000Z'),
       status: 'pendiente',
       resolvedAt: null,
@@ -47,11 +59,13 @@ describe('ListIncidents', () => {
                 type: 'ascensor',
                 priority: 'alta',
                 suggestedResponsible: 'Mantenimiento de ascensores',
+                suggestedNotice: suggestedNoticeFor(description),
               }
             : {
                 type: 'agua',
                 priority: 'alta',
                 suggestedResponsible: 'Fontanería',
+                suggestedNotice: suggestedNoticeFor(description),
               },
           mode: 'deterministic-demo',
         }),

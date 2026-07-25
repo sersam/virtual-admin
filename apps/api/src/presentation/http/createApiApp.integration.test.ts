@@ -20,6 +20,16 @@ const uploadedDocumentTextExtractor = {
     'El contrato de mantenimiento del ascensor del portal B vence el 30 de septiembre.',
 };
 
+function suggestedNoticeFor(description: string): string {
+  return [
+    'Estimados vecinos:',
+    '',
+    `Se ha registrado la siguiente incidencia: ${description}`,
+    '',
+    'La administración comunicará cualquier novedad relevante.',
+  ].join('\n');
+}
+
 function buildApp(requestsLimit = 3, overrides: Partial<Parameters<typeof createApiApp>[0]> = {}) {
   return createApiApp(buildAppOptions(requestsLimit, overrides));
 }
@@ -352,6 +362,7 @@ describe('createApiApp', () => {
         type: 'agua',
         priority: 'urgente',
         suggestedResponsible: 'Fontanería',
+        suggestedNotice: suggestedNoticeFor('Hay una fuga de agua urgente en el garaje.'),
         createdAt: '2026-06-23T08:00:00.000Z',
         status: 'pendiente',
         resolvedAt: null,
@@ -370,6 +381,9 @@ describe('createApiApp', () => {
               type: 'ascensor',
               priority: 'alta',
               suggestedResponsible: 'Mantenimiento de ascensores',
+              suggestedNotice: suggestedNoticeFor(
+                'El ascensor del portal B no funciona desde esta mañana.',
+              ),
             },
             mode: 'openai',
           }),
@@ -387,6 +401,9 @@ describe('createApiApp', () => {
         type: 'ascensor',
         priority: 'alta',
         suggestedResponsible: 'Mantenimiento de ascensores',
+        suggestedNotice: suggestedNoticeFor(
+          'El ascensor del portal B no funciona desde esta mañana.',
+        ),
       },
       mode: 'openai',
     });
@@ -428,6 +445,7 @@ describe('createApiApp', () => {
       id: created.body.incident.id,
       status: 'resuelta',
       resolvedAt: '2026-06-23T08:00:00.000Z',
+      suggestedNotice: suggestedNoticeFor('Hay una fuga de agua urgente en el garaje.'),
     });
     expect(second.body.incident.resolvedAt).toBe(first.body.incident.resolvedAt);
     expect((await agent.get('/api/incidents')).body.incidents).toContainEqual(first.body.incident);
@@ -469,6 +487,7 @@ describe('createApiApp', () => {
         type: 'agua',
         priority: 'urgente',
         suggestedResponsible: 'Fontanería',
+        suggestedNotice: suggestedNoticeFor('Hay una fuga de agua urgente en el garaje.'),
       }),
     ]);
   });
@@ -492,6 +511,7 @@ describe('createApiApp', () => {
       expect.objectContaining({
         id: '00000000-0000-4000-8000-000000000003',
         type: 'ascensor',
+        suggestedNotice: suggestedNoticeFor('El ascensor no funciona desde esta mañana.'),
       }),
     ]);
   });

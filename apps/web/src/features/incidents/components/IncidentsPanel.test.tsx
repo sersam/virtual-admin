@@ -9,6 +9,13 @@ const waterIncident = {
   type: 'agua',
   priority: 'urgente',
   suggestedResponsible: 'Fontanería',
+  suggestedNotice: [
+    'Estimados vecinos:',
+    '',
+    'Se ha registrado la siguiente incidencia: Hay una fuga de agua urgente en el garaje.',
+    '',
+    'La administración comunicará cualquier novedad relevante.',
+  ].join('\n'),
   createdAt: '2026-06-27T10:00:00.000Z',
   status: 'pendiente',
   resolvedAt: null,
@@ -26,6 +33,13 @@ const liftIncident = {
   type: 'ascensor',
   priority: 'alta',
   suggestedResponsible: 'Mantenimiento de ascensores',
+  suggestedNotice: [
+    'Estimados vecinos:',
+    '',
+    'Se ha registrado la siguiente incidencia: El ascensor no funciona desde esta mañana.',
+    '',
+    'La administración comunicará cualquier novedad relevante.',
+  ].join('\n'),
   createdAt: '2026-06-27T10:05:00.000Z',
   status: 'pendiente',
   resolvedAt: null,
@@ -60,6 +74,9 @@ describe('IncidentsPanel', () => {
     expect(within(incident).getByText('Agua')).toBeInTheDocument();
     expect(within(incident).getByText('Urgente')).toBeInTheDocument();
     expect(within(incident).getByText('Fontanería')).toBeInTheDocument();
+    const noticeRegion = within(incident).getByLabelText('Comunicado sugerido');
+    expect(within(noticeRegion).getByText('Comunicado sugerido')).toBeInTheDocument();
+    expect(noticeRegion.textContent).toContain(waterIncident.suggestedNotice);
     expect(screen.getByText('Demo determinista')).toBeInTheDocument();
   });
 
@@ -154,5 +171,45 @@ describe('IncidentsPanel', () => {
 
     expect(screen.getByText(/al menos 10 caracteres/)).toBeInTheDocument();
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('copia exactamente el comunicado sugerido de una incidencia', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ incidents: [waterIncident] }), { status: 200 }),
+    );
+
+    render(<IncidentsPanel />);
+    const incident = await screen.findByRole('article', { name: /fuga de agua urgente/i });
+
+    await user.click(within(incident).getByRole('button', { name: 'Copiar comunicado sugerido' }));
+
+    expect(writeText).toHaveBeenCalledWith(waterIncident.suggestedNotice);
+    expect(within(incident).getByText('Comunicado copiado.')).toBeInTheDocument();
+  });
+
+  it('muestra un error accesible si no puede copiar el comunicado sugerido', async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+    });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ incidents: [waterIncident] }), { status: 200 }),
+    );
+
+    render(<IncidentsPanel />);
+    const incident = await screen.findByRole('article', { name: /fuga de agua urgente/i });
+
+    await user.click(within(incident).getByRole('button', { name: 'Copiar comunicado sugerido' }));
+
+    expect(within(incident).getByRole('alert')).toHaveTextContent(
+      'No se pudo copiar el comunicado.',
+    );
   });
 });
