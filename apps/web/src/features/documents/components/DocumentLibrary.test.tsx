@@ -7,8 +7,9 @@ describe('DocumentLibrary', () => {
     render(<DocumentLibrary />);
 
     expect(screen.getByRole('heading', { name: 'Documentos disponibles' })).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: 'Abrir PDF' })).toHaveLength(6);
+    expect(screen.getAllByRole('link', { name: 'Abrir PDF' })).toHaveLength(9);
     expect(screen.getByText('Estatutos de la comunidad')).toBeInTheDocument();
     expect(screen.getByText('Contrato de mantenimiento de jardines')).toBeInTheDocument();
+    expect(screen.getByText('Presupuesto comunitario 2026')).toBeInTheDocument();
   });
 });

@@ -22,7 +22,7 @@ export const UploadedDocumentSchema = z.object({
 export const DocumentSourceSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
-  type: z.enum(['estatutos', 'normas', 'acta', 'contrato', 'adjunto']),
+  type: z.enum(['estatutos', 'normas', 'acta', 'contrato', 'presupuesto', 'comunicado', 'adjunto']),
   section: z.string().min(1),
   excerpt: z.string().min(1),
   documentUrl: z.string().min(1).endsWith('.pdf'),
