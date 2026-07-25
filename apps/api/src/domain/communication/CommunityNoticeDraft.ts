@@ -16,17 +16,19 @@ export interface CommunityNoticeDraftInput {
 
 const DEFAULT_SUBJECT = 'Aviso de la comunidad';
 const GENERIC_REQUEST_PATTERN =
-  /\b(?:ayuda|aviso|avisar|comunicacion|comunicado|redacta|redactar)\b/u;
+  /^(?:ayuda|aviso|avisar|comunicacion|comunicado|redacta|redactar)$/u;
+const DIRECT_TOPIC_PREFIXES = ['aviso', 'comunicado', 'comunicación'] as const;
 const TOPIC_MARKERS = ['sobre ', 'de la ', 'de los ', 'de las ', 'del '] as const;
 
 export function createCommunityNoticeDraft(
   input: CommunityNoticeDraftInput,
 ): CommunityNoticeDraftContent {
   const subject = input.subject.trim();
+  const bodySubject = formatSubjectForBody(subject);
   const body = [
     getGreeting(input.audience),
     '',
-    `${getPurpose(input.type, subject)} Rogamos que tengan en cuenta este aviso y que sigan las indicaciones de la administración de la comunidad.`,
+    `${getPurpose(input.type, bodySubject)} Rogamos que tengan en cuenta este aviso y que sigan las indicaciones de la administración de la comunidad.`,
     '',
     getClosing(input.tone),
     '',
@@ -78,9 +80,40 @@ function getClosing(tone: CommunityNoticeTone): string {
 
 function getSubjectFromMessage(message: string): string {
   const cleanMessage = trimTopic(message);
-  const topic = findExplicitTopic(cleanMessage) ?? findDirectTopic(cleanMessage);
+  const topic =
+    findPrefixedTopic(cleanMessage) ??
+    findExplicitTopic(cleanMessage) ??
+    findDirectTopic(cleanMessage);
 
   return topic ? toSentenceCase(removeLeadingArticle(topic)) : DEFAULT_SUBJECT;
+}
+
+function findPrefixedTopic(message: string): string | undefined {
+  const lowerCaseMessage = message.toLocaleLowerCase('es');
+
+  for (const prefix of DIRECT_TOPIC_PREFIXES) {
+    if (lowerCaseMessage.startsWith(prefix) && hasPrefixSeparator(message[prefix.length])) {
+      const topic = trimTopic(firstSentence(removePrefixSeparator(message.slice(prefix.length))));
+
+      if (topic) return topic;
+    }
+  }
+
+  return undefined;
+}
+
+function hasPrefixSeparator(character: string | undefined): boolean {
+  return character === ':' || character === '-' || character === '.' || character === ' ';
+}
+
+function removePrefixSeparator(text: string): string {
+  let startIndex = 0;
+
+  while (hasPrefixSeparator(text[startIndex])) {
+    startIndex += 1;
+  }
+
+  return text.slice(startIndex);
 }
 
 function findExplicitTopic(message: string): string | undefined {
@@ -89,7 +122,7 @@ function findExplicitTopic(message: string): string | undefined {
   for (const marker of TOPIC_MARKERS) {
     const markerIndex = lowerCaseMessage.indexOf(marker);
     if (markerIndex >= 0) {
-      return trimTopic(message.slice(markerIndex + marker.length));
+      return trimTopic(firstSentence(message.slice(markerIndex + marker.length)));
     }
   }
 
@@ -117,6 +150,20 @@ function removeLeadingArticle(text: string): string {
 
 function toSentenceCase(text: string): string {
   return `${text.slice(0, 1).toLocaleUpperCase('es')}${text.slice(1)}`;
+}
+
+function formatSubjectForBody(subject: string): string {
+  return `el asunto «${trimTopic(subject)}»`;
+}
+
+function firstSentence(text: string): string {
+  const boundaryIndex = [...text].findIndex(isSentenceBoundary);
+
+  return boundaryIndex >= 0 ? text.slice(0, boundaryIndex) : text;
+}
+
+function isSentenceBoundary(character: string): boolean {
+  return character === '.' || character === '!' || character === '?';
 }
 
 function trimTopic(text: string): string {
