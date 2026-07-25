@@ -56,7 +56,7 @@ test('consulta documentos y muestra fuentes recuperadas', async ({ page }, testI
     answerRegion.getByRole('article').getByText(/piscina comunitaria abre de 10:00 a 21:00/i),
   ).toBeVisible();
 
-  const pdfLink = answerRegion.getByRole('link', { name: 'Abrir PDF completo' });
+  const pdfLink = answerRegion.getByRole('link', { name: 'Abrir PDF completo' }).first();
   await expect(pdfLink).toHaveAttribute('href', /\/documents\/normas-zonas-comunes\.pdf$/);
   await expect(pdfLink).toHaveAttribute('target', '_blank');
 
