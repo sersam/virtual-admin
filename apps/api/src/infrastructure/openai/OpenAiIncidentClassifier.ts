@@ -11,6 +11,7 @@ import type { OpenAiResponsesClient } from './OpenAiResponsesClient.js';
 
 const IncidentClassificationOutputSchema = z.object({
   priority: IncidentPrioritySchema,
+  suggestedNotice: z.string().trim().min(1).max(2_000),
   suggestedResponsible: z.string().trim().min(1).max(120),
   type: IncidentTypeSchema,
 });
@@ -37,7 +38,7 @@ export class OpenAiIncidentClassifier implements IncidentClassifier {
       operation: 'incident-classification',
       promptVersion: incidentClassificationPrompt.version,
       schema: IncidentClassificationOutputSchema,
-      schemaName: 'incident_classification_v1',
+      schemaName: 'incident_classification_v2',
     });
 
     return { classification, mode: 'openai' };

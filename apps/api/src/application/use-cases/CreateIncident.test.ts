@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemoryIncidentRepository.js';
 import { CreateIncident } from './CreateIncident.js';
 
+const suggestedNotice = [
+  'Estimados vecinos:',
+  '',
+  'Se ha registrado la siguiente incidencia: Hay una fuga de agua urgente en el garaje.',
+  '',
+  'La administración comunicará cualquier novedad relevante.',
+].join('\n');
+
 describe('CreateIncident', () => {
   it('clasifica y guarda una incidencia asociada a la sesión', async () => {
     const repository = new InMemoryIncidentRepository();
@@ -12,6 +20,7 @@ describe('CreateIncident', () => {
             type: 'agua',
             priority: 'urgente',
             suggestedResponsible: 'Fontanería',
+            suggestedNotice,
           },
           mode: 'openai',
         }),
@@ -34,6 +43,7 @@ describe('CreateIncident', () => {
         type: 'agua',
         priority: 'urgente',
         suggestedResponsible: 'Fontanería',
+        suggestedNotice,
         createdAt: new Date('2026-06-27T10:00:00.000Z'),
         status: 'pendiente',
         resolvedAt: null,
@@ -45,6 +55,7 @@ describe('CreateIncident', () => {
         id: 'inc-0001',
         sessionId: 'session-a',
         createdAt: new Date('2026-06-27T10:00:00.000Z'),
+        suggestedNotice,
       }),
     ]);
   });
@@ -58,6 +69,7 @@ describe('CreateIncident', () => {
             type: 'agua',
             priority: 'urgente',
             suggestedResponsible: 'Fontanería',
+            suggestedNotice,
           },
           mode: 'deterministic-demo',
         }),
@@ -80,6 +92,7 @@ describe('CreateIncident', () => {
       type: 'agua',
       priority: 'urgente',
       suggestedResponsible: 'Fontanería',
+      suggestedNotice,
       createdAt: new Date('2026-06-27T10:00:00.000Z'),
       status: 'pendiente',
       resolvedAt: null,
@@ -94,6 +107,7 @@ describe('CreateIncident', () => {
             type: 'otro',
             priority: 'media',
             suggestedResponsible: 'Administrador',
+            suggestedNotice,
           },
           mode: 'deterministic-demo',
         }),
@@ -120,6 +134,7 @@ describe('CreateIncident', () => {
             type: 'otro',
             priority: 'media',
             suggestedResponsible: 'Administrador',
+            suggestedNotice,
           },
           mode: 'deterministic-demo',
         }),

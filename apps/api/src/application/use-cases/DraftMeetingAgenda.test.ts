@@ -5,6 +5,16 @@ import type { PendingAgreementRepository } from '../ports/PendingAgreementReposi
 import { describe, expect, it } from 'vitest';
 import { DraftMeetingAgenda } from './DraftMeetingAgenda.js';
 
+function suggestedNoticeFor(description: string): string {
+  return [
+    'Estimados vecinos:',
+    '',
+    `Se ha registrado la siguiente incidencia: ${description}`,
+    '',
+    'La administración comunicará cualquier novedad relevante.',
+  ].join('\n');
+}
+
 describe('DraftMeetingAgenda', () => {
   it('combina incidencias y acuerdos pendientes priorizados para la sesión', async () => {
     const useCase = new DraftMeetingAgenda({
@@ -17,6 +27,7 @@ describe('DraftMeetingAgenda', () => {
             type: 'otro',
             priority: 'baja',
             suggestedResponsible: 'Administrador',
+            suggestedNotice: suggestedNoticeFor('Pintura desconchada en el portal'),
             createdAt: new Date('2026-06-23T10:00:00.000Z'),
             status: 'pendiente',
             resolvedAt: null,
@@ -28,6 +39,7 @@ describe('DraftMeetingAgenda', () => {
             type: 'agua',
             priority: 'urgente',
             suggestedResponsible: 'Fontanería',
+            suggestedNotice: suggestedNoticeFor('Fuga de agua urgente en el garaje'),
             createdAt: new Date('2026-06-23T11:00:00.000Z'),
             status: 'pendiente',
             resolvedAt: null,
@@ -301,15 +313,18 @@ function createPendingAgreementRepository(
 type PendingIncidentOverrides = Partial<Omit<CommunityIncident, 'resolvedAt' | 'status'>>;
 
 function createIncident(overrides: PendingIncidentOverrides = {}): CommunityIncident {
+  const description = overrides.description ?? 'Incidencia pendiente';
+
   return {
     id: 'inc-1',
     sessionId: 'session-a',
-    description: 'Incidencia pendiente',
     type: 'otro',
     priority: 'media',
     suggestedResponsible: 'Administrador',
     createdAt: new Date('2026-06-23T10:00:00.000Z'),
     ...overrides,
+    description,
+    suggestedNotice: overrides.suggestedNotice ?? suggestedNoticeFor(description),
     status: 'pendiente',
     resolvedAt: null,
   };
@@ -318,15 +333,18 @@ function createIncident(overrides: PendingIncidentOverrides = {}): CommunityInci
 function createResolvedIncident(
   overrides: Partial<Omit<CommunityIncident, 'resolvedAt' | 'status'>> = {},
 ): CommunityIncident {
+  const description = overrides.description ?? 'Incidencia resuelta';
+
   return {
     id: 'inc-resolved',
     sessionId: 'session-a',
-    description: 'Incidencia resuelta',
     type: 'otro',
     priority: 'media',
     suggestedResponsible: 'Administrador',
     createdAt: new Date('2026-06-23T10:00:00.000Z'),
     ...overrides,
+    description,
+    suggestedNotice: overrides.suggestedNotice ?? suggestedNoticeFor(description),
     status: 'resuelta',
     resolvedAt: new Date('2026-06-24T10:00:00.000Z'),
   };

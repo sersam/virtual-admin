@@ -8,6 +8,13 @@ const waterIncident = {
   type: 'agua',
   priority: 'urgente',
   suggestedResponsible: 'Fontanería',
+  suggestedNotice: [
+    'Estimados vecinos:',
+    '',
+    'Se ha registrado la siguiente incidencia: Hay una fuga de agua urgente en el garaje.',
+    '',
+    'La administración comunicará cualquier novedad relevante.',
+  ].join('\n'),
   createdAt: '2026-06-27T10:00:00.000Z',
   status: 'pendiente',
   resolvedAt: null,
@@ -26,6 +33,13 @@ const liftIncident = {
   type: 'ascensor',
   priority: 'alta',
   suggestedResponsible: 'Mantenimiento de ascensores',
+  suggestedNotice: [
+    'Estimados vecinos:',
+    '',
+    'Se ha registrado la siguiente incidencia: El ascensor no funciona desde esta mañana.',
+    '',
+    'La administración comunicará cualquier novedad relevante.',
+  ].join('\n'),
 };
 
 function deferred<T>() {
@@ -272,6 +286,7 @@ describe('useIncidents', () => {
       type: 'agua',
       priority: 'urgente',
       suggestedResponsible: 'Fontanería',
+      suggestedNotice: waterIncident.suggestedNotice,
     });
   });
 });

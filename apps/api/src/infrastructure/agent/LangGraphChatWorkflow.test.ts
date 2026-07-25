@@ -165,6 +165,13 @@ describe('LangGraphChatWorkflow', () => {
               type: 'agua',
               priority: 'urgente',
               suggestedResponsible: 'Fontanería',
+              suggestedNotice: [
+                'Estimados vecinos:',
+                '',
+                `Se ha registrado la siguiente incidencia: ${description}`,
+                '',
+                'La administración comunicará cualquier novedad relevante.',
+              ].join('\n'),
               createdAt: new Date('2026-07-23T10:00:00.000Z'),
               status: 'pendiente',
               resolvedAt: null,

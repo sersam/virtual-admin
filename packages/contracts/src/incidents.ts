@@ -24,6 +24,7 @@ const IncidentBaseSchema = z.object({
   type: IncidentTypeSchema,
   priority: IncidentPrioritySchema,
   suggestedResponsible: z.string().trim().min(1).max(120),
+  suggestedNotice: z.string().trim().min(1).max(2_000),
   createdAt: z.iso.datetime(),
 });
 

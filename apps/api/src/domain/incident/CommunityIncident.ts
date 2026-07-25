@@ -10,6 +10,7 @@ export type IncidentType =
 export type IncidentPriority = 'baja' | 'media' | 'alta' | 'urgente';
 export interface IncidentClassification {
   readonly priority: IncidentPriority;
+  readonly suggestedNotice: string;
   readonly suggestedResponsible: string;
   readonly type: IncidentType;
 }

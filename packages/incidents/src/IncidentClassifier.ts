@@ -11,6 +11,7 @@ export type IncidentPriority = 'baja' | 'media' | 'alta' | 'urgente';
 
 export interface IncidentClassification {
   readonly priority: IncidentPriority;
+  readonly suggestedNotice: string;
   readonly suggestedResponsible: string;
   readonly type: IncidentType;
 }
@@ -66,27 +67,39 @@ const incidentRules: readonly IncidentRule[] = [
   },
 ];
 
-const fallbackClassification: IncidentClassification = {
+const fallbackClassification = {
   priority: 'media',
   suggestedResponsible: 'Administrador',
   type: 'otro',
-};
+} satisfies Omit<IncidentClassification, 'suggestedNotice'>;
 
 export function classifyIncident(description: string): IncidentClassification {
   const normalizedDescription = normalize(description);
+  const suggestedNotice = buildSuggestedNotice(description.trim());
   const matchedRule = incidentRules.find((rule) =>
     rule.keywords.some((keyword) => includesKeyword(normalizedDescription, keyword)),
   );
 
-  if (!matchedRule) return fallbackClassification;
+  if (!matchedRule) return { ...fallbackClassification, suggestedNotice };
 
   return {
     priority: hasUrgentSignal(normalizedDescription, matchedRule)
       ? 'urgente'
       : matchedRule.priority,
+    suggestedNotice,
     suggestedResponsible: matchedRule.suggestedResponsible,
     type: matchedRule.type,
   };
+}
+
+function buildSuggestedNotice(description: string): string {
+  return [
+    'Estimados vecinos:',
+    '',
+    `Se ha registrado la siguiente incidencia: ${description}`,
+    '',
+    'La administración comunicará cualquier novedad relevante.',
+  ].join('\n');
 }
 
 function hasUrgentSignal(normalizedDescription: string, rule: IncidentRule): boolean {

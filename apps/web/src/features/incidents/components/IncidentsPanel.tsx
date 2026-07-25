@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react';
 import type { Incident, IncidentPriority, IncidentType } from '@admin/contracts';
-import { CheckCircle2, ClipboardList, Filter, SendHorizontal, Wrench } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Copy, Filter, SendHorizontal, Wrench } from 'lucide-react';
 import { useState } from 'react';
 import { formatAiProviderMode } from '../../../shared/config/aiProviderMode';
 import { useIncidents } from '../hooks/useIncidents';
@@ -187,6 +187,17 @@ interface IncidentItemProps {
 
 function IncidentItem({ incident, isResolving, onResolve }: IncidentItemProps) {
   const resolved = incident.status === 'resuelta';
+  const [copyStatus, setCopyStatus] = useState<'error' | 'idle' | 'success'>('idle');
+
+  async function handleCopySuggestedNotice() {
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(incident.suggestedNotice);
+      setCopyStatus('success');
+    } catch {
+      setCopyStatus('error');
+    }
+  }
 
   return (
     <article
@@ -208,6 +219,34 @@ function IncidentItem({ incident, isResolving, onResolve }: IncidentItemProps) {
         </span>
       </div>
       <p className="mt-3 text-sm font-semibold leading-6 text-navy-950">{incident.description}</p>
+      <section className="mt-4 rounded-xl bg-slate-50 p-3" aria-label="Comunicado sugerido">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+            Comunicado sugerido
+          </h3>
+          <button
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-sky-200 bg-white px-3 text-xs font-bold text-sky-800 transition hover:bg-sky-50"
+            onClick={() => void handleCopySuggestedNotice()}
+            type="button"
+          >
+            <Copy aria-hidden="true" size={15} />
+            Copiar comunicado sugerido
+          </button>
+        </div>
+        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+          {incident.suggestedNotice}
+        </p>
+        {copyStatus === 'success' ? (
+          <output className="mt-2 block text-xs font-bold text-emerald-700">
+            Comunicado copiado.
+          </output>
+        ) : null}
+        {copyStatus === 'error' ? (
+          <p className="mt-2 text-xs font-bold text-red-700" role="alert">
+            No se pudo copiar el comunicado.
+          </p>
+        ) : null}
+      </section>
       <dl className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
         <div>
           <dt className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">

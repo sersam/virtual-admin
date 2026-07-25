@@ -8,6 +8,7 @@ export function presentIncident(incident: CommunityIncident): Incident {
     type: incident.type,
     priority: incident.priority,
     suggestedResponsible: incident.suggestedResponsible,
+    suggestedNotice: incident.suggestedNotice,
     createdAt: incident.createdAt.toISOString(),
   };
 
