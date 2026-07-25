@@ -199,9 +199,12 @@ describe('createApiApp', () => {
 
   it('redacta comunicados desde el endpoint dedicado', async () => {
     const agent = request.agent(buildApp());
-    const response = await agent
-      .post('/api/communications/draft')
-      .send({ message: 'Redacta un comunicado sobre la limpieza del garaje.' });
+    const response = await agent.post('/api/communications/draft').send({
+      subject: 'Limpieza del garaje',
+      type: 'informativo',
+      audience: 'todos',
+      tone: 'formal',
+    });
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
@@ -215,23 +218,31 @@ describe('createApiApp', () => {
   });
 
   it('redacta comunicados con el proveedor IA configurado', async () => {
+    const receivedInputs: unknown[] = [];
     const agent = request.agent(
       buildApp(3, {
         communityNoticeGenerator: {
-          draft: async () => ({
-            draft: {
-              subject: 'Corte de agua',
-              body: 'Estimados vecinos:\n\nOpenAI ha preparado el aviso.',
-            },
-            mode: 'openai',
-          }),
+          draft: async (input) => {
+            receivedInputs.push(input);
+
+            return {
+              draft: {
+                subject: input.subject,
+                body: 'Estimados vecinos:\n\nOpenAI ha preparado el aviso.',
+              },
+              mode: 'openai',
+            };
+          },
         },
       }),
     );
 
-    const response = await agent
-      .post('/api/communications/draft')
-      .send({ message: 'Redacta un aviso de corte de agua.' });
+    const response = await agent.post('/api/communications/draft').send({
+      subject: 'Corte de agua',
+      type: 'urgente',
+      audience: 'residentes',
+      tone: 'directo',
+    });
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
@@ -241,6 +252,14 @@ describe('createApiApp', () => {
       },
       mode: 'openai',
     });
+    expect(receivedInputs).toEqual([
+      {
+        subject: 'Corte de agua',
+        type: 'urgente',
+        audience: 'residentes',
+        tone: 'directo',
+      },
+    ]);
   });
 
   it('genera actas desde el endpoint dedicado', async () => {
@@ -384,7 +403,12 @@ describe('createApiApp', () => {
       }),
     )
       .post('/api/communications/draft')
-      .send({ message: 'Redacta un aviso de corte de agua.' });
+      .send({
+        subject: 'Corte de agua',
+        type: 'informativo',
+        audience: 'todos',
+        tone: 'formal',
+      });
 
     expect(response.status).toBe(502);
     expect(response.body.error.code).toBe('AI_PROVIDER_ERROR');
@@ -474,7 +498,10 @@ describe('createApiApp', () => {
 
   it('valida el formato del endpoint de comunicados antes de consumir sesión', async () => {
     const response = await request(buildApp()).post('/api/communications/draft').send({
-      message: 'ok',
+      subject: 'ok',
+      type: 'informativo',
+      audience: 'todos',
+      tone: 'formal',
     });
 
     expect(response.status).toBe(400);

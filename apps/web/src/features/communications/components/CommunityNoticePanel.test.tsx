@@ -25,14 +25,14 @@ describe('CommunityNoticePanel', () => {
 
     render(<CommunityNoticePanel />);
 
-    await user.clear(screen.getByLabelText('Necesidad del comunicado'));
-    await user.type(
-      screen.getByLabelText('Necesidad del comunicado'),
-      'Redacta un comunicado sobre el corte de agua.',
-    );
+    await user.clear(screen.getByLabelText('Asunto'));
+    await user.type(screen.getByLabelText('Asunto'), 'Corte de agua');
+    await user.selectOptions(screen.getByLabelText('Tipo'), 'recordatorio');
+    await user.selectOptions(screen.getByLabelText('Audiencia'), 'residentes');
+    await user.selectOptions(screen.getByLabelText('Tono'), 'cercano');
     await user.click(screen.getByRole('button', { name: 'Redactar comunicado' }));
 
-    expect(await screen.findByText('Corte de agua')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Corte de agua' })).toBeInTheDocument();
     expect(screen.getByText(/Estimados vecinos:/)).toBeInTheDocument();
     expect(screen.getByText('Demo determinista')).toBeInTheDocument();
   });

@@ -241,7 +241,7 @@ export function createApiApp(options: ApiAppOptions) {
       }
 
       const session = await ensureSession.execute(readSignedSessionId(request));
-      const draft = await draftCommunityNotice.execute(payloadResult.data.message);
+      const draft = await draftCommunityNotice.execute(payloadResult.data);
 
       attachSessionCookie(response, session.id, options);
       response.json(CommunityNoticeDraftResponseSchema.parse(draft));

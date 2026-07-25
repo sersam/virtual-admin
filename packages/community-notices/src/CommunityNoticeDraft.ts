@@ -3,26 +3,67 @@ export interface CommunityNoticeDraftContent {
   readonly body: string;
 }
 
+export type CommunityNoticeType = 'informativo' | 'recordatorio' | 'urgente';
+export type CommunityNoticeAudience = 'todos' | 'propietarios' | 'residentes';
+export type CommunityNoticeTone = 'formal' | 'cercano' | 'directo';
+
+export interface CommunityNoticeDraftInput {
+  readonly subject: string;
+  readonly type: CommunityNoticeType;
+  readonly audience: CommunityNoticeAudience;
+  readonly tone: CommunityNoticeTone;
+}
+
 const DEFAULT_TOPIC = 'el aviso de la comunidad';
 const TOPIC_MARKERS = ['sobre ', 'de la ', 'de los ', 'de las ', 'del '] as const;
 const TRAILING_TOPIC_PUNCTUATION = new Set(['.', '?', '!', '¡', '¿']);
 const GENERIC_REQUEST_PATTERN =
   /\b(?:ayuda|aviso|avisar|comunicacion|comunicado|redacta|redactar)\b/u;
 
-export function createCommunityNoticeDraft(message: string): CommunityNoticeDraftContent {
-  const topic = extractTopic(message);
-  const subject = toSentenceCase(removeLeadingArticle(topic));
+const greetings: Record<CommunityNoticeAudience, string> = {
+  todos: 'Estimados vecinos:',
+  propietarios: 'Estimados propietarios:',
+  residentes: 'Estimados residentes:',
+};
+
+const purposes: Record<CommunityNoticeType, (subject: string) => string> = {
+  informativo: (subject) => `Les informamos sobre ${subject}.`,
+  recordatorio: (subject) => `Les recordamos ${subject}.`,
+  urgente: (subject) => `Les informamos con caracter urgente sobre ${subject}.`,
+};
+
+const closings: Record<CommunityNoticeTone, string> = {
+  formal: 'Gracias por vuestra colaboración.',
+  cercano: 'Gracias por ayudarnos a mantener una convivencia agradable.',
+  directo: 'Por favor, revisen este aviso y actuen en consecuencia.',
+};
+
+export function createCommunityNoticeDraft(
+  input: CommunityNoticeDraftInput,
+): CommunityNoticeDraftContent {
+  const subject = input.subject.trim();
   const body = [
-    'Estimados vecinos:',
+    greetings[input.audience],
     '',
-    `Les informamos sobre ${topic}. Rogamos que tengan en cuenta este aviso y que sigan las indicaciones de la administración de la comunidad.`,
+    `${purposes[input.type](subject)} Rogamos que tengan en cuenta este aviso y que sigan las indicaciones de la administración de la comunidad.`,
     '',
-    'Gracias por vuestra colaboración.',
+    closings[input.tone],
     '',
     'La administración de la comunidad',
   ].join('\n');
 
   return { subject, body };
+}
+
+export function buildCommunityNoticeInputFromText(message: string): CommunityNoticeDraftInput {
+  const topic = extractTopic(message);
+
+  return {
+    subject: toSentenceCase(removeLeadingArticle(topic)),
+    type: 'informativo',
+    audience: 'todos',
+    tone: 'formal',
+  };
 }
 
 function extractTopic(message: string): string {

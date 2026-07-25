@@ -12,6 +12,10 @@ import type { ChatWorkflow, ChatWorkflowContext } from '../../application/ports/
 import type { CommunityNoticeDraftResult } from '../../application/ports/CommunityNoticeGenerator.js';
 import type { CreateIncidentResult } from '../../application/use-cases/CreateIncident.js';
 import { classifyIntent } from '../../domain/agent/IntentClassifier.js';
+import {
+  buildCommunityNoticeInputFromText,
+  type CommunityNoticeDraftInput,
+} from '../../domain/communication/CommunityNoticeDraft.js';
 import type { CommunityIncident } from '../../domain/incident/CommunityIncident.js';
 
 interface DocumentAnswerer {
@@ -26,7 +30,7 @@ interface IncidentCreator {
 }
 
 interface CommunityNoticeDrafter {
-  execute(message: string): Promise<CommunityNoticeDraftResult>;
+  execute(input: CommunityNoticeDraftInput): Promise<CommunityNoticeDraftResult>;
 }
 
 interface MeetingMinutesDrafter {
@@ -105,7 +109,9 @@ export class LangGraphChatWorkflow implements ChatWorkflow {
       return { answer: response.answer, sources: response.sources };
     }
     if (agent === 'comunicados') {
-      const response = await this.dependencies.communityNoticeDrafter.execute(message);
+      const response = await this.dependencies.communityNoticeDrafter.execute(
+        buildCommunityNoticeInputFromText(message),
+      );
       return { answer: formatCommunityNoticeAnswer(response), sources: [] };
     }
     if (agent === 'actas') {

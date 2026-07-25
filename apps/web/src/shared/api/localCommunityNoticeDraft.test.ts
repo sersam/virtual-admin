@@ -4,7 +4,12 @@ import { createLocalCommunityNoticeDraft } from './localCommunityNoticeDraft';
 describe('createLocalCommunityNoticeDraft', () => {
   it('redacta un borrador local estructurado', () => {
     expect(
-      createLocalCommunityNoticeDraft('Redacta un comunicado sobre el corte de agua.'),
+      createLocalCommunityNoticeDraft({
+        subject: 'Corte de agua',
+        type: 'informativo',
+        audience: 'todos',
+        tone: 'formal',
+      }),
     ).toEqual({
       draft: {
         subject: 'Corte de agua',
@@ -16,9 +21,16 @@ describe('createLocalCommunityNoticeDraft', () => {
 
   it.each([
     ['demasiado corto', 'ok'],
-    ['demasiado largo', 'a'.repeat(501)],
+    ['demasiado largo', 'a'.repeat(121)],
     ['solo espacios', '   '],
-  ])('rechaza mensajes con formato inválido: %s', (_caseName, message) => {
-    expect(() => createLocalCommunityNoticeDraft(message)).toThrow();
+  ])('rechaza asuntos con formato inválido: %s', (_caseName, subject) => {
+    expect(() =>
+      createLocalCommunityNoticeDraft({
+        subject,
+        type: 'informativo',
+        audience: 'todos',
+        tone: 'formal',
+      }),
+    ).toThrow();
   });
 });

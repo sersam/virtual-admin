@@ -1,12 +1,12 @@
-import type { CommunityNoticeDraftResponse } from '@admin/contracts';
+import type { CommunityNoticeDraftRequest, CommunityNoticeDraftResponse } from '@admin/contracts';
 import { useState } from 'react';
 import { draftCommunityNotice } from '../../../shared/api/draftCommunityNotice';
 import { createLocalCommunityNoticeDraft } from '../../../shared/api/localCommunityNoticeDraft';
 
 export type CommunityNoticeDraftStatus = 'idle' | 'loading' | 'ready' | 'fallback' | 'error';
 
-const MIN_MESSAGE_LENGTH = 3;
-const MAX_MESSAGE_LENGTH = 500;
+const MIN_SUBJECT_LENGTH = 3;
+const MAX_SUBJECT_LENGTH = 120;
 
 interface CommunityNoticeDraftState {
   readonly error?: string;
@@ -17,11 +17,11 @@ interface CommunityNoticeDraftState {
 export function useCommunityNoticeDraft() {
   const [state, setState] = useState<CommunityNoticeDraftState>({ status: 'idle' });
 
-  async function submit(message: string): Promise<void> {
-    const trimmedMessage = message.trim();
-    if (trimmedMessage.length < MIN_MESSAGE_LENGTH || trimmedMessage.length > MAX_MESSAGE_LENGTH) {
+  async function submit(input: CommunityNoticeDraftRequest): Promise<void> {
+    const trimmedSubject = input.subject.trim();
+    if (trimmedSubject.length < MIN_SUBJECT_LENGTH || trimmedSubject.length > MAX_SUBJECT_LENGTH) {
       setState({
-        error: `El mensaje debe tener entre ${MIN_MESSAGE_LENGTH} y ${MAX_MESSAGE_LENGTH} caracteres.`,
+        error: `El asunto debe tener entre ${MIN_SUBJECT_LENGTH} y ${MAX_SUBJECT_LENGTH} caracteres.`,
         status: 'error',
       });
       return;
@@ -30,11 +30,14 @@ export function useCommunityNoticeDraft() {
     setState({ status: 'loading' });
 
     try {
-      const result = await draftCommunityNotice(trimmedMessage);
+      const result = await draftCommunityNotice({ ...input, subject: trimmedSubject });
       setState({ result, status: 'ready' });
     } catch (error) {
       console.error('[useCommunityNoticeDraft] Se usa redacción local determinista.', error);
-      setState({ result: createLocalCommunityNoticeDraft(trimmedMessage), status: 'fallback' });
+      setState({
+        result: createLocalCommunityNoticeDraft({ ...input, subject: trimmedSubject }),
+        status: 'fallback',
+      });
     }
   }
 

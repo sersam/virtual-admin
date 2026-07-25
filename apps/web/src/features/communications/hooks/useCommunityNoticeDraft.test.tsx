@@ -22,7 +22,14 @@ describe('useCommunityNoticeDraft', () => {
     );
     const { result } = renderHook(() => useCommunityNoticeDraft());
 
-    await act(() => result.current.submit('Redacta un comunicado sobre el corte de agua.'));
+    await act(() =>
+      result.current.submit({
+        subject: 'Corte de agua',
+        type: 'informativo',
+        audience: 'todos',
+        tone: 'formal',
+      }),
+    );
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(result.current.result?.draft.subject).toBe('Corte de agua');
@@ -33,20 +40,34 @@ describe('useCommunityNoticeDraft', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const { result } = renderHook(() => useCommunityNoticeDraft());
 
-    await act(() => result.current.submit('Redacta un comunicado sobre la limpieza del garaje.'));
+    await act(() =>
+      result.current.submit({
+        subject: 'Limpieza del garaje',
+        type: 'informativo',
+        audience: 'todos',
+        tone: 'formal',
+      }),
+    );
 
     await waitFor(() => expect(result.current.status).toBe('fallback'));
     expect(result.current.result?.draft.subject).toBe('Limpieza del garaje');
   });
 
-  it('valida mensajes demasiado cortos', async () => {
+  it('valida asuntos demasiado cortos', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     const { result } = renderHook(() => useCommunityNoticeDraft());
 
-    await act(() => result.current.submit('ok'));
+    await act(() =>
+      result.current.submit({
+        subject: 'ok',
+        type: 'informativo',
+        audience: 'todos',
+        tone: 'formal',
+      }),
+    );
 
     expect(result.current.status).toBe('error');
-    expect(result.current.error).toContain('entre 3 y 500 caracteres');
+    expect(result.current.error).toContain('entre 3 y 120 caracteres');
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

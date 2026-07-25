@@ -1,23 +1,27 @@
 import type { FormEvent } from 'react';
+import type {
+  CommunityNoticeAudience,
+  CommunityNoticeTone,
+  CommunityNoticeType,
+} from '@admin/contracts';
 import { ClipboardCheck, FilePenLine, SendHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import { formatAiProviderMode } from '../../../shared/config/aiProviderMode';
 import { useCommunityNoticeDraft } from '../hooks/useCommunityNoticeDraft';
 
-const suggestedMessages = [
-  'Redacta un comunicado sobre el corte de agua.',
-  'Redacta un comunicado sobre la limpieza del garaje.',
-  'Redacta un comunicado sobre la revisión del ascensor.',
-];
+const suggestedSubjects = ['Corte de agua', 'Limpieza del garaje', 'Revisión del ascensor'];
 
 export function CommunityNoticePanel() {
-  const [message, setMessage] = useState(suggestedMessages[0]!);
+  const [subject, setSubject] = useState(suggestedSubjects[0]!);
+  const [type, setType] = useState<CommunityNoticeType>('informativo');
+  const [audience, setAudience] = useState<CommunityNoticeAudience>('todos');
+  const [tone, setTone] = useState<CommunityNoticeTone>('formal');
   const { error, result, status, submit } = useCommunityNoticeDraft();
   const loading = status === 'loading';
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await submit(message);
+    await submit({ subject, type, audience, tone });
   }
 
   return (
@@ -34,21 +38,62 @@ export function CommunityNoticePanel() {
         </h1>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-          <label className="block text-sm font-bold text-navy-950" htmlFor="notice-message">
-            Necesidad del comunicado
+          <label className="block text-sm font-bold text-navy-950" htmlFor="notice-subject">
+            Asunto
           </label>
-          <textarea
-            id="notice-message"
-            className="min-h-36 w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-6 text-navy-950 shadow-inner outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
-            onChange={(event) => setMessage(event.target.value)}
-            value={message}
+          <input
+            id="notice-subject"
+            className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-6 text-navy-950 shadow-inner outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+            onChange={(event) => setSubject(event.target.value)}
+            value={subject}
           />
+          <div className="grid gap-4 md:grid-cols-3">
+            <label className="block text-sm font-bold text-navy-950" htmlFor="notice-type">
+              Tipo
+              <select
+                id="notice-type"
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white p-3 text-sm font-semibold text-navy-950 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                onChange={(event) => setType(event.target.value as CommunityNoticeType)}
+                value={type}
+              >
+                <option value="informativo">Informativo</option>
+                <option value="recordatorio">Recordatorio</option>
+                <option value="urgente">Urgente</option>
+              </select>
+            </label>
+            <label className="block text-sm font-bold text-navy-950" htmlFor="notice-audience">
+              Audiencia
+              <select
+                id="notice-audience"
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white p-3 text-sm font-semibold text-navy-950 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                onChange={(event) => setAudience(event.target.value as CommunityNoticeAudience)}
+                value={audience}
+              >
+                <option value="todos">Todos</option>
+                <option value="propietarios">Propietarios</option>
+                <option value="residentes">Residentes</option>
+              </select>
+            </label>
+            <label className="block text-sm font-bold text-navy-950" htmlFor="notice-tone">
+              Tono
+              <select
+                id="notice-tone"
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white p-3 text-sm font-semibold text-navy-950 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                onChange={(event) => setTone(event.target.value as CommunityNoticeTone)}
+                value={tone}
+              >
+                <option value="formal">Formal</option>
+                <option value="cercano">Cercano</option>
+                <option value="directo">Directo</option>
+              </select>
+            </label>
+          </div>
           <div className="flex flex-wrap gap-2">
-            {suggestedMessages.map((suggestion) => (
+            {suggestedSubjects.map((suggestion) => (
               <button
                 className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-sky-100 hover:text-sky-800"
                 key={suggestion}
-                onClick={() => setMessage(suggestion)}
+                onClick={() => setSubject(suggestion)}
                 type="button"
               >
                 {suggestion}

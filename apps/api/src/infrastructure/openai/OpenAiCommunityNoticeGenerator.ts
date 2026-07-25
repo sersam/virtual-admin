@@ -1,9 +1,10 @@
-import { CommunityNoticeDraftSchema } from '@admin/contracts';
+import { z } from 'zod';
 import type { AiTelemetryReporter } from '../../application/ports/AiTelemetryReporter.js';
 import type {
   CommunityNoticeDraftResult,
   CommunityNoticeGenerator,
 } from '../../application/ports/CommunityNoticeGenerator.js';
+import type { CommunityNoticeDraftInput } from '../../domain/communication/CommunityNoticeDraft.js';
 import { executeOpenAiStructuredOperation } from './executeOpenAiStructuredOperation.js';
 import { communityNoticePrompt } from './versionedPrompts.js';
 import type { OpenAiResponsesClient } from './OpenAiResponsesClient.js';
@@ -21,18 +22,22 @@ export class OpenAiCommunityNoticeGenerator implements CommunityNoticeGenerator 
     this.nowMs = dependencies.nowMs ?? Date.now;
   }
 
-  async draft(message: string): Promise<CommunityNoticeDraftResult> {
-    const draft = await executeOpenAiStructuredOperation(this.dependencies, {
+  async draft(input: CommunityNoticeDraftInput): Promise<CommunityNoticeDraftResult> {
+    const output = await executeOpenAiStructuredOperation(this.dependencies, {
       errorMessage: 'No se pudo generar el comunicado con OpenAI.',
-      input: message,
+      input: JSON.stringify(input),
       instructions: communityNoticePrompt.instructions,
       maxOutputTokens: 700,
       operation: 'community-notice',
       promptVersion: communityNoticePrompt.version,
-      schema: CommunityNoticeDraftSchema,
-      schemaName: 'community_notice_v1',
+      schema: CommunityNoticeBodySchema,
+      schemaName: 'community_notice_body_v2',
     });
 
-    return { draft, mode: 'openai' };
+    return { draft: { subject: input.subject, body: output.body }, mode: 'openai' };
   }
 }
+
+const CommunityNoticeBodySchema = z.object({
+  body: z.string().trim().min(1).max(2_000),
+});

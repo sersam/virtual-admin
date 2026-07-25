@@ -1,17 +1,26 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CommunityNoticeAudienceSchema,
   CommunityNoticeDraftRequestSchema,
   CommunityNoticeDraftResponseSchema,
+  CommunityNoticeToneSchema,
+  CommunityNoticeTypeSchema,
 } from './communications.js';
 
 describe('communication contracts', () => {
   it('valida peticiones y respuestas de borrador de comunicado', () => {
     expect(
       CommunityNoticeDraftRequestSchema.parse({
-        message: '  Redacta un comunicado sobre el corte de agua.  ',
+        subject: '  Corte de agua  ',
+        type: 'informativo',
+        audience: 'todos',
+        tone: 'formal',
       }),
     ).toEqual({
-      message: 'Redacta un comunicado sobre el corte de agua.',
+      subject: 'Corte de agua',
+      type: 'informativo',
+      audience: 'todos',
+      tone: 'formal',
     });
 
     expect(
@@ -25,8 +34,26 @@ describe('communication contracts', () => {
     ).toMatchObject({ draft: { subject: 'Corte de agua' } });
   });
 
-  it('rechaza mensajes demasiado cortos y respuestas incompletas', () => {
-    expect(() => CommunityNoticeDraftRequestSchema.parse({ message: 'ok' })).toThrow();
+  it('rechaza asuntos demasiado cortos, catalogos invalidos y respuestas incompletas', () => {
+    const validRequest = {
+      subject: 'Corte de agua',
+      type: 'informativo',
+      audience: 'todos',
+      tone: 'formal',
+    };
+
+    expect(() =>
+      CommunityNoticeDraftRequestSchema.parse({ ...validRequest, subject: 'ok' }),
+    ).toThrow();
+    expect(() =>
+      CommunityNoticeDraftRequestSchema.parse({ ...validRequest, type: 'promocional' }),
+    ).toThrow();
+    expect(() =>
+      CommunityNoticeDraftRequestSchema.parse({ ...validRequest, audience: 'proveedores' }),
+    ).toThrow();
+    expect(() =>
+      CommunityNoticeDraftRequestSchema.parse({ ...validRequest, tone: 'alarmista' }),
+    ).toThrow();
     expect(() =>
       CommunityNoticeDraftResponseSchema.parse({
         draft: { subject: '', body: 'Contenido' },
@@ -36,8 +63,18 @@ describe('communication contracts', () => {
   });
 
   it('acepta longitudes límite y rechaza mode inválido', () => {
-    expect(CommunityNoticeDraftRequestSchema.parse({ message: 'a'.repeat(500) })).toEqual({
-      message: 'a'.repeat(500),
+    expect(
+      CommunityNoticeDraftRequestSchema.parse({
+        subject: 'a'.repeat(120),
+        type: 'urgente',
+        audience: 'residentes',
+        tone: 'directo',
+      }),
+    ).toEqual({
+      subject: 'a'.repeat(120),
+      type: 'urgente',
+      audience: 'residentes',
+      tone: 'directo',
     });
 
     expect(
@@ -47,7 +84,14 @@ describe('communication contracts', () => {
       }).mode,
     ).toBe('openai');
 
-    expect(() => CommunityNoticeDraftRequestSchema.parse({ message: '  ab  ' })).toThrow();
+    expect(() =>
+      CommunityNoticeDraftRequestSchema.parse({
+        subject: 'a'.repeat(121),
+        type: 'informativo',
+        audience: 'todos',
+        tone: 'formal',
+      }),
+    ).toThrow();
 
     expect(() =>
       CommunityNoticeDraftResponseSchema.parse({
@@ -55,5 +99,11 @@ describe('communication contracts', () => {
         mode: 'other-mode',
       }),
     ).toThrow();
+  });
+
+  it('expone los catalogos de tipo, audiencia y tono', () => {
+    expect(CommunityNoticeTypeSchema.options).toEqual(['informativo', 'recordatorio', 'urgente']);
+    expect(CommunityNoticeAudienceSchema.options).toEqual(['todos', 'propietarios', 'residentes']);
+    expect(CommunityNoticeToneSchema.options).toEqual(['formal', 'cercano', 'directo']);
   });
 });
