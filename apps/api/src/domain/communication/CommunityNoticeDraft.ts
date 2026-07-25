@@ -14,40 +14,21 @@ export interface CommunityNoticeDraftInput {
   readonly tone: CommunityNoticeTone;
 }
 
-const DEFAULT_TOPIC = 'el aviso de la comunidad';
-const TOPIC_MARKERS = ['sobre ', 'de la ', 'de los ', 'de las ', 'del '] as const;
-const TRAILING_TOPIC_PUNCTUATION = new Set(['.', '?', '!', '¡', '¿']);
+const DEFAULT_SUBJECT = 'Aviso de la comunidad';
 const GENERIC_REQUEST_PATTERN =
   /\b(?:ayuda|aviso|avisar|comunicacion|comunicado|redacta|redactar)\b/u;
-
-const greetings: Record<CommunityNoticeAudience, string> = {
-  todos: 'Estimados vecinos:',
-  propietarios: 'Estimados propietarios:',
-  residentes: 'Estimados residentes:',
-};
-
-const purposes: Record<CommunityNoticeType, (subject: string) => string> = {
-  informativo: (subject) => `Les informamos sobre ${subject}.`,
-  recordatorio: (subject) => `Les recordamos ${subject}.`,
-  urgente: (subject) => `Les informamos con carácter urgente sobre ${subject}.`,
-};
-
-const closings: Record<CommunityNoticeTone, string> = {
-  formal: 'Gracias por vuestra colaboración.',
-  cercano: 'Gracias por ayudarnos a mantener una convivencia agradable.',
-  directo: 'Por favor, revisen este aviso y actúen en consecuencia.',
-};
+const TOPIC_MARKERS = ['sobre ', 'de la ', 'de los ', 'de las ', 'del '] as const;
 
 export function createCommunityNoticeDraft(
   input: CommunityNoticeDraftInput,
 ): CommunityNoticeDraftContent {
   const subject = input.subject.trim();
   const body = [
-    greetings[input.audience],
+    getGreeting(input.audience),
     '',
-    `${purposes[input.type](subject)} Rogamos que tengan en cuenta este aviso y que sigan las indicaciones de la administración de la comunidad.`,
+    `${getPurpose(input.type, subject)} Rogamos que tengan en cuenta este aviso y que sigan las indicaciones de la administración de la comunidad.`,
     '',
-    closings[input.tone],
+    getClosing(input.tone),
     '',
     'La administración de la comunidad',
   ].join('\n');
@@ -56,10 +37,8 @@ export function createCommunityNoticeDraft(
 }
 
 export function buildCommunityNoticeInputFromText(message: string): CommunityNoticeDraftInput {
-  const topic = extractTopic(message);
-
   return {
-    subject: toSentenceCase(removeLeadingArticle(topic)),
+    subject: getSubjectFromMessage(message),
     type: 'informativo',
     audience: 'todos',
     tone: 'formal',
@@ -72,16 +51,55 @@ export function draftCommunityNotice(message: string): string {
   return [`Asunto: ${draft.subject}`, '', draft.body].join('\n');
 }
 
-function extractTopic(message: string): string {
-  const trimmedMessage = trimTopic(message);
-  const topicStart = findTopicStart(trimmedMessage);
-  const topic = topicStart === undefined ? undefined : trimTopic(trimmedMessage.slice(topicStart));
+function getGreeting(audience: CommunityNoticeAudience): string {
+  if (audience === 'propietarios') return 'Estimados propietarios:';
+  if (audience === 'residentes') return 'Estimados residentes:';
 
-  if (topic && topic.length > 0) return topic;
+  return 'Estimados vecinos:';
+}
 
-  const normalized = normalize(trimmedMessage);
+function getPurpose(type: CommunityNoticeType, subject: string): string {
+  if (type === 'recordatorio') return `Les recordamos ${subject}.`;
+  if (type === 'urgente') return `Les informamos con carácter urgente sobre ${subject}.`;
 
-  return normalized && !GENERIC_REQUEST_PATTERN.test(normalized) ? trimmedMessage : DEFAULT_TOPIC;
+  return `Les informamos sobre ${subject}.`;
+}
+
+function getClosing(tone: CommunityNoticeTone): string {
+  if (tone === 'cercano') {
+    return 'Gracias por ayudarnos a mantener una convivencia agradable.';
+  }
+  if (tone === 'directo') {
+    return 'Por favor, revisen este aviso y actúen en consecuencia.';
+  }
+
+  return 'Gracias por vuestra colaboración.';
+}
+
+function getSubjectFromMessage(message: string): string {
+  const cleanMessage = trimTopic(message);
+  const topic = findExplicitTopic(cleanMessage) ?? findDirectTopic(cleanMessage);
+
+  return topic ? toSentenceCase(removeLeadingArticle(topic)) : DEFAULT_SUBJECT;
+}
+
+function findExplicitTopic(message: string): string | undefined {
+  const lowerCaseMessage = message.toLocaleLowerCase('es');
+
+  for (const marker of TOPIC_MARKERS) {
+    const markerIndex = lowerCaseMessage.indexOf(marker);
+    if (markerIndex >= 0) {
+      return trimTopic(message.slice(markerIndex + marker.length));
+    }
+  }
+
+  return undefined;
+}
+
+function findDirectTopic(message: string): string | undefined {
+  const normalized = normalize(message);
+
+  return normalized && !GENERIC_REQUEST_PATTERN.test(normalized) ? message : undefined;
 }
 
 function normalize(text: string): string {
@@ -93,52 +111,17 @@ function normalize(text: string): string {
     .trim();
 }
 
-function toSentenceCase(text: string): string {
-  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
-}
-
 function removeLeadingArticle(text: string): string {
   return text.replace(/^(el|la|los|las)\s+/iu, '');
 }
 
-function findTopicStart(text: string): number | undefined {
-  const lowerCaseText = text.toLocaleLowerCase('es');
-
-  for (const marker of TOPIC_MARKERS) {
-    let markerIndex = lowerCaseText.indexOf(marker);
-
-    while (markerIndex >= 0) {
-      if (isTopicMarkerBoundary(lowerCaseText, markerIndex)) {
-        return markerIndex + marker.length;
-      }
-
-      markerIndex = lowerCaseText.indexOf(marker, markerIndex + 1);
-    }
-  }
-
-  return undefined;
-}
-
-function isTopicMarkerBoundary(text: string, markerIndex: number): boolean {
-  if (markerIndex === 0) return true;
-
-  const previousCharacter = text.codePointAt(markerIndex - 1);
-
-  return previousCharacter === undefined || !isAsciiLetterOrDigit(previousCharacter);
-}
-
-function isAsciiLetterOrDigit(characterCode: number): boolean {
-  return (
-    (characterCode >= 48 && characterCode <= 57) || (characterCode >= 97 && characterCode <= 122)
-  );
+function toSentenceCase(text: string): string {
+  return `${text.slice(0, 1).toLocaleUpperCase('es')}${text.slice(1)}`;
 }
 
 function trimTopic(text: string): string {
-  let endIndex = text.trimEnd().length;
-
-  while (endIndex > 0 && TRAILING_TOPIC_PUNCTUATION.has(text[endIndex - 1] ?? '')) {
-    endIndex -= 1;
-  }
-
-  return text.slice(0, endIndex).trim();
+  return text
+    .trim()
+    .replace(/[.!?¡¿]+$/u, '')
+    .trim();
 }
