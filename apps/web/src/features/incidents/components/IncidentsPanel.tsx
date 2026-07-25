@@ -237,9 +237,9 @@ function IncidentItem({ incident, isResolving, onResolve }: IncidentItemProps) {
           {incident.suggestedNotice}
         </p>
         {copyStatus === 'success' ? (
-          <p className="mt-2 text-xs font-bold text-emerald-700" role="status">
+          <output className="mt-2 block text-xs font-bold text-emerald-700">
             Comunicado copiado.
-          </p>
+          </output>
         ) : null}
         {copyStatus === 'error' ? (
           <p className="mt-2 text-xs font-bold text-red-700" role="alert">
