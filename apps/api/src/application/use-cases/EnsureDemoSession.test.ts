@@ -43,6 +43,25 @@ describe('EnsureDemoSession', () => {
     expect(another.id).not.toBe(first.id);
   });
 
+  it('inicializa datos demo al crear o reutilizar una sesion valida', async () => {
+    let now = new Date('2026-06-23T08:00:00.000Z');
+    const initializedSessions: string[] = [];
+    const useCase = new EnsureDemoSession({
+      clock: { now: () => now },
+      demoDataInitializer: { execute: async (sessionId) => initializedSessions.push(sessionId) },
+      ids: { randomId: () => 'session-a' },
+      repository: new InMemorySessionRepository(),
+      requestsLimit: 3,
+      ttlMs: 60_000,
+    });
+
+    const session = await useCase.execute();
+    now = new Date('2026-06-23T08:00:01.000Z');
+    await useCase.execute(session.id);
+
+    expect(initializedSessions).toEqual(['session-a', 'session-a']);
+  });
+
   it('bloquea sesiones que agotan el cupo', async () => {
     const { useCase } = buildUseCase(new Date('2026-06-23T08:00:00.000Z'), 1);
     const session: DemoSession = await useCase.execute();

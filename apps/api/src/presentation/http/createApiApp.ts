@@ -43,6 +43,7 @@ import {
   GetUploadedDocument,
   UploadedDocumentNotFoundError,
 } from '../../application/use-cases/GetUploadedDocument.js';
+import { InitializeDemoSessionData } from '../../application/use-cases/InitializeDemoSessionData.js';
 import { ListUploadedDocuments } from '../../application/use-cases/ListUploadedDocuments.js';
 import {
   InvalidUploadedDocumentError,
@@ -143,6 +144,10 @@ export function createApiApp(options: ApiAppOptions) {
   });
   const ensureSession = new EnsureDemoSession({
     clock: options.clock,
+    demoDataInitializer: new InitializeDemoSessionData({
+      incidentRepository: options.incidentRepository,
+      pendingAgreementRepository: options.pendingAgreementRepository,
+    }),
     ids: options.ids,
     repository: options.repository,
     requestsLimit: options.requestsLimit ?? 120,

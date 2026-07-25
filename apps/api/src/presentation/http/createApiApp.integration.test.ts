@@ -313,7 +313,7 @@ describe('createApiApp', () => {
       draft: {
         title: 'Orden del día',
         body: expect.stringContaining('fuga de agua urgente'),
-        items: [
+        items: expect.arrayContaining([
           expect.objectContaining({
             sourceType: 'incident',
             priority: 'urgente',
@@ -325,27 +325,38 @@ describe('createApiApp', () => {
             assignee: 'Ana',
             dueDate: '30 de junio',
           }),
-        ],
+        ]),
       },
       mode: 'deterministic-demo',
     });
+    expect(response.body.draft.items).toHaveLength(8);
     expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
   });
 
-  it('genera un orden del día vacío cuando la sesión no tiene asuntos pendientes', async () => {
+  it('genera un orden del día con los asuntos demo iniciales', async () => {
     const agent = request.agent(buildApp());
 
     const response = await agent.post('/api/meeting-agendas/draft').send({});
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({
+    expect(response.body).toMatchObject({
       draft: {
         title: 'Orden del día',
-        body: 'No hay asuntos pendientes para incluir en el orden del día.',
-        items: [],
+        body: expect.stringContaining('Fuga de agua urgente'),
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            sourceId: 'demo-fuga-agua-urgente',
+            sourceType: 'incident',
+          }),
+          expect.objectContaining({
+            sourceId: 'demo-acuerdo-ascensor',
+            sourceType: 'pending-agreement',
+          }),
+        ]),
       },
       mode: 'deterministic-demo',
     });
+    expect(response.body.draft.items).toHaveLength(6);
   });
 
   it('crea incidencias clasificadas desde el endpoint dedicado', async () => {
@@ -481,7 +492,7 @@ describe('createApiApp', () => {
       sources: [],
     });
     expect(listResponse.status).toBe(200);
-    expect(listResponse.body.incidents).toEqual([
+    expect(listResponse.body.incidents).toContainEqual(
       expect.objectContaining({
         description: 'Hay una fuga de agua urgente en el garaje.',
         type: 'agua',
@@ -489,7 +500,8 @@ describe('createApiApp', () => {
         suggestedResponsible: 'Fontanería',
         suggestedNotice: suggestedNoticeFor('Hay una fuga de agua urgente en el garaje.'),
       }),
-    ]);
+    );
+    expect(listResponse.body.incidents).toHaveLength(5);
   });
 
   it('lista incidencias de la sesión y permite filtrarlas por tipo', async () => {
@@ -505,9 +517,13 @@ describe('createApiApp', () => {
     const filtered = await agent.get('/api/incidents').query({ type: 'ascensor' });
 
     expect(list.status).toBe(200);
-    expect(list.body.incidents).toHaveLength(2);
+    expect(list.body.incidents).toHaveLength(6);
     expect(filtered.status).toBe(200);
     expect(filtered.body.incidents).toEqual([
+      expect.objectContaining({
+        id: 'demo-averia-ascensor',
+        type: 'ascensor',
+      }),
       expect.objectContaining({
         id: '00000000-0000-4000-8000-000000000003',
         type: 'ascensor',
