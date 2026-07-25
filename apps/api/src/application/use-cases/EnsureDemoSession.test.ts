@@ -48,7 +48,11 @@ describe('EnsureDemoSession', () => {
     const initializedSessions: string[] = [];
     const useCase = new EnsureDemoSession({
       clock: { now: () => now },
-      demoDataInitializer: { execute: async (sessionId) => initializedSessions.push(sessionId) },
+      demoDataInitializer: {
+        execute: async (sessionId) => {
+          initializedSessions.push(sessionId);
+        },
+      },
       ids: { randomId: () => 'session-a' },
       repository: new InMemorySessionRepository(),
       requestsLimit: 3,

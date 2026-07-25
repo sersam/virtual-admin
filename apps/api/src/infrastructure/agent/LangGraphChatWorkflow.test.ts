@@ -246,6 +246,12 @@ describe('LangGraphChatWorkflow', () => {
                 },
               ],
             },
+            meeting: {
+              id: 'meeting-ordinary-2026-09-18',
+              kind: 'ordinaria',
+              title: 'Junta ordinaria',
+              scheduledAt: '2026-09-18T17:00:00.000Z',
+            },
             mode: 'deterministic-demo',
           };
         },
