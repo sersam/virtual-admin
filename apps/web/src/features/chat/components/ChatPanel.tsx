@@ -2,6 +2,8 @@ import type { ChatAgent, ChatMode } from '@admin/contracts';
 import type { FormEvent } from 'react';
 import { Bot, ExternalLink, SendHorizontal } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
+import { createCommunityNoticeHandoffState } from '../../../shared/model/communityNoticeHandoff';
 import { useChatMessage } from '../hooks/useChatMessage';
 
 const agentLabels: Record<ChatAgent, string> = {
@@ -43,12 +45,22 @@ const mvpAreaExamples = [
 
 export function ChatPanel() {
   const [message, setMessage] = useState('¿Qué dicen las normas de la piscina?');
+  const [lastSubmittedMessage, setLastSubmittedMessage] = useState('');
   const { error, result, status, submit } = useChatMessage();
+  const navigate = useNavigate();
   const loading = status === 'loading';
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await submit(message);
+    const submittedMessage = message;
+    setLastSubmittedMessage(submittedMessage);
+    await submit(submittedMessage);
+  }
+
+  function handleContinueToCommunications() {
+    navigate('/comunicados', {
+      state: createCommunityNoticeHandoffState(lastSubmittedMessage),
+    });
   }
 
   return (
@@ -127,6 +139,15 @@ export function ChatPanel() {
               <p className="mt-4 whitespace-pre-line text-sm leading-6 text-sky-50">
                 {result.answer}
               </p>
+              {result.agent === 'comunicados' && (
+                <button
+                  className="primary-button mt-4"
+                  onClick={handleContinueToCommunications}
+                  type="button"
+                >
+                  Continuar en Comunicados
+                </button>
+              )}
             </div>
 
             {result.sources.length > 0 && (

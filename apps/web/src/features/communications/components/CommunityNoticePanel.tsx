@@ -1,6 +1,8 @@
 import type { FormEvent } from 'react';
 import type {
   CommunityNoticeAudience,
+  CommunityNoticeDraftRequest,
+  CommunityNoticeDraftResponse,
   CommunityNoticeTone,
   CommunityNoticeType,
 } from '@admin/contracts';
@@ -12,11 +14,16 @@ import { downloadCommunityNoticePdf } from '../model/communityNoticePdf';
 
 const suggestedSubjects = ['Corte de agua', 'Limpieza del garaje', 'Revisión del ascensor'];
 
-export function CommunityNoticePanel() {
-  const [subject, setSubject] = useState(suggestedSubjects[0]!);
-  const [type, setType] = useState<CommunityNoticeType>('informativo');
-  const [audience, setAudience] = useState<CommunityNoticeAudience>('todos');
-  const [tone, setTone] = useState<CommunityNoticeTone>('formal');
+interface CommunityNoticePanelProps {
+  readonly initialInput?: CommunityNoticeDraftRequest;
+}
+
+export function CommunityNoticePanel({ initialInput }: CommunityNoticePanelProps = {}) {
+  const resolvedInitialInput = resolveInitialInput(initialInput);
+  const [subject, setSubject] = useState(resolvedInitialInput.subject);
+  const [type, setType] = useState<CommunityNoticeType>(resolvedInitialInput.type);
+  const [audience, setAudience] = useState<CommunityNoticeAudience>(resolvedInitialInput.audience);
+  const [tone, setTone] = useState<CommunityNoticeTone>(resolvedInitialInput.tone);
   const [editableSubject, setEditableSubject] = useState('');
   const [editableBody, setEditableBody] = useState('');
   const [copyError, setCopyError] = useState('');
@@ -139,100 +146,147 @@ export function CommunityNoticePanel() {
         </form>
       </section>
 
-      <section className="card p-6" aria-live="polite" aria-labelledby="notice-result-title">
-        <div className="flex items-center gap-3">
-          <span className="grid size-10 place-items-center rounded-2xl bg-emerald-50 text-emerald-700">
-            <FilePenLine aria-hidden="true" size={20} />
-          </span>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">
-              Borrador
-            </p>
-            <h2
-              id="notice-result-title"
-              className="font-display text-xl font-extrabold text-navy-950"
-            >
-              Comunicado generado
-            </h2>
-          </div>
-        </div>
+      <CommunityNoticeResult
+        copyError={copyError}
+        copySuccess={copySuccess}
+        editableBody={editableBody}
+        editableSubject={editableSubject}
+        hasEditableDraft={hasEditableDraft}
+        onCopy={handleCopy}
+        onDownloadPdf={handleDownloadPdf}
+        onEditableBodyChange={setEditableBody}
+        onEditableSubjectChange={setEditableSubject}
+        result={result}
+      />
+    </div>
+  );
+}
 
-        {!result && (
-          <p className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-            Indica el aviso que quieres preparar para ver el primer borrador.
+interface CommunityNoticeResultProps {
+  readonly copyError: string;
+  readonly copySuccess: string;
+  readonly editableBody: string;
+  readonly editableSubject: string;
+  readonly hasEditableDraft: boolean;
+  readonly onCopy: () => void;
+  readonly onDownloadPdf: () => void;
+  readonly onEditableBodyChange: (body: string) => void;
+  readonly onEditableSubjectChange: (subject: string) => void;
+  readonly result?: CommunityNoticeDraftResponse;
+}
+
+function CommunityNoticeResult(props: CommunityNoticeResultProps) {
+  return (
+    <section className="card p-6" aria-live="polite" aria-labelledby="notice-result-title">
+      <div className="flex items-center gap-3">
+        <span className="grid size-10 place-items-center rounded-2xl bg-emerald-50 text-emerald-700">
+          <FilePenLine aria-hidden="true" size={20} />
+        </span>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Borrador</p>
+          <h2
+            id="notice-result-title"
+            className="font-display text-xl font-extrabold text-navy-950"
+          >
+            Comunicado generado
+          </h2>
+        </div>
+      </div>
+
+      {!props.result && (
+        <p className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+          Indica el aviso que quieres preparar para ver el primer borrador.
+        </p>
+      )}
+
+      {props.result && <EditableCommunityNoticeResult {...props} result={props.result} />}
+    </section>
+  );
+}
+
+function EditableCommunityNoticeResult(
+  props: CommunityNoticeResultProps & { readonly result: CommunityNoticeDraftResponse },
+) {
+  return (
+    <div className="mt-6 space-y-4">
+      <div className="rounded-2xl bg-navy-950 p-5 text-white">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-sky-100">
+            <ClipboardCheck aria-hidden="true" size={14} />
+            {formatAiProviderMode(props.result.mode)}
+          </span>
+        </div>
+        <h3 className="mt-4 font-display text-2xl font-extrabold">{props.result.draft.subject}</h3>
+        <label
+          className="mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-sky-100"
+          htmlFor="editable-notice-subject"
+        >
+          Asunto editable
+        </label>
+        <input
+          className="mt-2 w-full rounded-2xl border border-white/15 bg-white p-4 text-sm leading-6 text-navy-950 shadow-inner outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+          id="editable-notice-subject"
+          onChange={(event) => props.onEditableSubjectChange(event.target.value)}
+          value={props.editableSubject}
+        />
+        <label
+          className="mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-sky-100"
+          htmlFor="editable-notice-body"
+        >
+          Cuerpo editable del comunicado
+        </label>
+        <textarea
+          className="mt-2 min-h-64 w-full rounded-2xl border border-white/15 bg-white p-4 text-sm leading-6 text-navy-950 shadow-inner outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+          id="editable-notice-body"
+          onChange={(event) => props.onEditableBodyChange(event.target.value)}
+          value={props.editableBody}
+        />
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            className="primary-button"
+            disabled={!props.hasEditableDraft}
+            onClick={props.onCopy}
+            type="button"
+          >
+            <ClipboardCopy aria-hidden="true" size={17} />
+            Copiar comunicado
+          </button>
+          <button
+            className="primary-button"
+            disabled={!props.hasEditableDraft}
+            onClick={props.onDownloadPdf}
+            type="button"
+          >
+            <Download aria-hidden="true" size={17} />
+            Descargar PDF
+          </button>
+        </div>
+        {props.copySuccess && (
+          <p className="mt-3 text-sm font-semibold text-emerald-100">{props.copySuccess}</p>
+        )}
+        {props.copyError && (
+          <p className="mt-3 text-sm font-semibold text-red-100" role="alert">
+            {props.copyError}
           </p>
         )}
-
-        {result && (
-          <div className="mt-6 space-y-4">
-            <div className="rounded-2xl bg-navy-950 p-5 text-white">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-sky-100">
-                  <ClipboardCheck aria-hidden="true" size={14} />
-                  {formatAiProviderMode(result.mode)}
-                </span>
-              </div>
-              <h3 className="mt-4 font-display text-2xl font-extrabold">{result.draft.subject}</h3>
-              <label
-                className="mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-sky-100"
-                htmlFor="editable-notice-subject"
-              >
-                Asunto editable
-              </label>
-              <input
-                className="mt-2 w-full rounded-2xl border border-white/15 bg-white p-4 text-sm leading-6 text-navy-950 shadow-inner outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
-                id="editable-notice-subject"
-                onChange={(event) => setEditableSubject(event.target.value)}
-                value={editableSubject}
-              />
-              <label
-                className="mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-sky-100"
-                htmlFor="editable-notice-body"
-              >
-                Cuerpo editable del comunicado
-              </label>
-              <textarea
-                className="mt-2 min-h-64 w-full rounded-2xl border border-white/15 bg-white p-4 text-sm leading-6 text-navy-950 shadow-inner outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
-                id="editable-notice-body"
-                onChange={(event) => setEditableBody(event.target.value)}
-                value={editableBody}
-              />
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button
-                  className="primary-button"
-                  disabled={!hasEditableDraft}
-                  onClick={handleCopy}
-                  type="button"
-                >
-                  <ClipboardCopy aria-hidden="true" size={17} />
-                  Copiar comunicado
-                </button>
-                <button
-                  className="primary-button"
-                  disabled={!hasEditableDraft}
-                  onClick={handleDownloadPdf}
-                  type="button"
-                >
-                  <Download aria-hidden="true" size={17} />
-                  Descargar PDF
-                </button>
-              </div>
-              {copySuccess && (
-                <p className="mt-3 text-sm font-semibold text-emerald-100">{copySuccess}</p>
-              )}
-              {copyError && (
-                <p className="mt-3 text-sm font-semibold text-red-100" role="alert">
-                  {copyError}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-      </section>
+      </div>
     </div>
   );
 }
 
 function formatClipboardText(subject: string, body: string): string {
   return [`Asunto: ${subject.trim()}`, '', body.trim()].join('\n');
+}
+
+function resolveInitialInput(
+  initialInput: CommunityNoticeDraftRequest | undefined,
+): CommunityNoticeDraftRequest {
+  return (
+    initialInput ?? {
+      subject: suggestedSubjects[0]!,
+      type: 'informativo',
+      audience: 'todos',
+      tone: 'formal',
+    }
+  );
 }

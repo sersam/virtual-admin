@@ -41,6 +41,24 @@ describe('CommunityNoticePanel', () => {
     expect(screen.getByText('Demo determinista')).toBeInTheDocument();
   });
 
+  it('usa valores iniciales recibidos desde chat', () => {
+    render(
+      <CommunityNoticePanel
+        initialInput={{
+          subject: 'Limpieza del garaje',
+          type: 'recordatorio',
+          audience: 'residentes',
+          tone: 'cercano',
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText('Asunto')).toHaveValue('Limpieza del garaje');
+    expect(screen.getByLabelText('Tipo')).toHaveValue('recordatorio');
+    expect(screen.getByLabelText('Audiencia')).toHaveValue('residentes');
+    expect(screen.getByLabelText('Tono')).toHaveValue('cercano');
+  });
+
   it('muestra el proveedor OpenAI cuando la API lo devuelve', async () => {
     const user = userEvent.setup();
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
