@@ -4,16 +4,21 @@ import type {
   MeetingAgendaItem,
 } from '@admin/contracts';
 import type { CommunityIncident } from '../../domain/incident/CommunityIncident.js';
+import type { CommunityMeeting } from '../../domain/meeting/CommunityMeeting.js';
 import type { PendingAgreement } from '../../domain/meetingAgenda/PendingAgreement.js';
 import type { IncidentRepository } from '../ports/IncidentRepository.js';
+import type { MeetingRepository } from '../ports/MeetingRepository.js';
 import type { PendingAgreementRepository } from '../ports/PendingAgreementRepository.js';
+import { presentMeeting } from './meetingPresenter.js';
 
 interface DraftMeetingAgendaDependencies {
   readonly incidentRepository: IncidentRepository;
+  readonly meetingRepository: MeetingRepository;
   readonly pendingAgreementRepository: PendingAgreementRepository;
 }
 
 interface DraftMeetingAgendaInput {
+  readonly meetingId?: string;
   readonly sessionId: string;
 }
 
@@ -31,10 +36,21 @@ const PRIORITY_WEIGHT: Record<IncidentPriority, number> = {
   baja: 1,
 };
 
+export class MeetingNotFoundError extends Error {
+  constructor() {
+    super('No se ha encontrado la junta seleccionada.');
+  }
+}
+
 export class DraftMeetingAgenda {
   constructor(private readonly dependencies: DraftMeetingAgendaDependencies) {}
 
   async execute(input: DraftMeetingAgendaInput): Promise<MeetingAgendaDraftResponse> {
+    const meeting = input.meetingId
+      ? await this.dependencies.meetingRepository.findBySession(input.sessionId, input.meetingId)
+      : (await this.dependencies.meetingRepository.listBySession(input.sessionId))[0];
+    if (!meeting) throw new MeetingNotFoundError();
+
     const [incidents, pendingAgreements] = await Promise.all([
       this.dependencies.incidentRepository.listBySession(input.sessionId),
       this.dependencies.pendingAgreementRepository.listBySession(input.sessionId),
@@ -48,13 +64,27 @@ export class DraftMeetingAgenda {
 
     return {
       draft: {
-        title: TITLE,
+        title: buildTitle(meeting),
         body: items.length > 0 ? buildBody(items) : EMPTY_BODY,
         items: items.map(presentTransportItem),
       },
+      meeting: presentMeeting(meeting),
       mode: 'deterministic-demo',
     };
   }
+}
+
+function buildTitle(meeting: CommunityMeeting): string {
+  return `${TITLE} · ${meeting.title} · ${formatMeetingDate(meeting.scheduledAt)}`;
+}
+
+function formatMeetingDate(date: Date): string {
+  return new Intl.DateTimeFormat('es-ES', {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'Europe/Madrid',
+    year: 'numeric',
+  }).format(date);
 }
 
 function presentIncidentItem(incident: CommunityIncident): PrioritizedAgendaItem {

@@ -1,7 +1,12 @@
 import { z } from 'zod';
 import { IncidentPrioritySchema } from './incidents.js';
+import { MeetingSchema } from './meetings.js';
 
-export const MeetingAgendaDraftRequestSchema = z.object({}).strict();
+export const MeetingAgendaDraftRequestSchema = z
+  .object({
+    meetingId: z.string().trim().min(1).max(80),
+  })
+  .strict();
 
 export const MeetingAgendaItemSourceTypeSchema = z.enum(['incident', 'pending-agreement']);
 
@@ -22,6 +27,7 @@ export const MeetingAgendaDraftSchema = z.object({
 
 export const MeetingAgendaDraftResponseSchema = z.object({
   draft: MeetingAgendaDraftSchema,
+  meeting: MeetingSchema,
   mode: z.literal('deterministic-demo'),
 });
 

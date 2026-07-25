@@ -1,6 +1,8 @@
 import type { CommunityIncident } from '../../domain/incident/CommunityIncident.js';
 import type { PendingAgreement } from '../../domain/meetingAgenda/PendingAgreement.js';
+import type { CommunityMeeting } from '../../domain/meeting/CommunityMeeting.js';
 import type { IncidentRepository } from '../ports/IncidentRepository.js';
+import type { MeetingRepository } from '../ports/MeetingRepository.js';
 import type { PendingAgreementRepository } from '../ports/PendingAgreementRepository.js';
 import { describe, expect, it } from 'vitest';
 import { DraftMeetingAgenda } from './DraftMeetingAgenda.js';
@@ -71,11 +73,14 @@ describe('DraftMeetingAgenda', () => {
           /* no-op */
         },
       },
+      meetingRepository: createMeetingRepository(),
     });
 
-    await expect(useCase.execute({ sessionId: 'session-a' })).resolves.toEqual({
+    await expect(
+      useCase.execute({ sessionId: 'session-a', meetingId: 'meeting-ordinary-2026-09-18' }),
+    ).resolves.toEqual({
       draft: {
-        title: 'Orden del día',
+        title: 'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
         body: [
           'Orden del día',
           '',
@@ -117,6 +122,12 @@ describe('DraftMeetingAgenda', () => {
           },
         ],
       },
+      meeting: {
+        id: 'meeting-ordinary-2026-09-18',
+        kind: 'ordinaria',
+        title: 'Junta ordinaria',
+        scheduledAt: '2026-09-18T17:00:00.000Z',
+      },
       mode: 'deterministic-demo',
     });
   });
@@ -136,16 +147,34 @@ describe('DraftMeetingAgenda', () => {
           /* no-op */
         },
       },
+      meetingRepository: createMeetingRepository(),
     });
 
-    await expect(useCase.execute({ sessionId: 'session-a' })).resolves.toEqual({
+    await expect(
+      useCase.execute({ sessionId: 'session-a', meetingId: 'meeting-ordinary-2026-09-18' }),
+    ).resolves.toEqual({
       draft: {
-        title: 'Orden del día',
+        title: 'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
         body: 'No hay asuntos pendientes para incluir en el orden del día.',
         items: [],
       },
+      meeting: expect.objectContaining({
+        id: 'meeting-ordinary-2026-09-18',
+      }),
       mode: 'deterministic-demo',
     });
+  });
+
+  it('falla si la junta no existe en la sesion', async () => {
+    const useCase = new DraftMeetingAgenda({
+      incidentRepository: createIncidentRepository([]),
+      pendingAgreementRepository: createPendingAgreementRepository([]),
+      meetingRepository: createMeetingRepository(),
+    });
+
+    await expect(
+      useCase.execute({ sessionId: 'session-a', meetingId: 'meeting-missing' }),
+    ).rejects.toThrow('No se ha encontrado la junta seleccionada.');
   });
 
   it('ignora incidencias resueltas al preparar el orden del día', async () => {
@@ -161,9 +190,13 @@ describe('DraftMeetingAgenda', () => {
         }),
       ]),
       pendingAgreementRepository: createPendingAgreementRepository([]),
+      meetingRepository: createMeetingRepository(),
     });
 
-    const response = await useCase.execute({ sessionId: 'session-a' });
+    const response = await useCase.execute({
+      sessionId: 'session-a',
+      meetingId: 'meeting-ordinary-2026-09-18',
+    });
 
     expect(response.draft.items).toEqual([
       expect.objectContaining({
@@ -186,9 +219,13 @@ describe('DraftMeetingAgenda', () => {
         ),
       ),
       pendingAgreementRepository: createPendingAgreementRepository([]),
+      meetingRepository: createMeetingRepository(),
     });
 
-    const response = await useCase.execute({ sessionId: 'session-a' });
+    const response = await useCase.execute({
+      sessionId: 'session-a',
+      meetingId: 'meeting-ordinary-2026-09-18',
+    });
 
     expect(response.draft.items).toHaveLength(100);
     expect(response.draft.items.at(-1)).toEqual(expect.objectContaining({ sourceId: 'inc-100' }));
@@ -205,9 +242,13 @@ describe('DraftMeetingAgenda', () => {
       pendingAgreementRepository: createPendingAgreementRepository([
         createPendingAgreement({ id: 'pending-a', createdAt: sharedCreatedAt }),
       ]),
+      meetingRepository: createMeetingRepository(),
     });
 
-    const response = await useCase.execute({ sessionId: 'session-a' });
+    const response = await useCase.execute({
+      sessionId: 'session-a',
+      meetingId: 'meeting-ordinary-2026-09-18',
+    });
 
     expect(response.draft.items.map((item) => item.sourceId)).toEqual([
       'inc-a',
@@ -242,9 +283,13 @@ describe('DraftMeetingAgenda', () => {
           sessionId: 'session-b',
         }),
       ]),
+      meetingRepository: createMeetingRepository(),
     });
 
-    const response = await useCase.execute({ sessionId: 'session-a' });
+    const response = await useCase.execute({
+      sessionId: 'session-a',
+      meetingId: 'meeting-ordinary-2026-09-18',
+    });
 
     expect(response.draft.items.map((item) => item.sourceId)).toEqual([
       'inc-session-a',
@@ -263,11 +308,12 @@ describe('DraftMeetingAgenda', () => {
         },
       },
       pendingAgreementRepository: createPendingAgreementRepository([]),
+      meetingRepository: createMeetingRepository(),
     });
 
-    await expect(useCase.execute({ sessionId: 'session-a' })).rejects.toThrow(
-      'incidents unavailable',
-    );
+    await expect(
+      useCase.execute({ sessionId: 'session-a', meetingId: 'meeting-ordinary-2026-09-18' }),
+    ).rejects.toThrow('incidents unavailable');
   });
 
   it('propaga errores al listar acuerdos pendientes', async () => {
@@ -279,11 +325,12 @@ describe('DraftMeetingAgenda', () => {
           throw new Error('pending agreements unavailable');
         },
       },
+      meetingRepository: createMeetingRepository(),
     });
 
-    await expect(useCase.execute({ sessionId: 'session-a' })).rejects.toThrow(
-      'pending agreements unavailable',
-    );
+    await expect(
+      useCase.execute({ sessionId: 'session-a', meetingId: 'meeting-ordinary-2026-09-18' }),
+    ).rejects.toThrow('pending agreements unavailable');
   });
 });
 
@@ -307,6 +354,25 @@ function createPendingAgreementRepository(
     save: async () => {
       /* no-op */
     },
+  };
+}
+
+function createMeetingRepository(
+  meetings: readonly CommunityMeeting[] = [
+    {
+      id: 'meeting-ordinary-2026-09-18',
+      sessionId: 'session-a',
+      kind: 'ordinaria',
+      title: 'Junta ordinaria',
+      scheduledAt: new Date('2026-09-18T17:00:00.000Z'),
+    },
+  ],
+): MeetingRepository {
+  return {
+    findBySession: async (sessionId, meetingId) =>
+      meetings.find((meeting) => meeting.sessionId === sessionId && meeting.id === meetingId),
+    listBySession: async (sessionId) =>
+      meetings.filter((meeting) => meeting.sessionId === sessionId),
   };
 }
 
