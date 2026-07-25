@@ -3,6 +3,7 @@ import { classifyIncident } from '@admin/incidents';
 import type { ChatAgent, ChatMessageResponse } from '@admin/contracts';
 import { createLocalDocumentAnswer } from './localDocumentAnswer';
 import { createLocalCommunityNoticeDraft } from './localCommunityNoticeDraft';
+import { createCommunityNoticeHandoffState } from '../model/communityNoticeHandoff';
 import { createLocalMeetingMinutesDraft } from './localMeetingMinutesDraft';
 
 const intentKeywords: ReadonlyArray<{
@@ -54,7 +55,9 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
     };
   }
   if (agent === 'comunicados') {
-    const response = createLocalCommunityNoticeDraft(message);
+    const response = createLocalCommunityNoticeDraft(
+      createCommunityNoticeHandoffState(message).communityNoticeDraftInput,
+    );
     return {
       agent,
       answer: [`Asunto: ${response.draft.subject}`, '', response.draft.body].join('\n'),
