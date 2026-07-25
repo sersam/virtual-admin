@@ -120,8 +120,22 @@ function toSentenceCase(text: string): string {
 }
 
 function trimTopic(text: string): string {
-  return text
-    .trim()
-    .replace(/[.!?¡¿]+$/u, '')
-    .trim();
+  const trimmedText = text.trim();
+  let endIndex = trimmedText.length;
+
+  while (endIndex > 0 && isTopicPunctuation(trimmedText[endIndex - 1] ?? '')) {
+    endIndex -= 1;
+  }
+
+  return trimmedText.slice(0, endIndex).trimEnd();
+}
+
+function isTopicPunctuation(character: string): boolean {
+  return (
+    character === '.' ||
+    character === '!' ||
+    character === '?' ||
+    character === '¡' ||
+    character === '¿'
+  );
 }
