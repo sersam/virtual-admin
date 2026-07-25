@@ -190,7 +190,7 @@ describe('IncidentsPanel', () => {
     await user.click(within(incident).getByRole('button', { name: 'Copiar comunicado sugerido' }));
 
     expect(writeText).toHaveBeenCalledWith(waterIncident.suggestedNotice);
-    expect(within(incident).getByText('Comunicado copiado.')).toBeInTheDocument();
+    expect(within(incident).getByRole('status')).toHaveTextContent('Comunicado copiado.');
   });
 
   it('muestra un error accesible si no puede copiar el comunicado sugerido', async () => {
@@ -198,6 +198,26 @@ describe('IncidentsPanel', () => {
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+    });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ incidents: [waterIncident] }), { status: 200 }),
+    );
+
+    render(<IncidentsPanel />);
+    const incident = await screen.findByRole('article', { name: /fuga de agua urgente/i });
+
+    await user.click(within(incident).getByRole('button', { name: 'Copiar comunicado sugerido' }));
+
+    expect(within(incident).getByRole('alert')).toHaveTextContent(
+      'No se pudo copiar el comunicado.',
+    );
+  });
+
+  it('muestra un error accesible si no existe portapapeles disponible', async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: undefined,
     });
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ incidents: [waterIncident] }), { status: 200 }),

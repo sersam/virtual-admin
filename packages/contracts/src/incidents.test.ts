@@ -205,6 +205,20 @@ describe('incident contracts', () => {
       }).suggestedNotice,
     ).toBe(suggestedNotice);
 
+    expect(
+      IncidentSchema.parse({
+        id: 'inc-0001',
+        description: 'Hay una fuga de agua urgente en el garaje.',
+        type: 'agua',
+        priority: 'urgente',
+        suggestedResponsible: 'Fontanería',
+        suggestedNotice: 'a'.repeat(2_000),
+        createdAt: '2026-06-27T10:00:00.000Z',
+        status: 'pendiente',
+        resolvedAt: null,
+      }).suggestedNotice,
+    ).toBe('a'.repeat(2_000));
+
     expect(() =>
       IncidentSchema.parse({
         id: 'inc-0001',

@@ -313,16 +313,18 @@ function createPendingAgreementRepository(
 type PendingIncidentOverrides = Partial<Omit<CommunityIncident, 'resolvedAt' | 'status'>>;
 
 function createIncident(overrides: PendingIncidentOverrides = {}): CommunityIncident {
+  const description = overrides.description ?? 'Incidencia pendiente';
+
   return {
     id: 'inc-1',
     sessionId: 'session-a',
-    description: 'Incidencia pendiente',
     type: 'otro',
     priority: 'media',
     suggestedResponsible: 'Administrador',
-    suggestedNotice: suggestedNoticeFor('Incidencia pendiente'),
     createdAt: new Date('2026-06-23T10:00:00.000Z'),
     ...overrides,
+    description,
+    suggestedNotice: overrides.suggestedNotice ?? suggestedNoticeFor(description),
     status: 'pendiente',
     resolvedAt: null,
   };
@@ -331,16 +333,18 @@ function createIncident(overrides: PendingIncidentOverrides = {}): CommunityInci
 function createResolvedIncident(
   overrides: Partial<Omit<CommunityIncident, 'resolvedAt' | 'status'>> = {},
 ): CommunityIncident {
+  const description = overrides.description ?? 'Incidencia resuelta';
+
   return {
     id: 'inc-resolved',
     sessionId: 'session-a',
-    description: 'Incidencia resuelta',
     type: 'otro',
     priority: 'media',
     suggestedResponsible: 'Administrador',
-    suggestedNotice: suggestedNoticeFor('Incidencia resuelta'),
     createdAt: new Date('2026-06-23T10:00:00.000Z'),
     ...overrides,
+    description,
+    suggestedNotice: overrides.suggestedNotice ?? suggestedNoticeFor(description),
     status: 'resuelta',
     resolvedAt: new Date('2026-06-24T10:00:00.000Z'),
   };
