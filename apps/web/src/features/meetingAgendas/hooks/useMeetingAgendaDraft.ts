@@ -14,13 +14,13 @@ export function useMeetingAgendaDraft() {
   const [state, setState] = useState<MeetingAgendaDraftState>({ status: 'idle' });
   const latestRequestId = useRef(0);
 
-  async function generate(): Promise<void> {
+  async function generate(meetingId: string): Promise<void> {
     const requestId = latestRequestId.current + 1;
     latestRequestId.current = requestId;
     setState({ status: 'loading' });
 
     try {
-      const result = await draftMeetingAgenda();
+      const result = await draftMeetingAgenda(meetingId);
       if (requestId !== latestRequestId.current) return;
       setState({ result, status: 'ready' });
     } catch (error) {
@@ -33,5 +33,10 @@ export function useMeetingAgendaDraft() {
     }
   }
 
-  return { ...state, generate };
+  function reset(): void {
+    latestRequestId.current += 1;
+    setState({ status: 'idle' });
+  }
+
+  return { ...state, generate, reset };
 }

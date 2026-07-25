@@ -8,13 +8,17 @@ describe('useMeetingAgendaDraft', () => {
   });
 
   it('publica el borrador generado por la API', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(createAgendaResponse('Orden del día'));
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      createAgendaResponse('Orden del día · Junta ordinaria · 18 de septiembre de 2026'),
+    );
     const { result } = renderHook(() => useMeetingAgendaDraft());
 
-    await result.current.generate();
+    await result.current.generate('meeting-ordinary-2026-09-18');
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
-    expect(result.current.result?.draft.title).toBe('Orden del día');
+    expect(result.current.result?.draft.title).toBe(
+      'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
+    );
   });
 
   it('muestra error si la API no está disponible', async () => {
@@ -22,7 +26,7 @@ describe('useMeetingAgendaDraft', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const { result } = renderHook(() => useMeetingAgendaDraft());
 
-    await result.current.generate();
+    await result.current.generate('meeting-ordinary-2026-09-18');
 
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect(result.current.error).toBe('No se pudo preparar el orden del día.');
@@ -36,8 +40,8 @@ describe('useMeetingAgendaDraft', () => {
       .mockReturnValueOnce(secondRequest.promise);
     const { result } = renderHook(() => useMeetingAgendaDraft());
 
-    void result.current.generate();
-    void result.current.generate();
+    void result.current.generate('meeting-ordinary-2026-09-18');
+    void result.current.generate('meeting-extraordinary-2026-10-15');
 
     await act(async () => {
       secondRequest.resolve(createAgendaResponse('Orden nuevo'));
@@ -53,6 +57,19 @@ describe('useMeetingAgendaDraft', () => {
     });
 
     expect(result.current.result?.draft.title).toBe('Orden nuevo');
+  });
+
+  it('permite limpiar el borrador al cambiar de junta', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(createAgendaResponse('Orden inicial'));
+    const { result } = renderHook(() => useMeetingAgendaDraft());
+
+    await result.current.generate('meeting-ordinary-2026-09-18');
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    act(() => result.current.reset());
+
+    expect(result.current.status).toBe('idle');
+    expect(result.current.result).toBeUndefined();
   });
 });
 
@@ -71,6 +88,12 @@ function createAgendaResponse(title: string): Response {
             assignee: 'Ana',
           },
         ],
+      },
+      meeting: {
+        id: 'meeting-ordinary-2026-09-18',
+        kind: 'ordinaria',
+        title: 'Junta ordinaria',
+        scheduledAt: '2026-09-18T17:00:00.000Z',
       },
       mode: 'deterministic-demo',
     }),

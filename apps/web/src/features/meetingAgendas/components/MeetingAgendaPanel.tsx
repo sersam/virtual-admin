@@ -1,7 +1,8 @@
-import type { MeetingAgendaItem } from '@admin/contracts';
+import type { Meeting, MeetingAgendaItem } from '@admin/contracts';
 import { CalendarCheck, ClipboardList, FilePenLine, SendHorizontal } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { type ChangeEvent, useEffect, useState } from 'react';
 import { useMeetingAgendaDraft } from '../hooks/useMeetingAgendaDraft';
+import { useMeetings } from '../hooks/useMeetings';
 
 const sourceLabels: Record<MeetingAgendaItem['sourceType'], string> = {
   incident: 'Incidencia',
@@ -17,14 +18,36 @@ const priorityLabels: Record<MeetingAgendaItem['priority'], string> = {
 
 export function MeetingAgendaPanel() {
   const [editableDraftBody, setEditableDraftBody] = useState('');
-  const { error, generate, result, status } = useMeetingAgendaDraft();
+  const [selectedMeetingId, setSelectedMeetingId] = useState('');
+  const { error, generate, reset, result, status } = useMeetingAgendaDraft();
+  const { error: meetingsError, meetings, status: meetingsStatus } = useMeetings();
   const loading = status === 'loading';
+  const selectedMeeting = meetings.find((meeting) => meeting.id === selectedMeetingId);
+  const canGenerate = meetingsStatus === 'ready' && Boolean(selectedMeetingId) && !loading;
 
   useEffect(() => {
     if (result) {
       setEditableDraftBody(result.draft.body);
     }
   }, [result]);
+
+  useEffect(() => {
+    if (selectedMeetingId && meetings.some((meeting) => meeting.id === selectedMeetingId)) return;
+
+    setSelectedMeetingId(meetings[0]?.id ?? '');
+  }, [meetings, selectedMeetingId]);
+
+  function handleMeetingChange(event: ChangeEvent<HTMLSelectElement>): void {
+    setSelectedMeetingId(event.target.value);
+    setEditableDraftBody('');
+    reset();
+  }
+
+  function handleGenerate(): void {
+    if (!selectedMeetingId) return;
+
+    void generate(selectedMeetingId);
+  }
 
   return (
     <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
@@ -44,7 +67,20 @@ export function MeetingAgendaPanel() {
             Se usará la información pendiente de la sesión demo: incidencias registradas y tareas
             detectadas en actas.
           </p>
-          <button className="primary-button" disabled={loading} onClick={generate} type="button">
+          <MeetingSelector
+            error={meetingsError}
+            meetings={meetings}
+            onChange={handleMeetingChange}
+            selectedMeeting={selectedMeeting}
+            selectedMeetingId={selectedMeetingId}
+            status={meetingsStatus}
+          />
+          <button
+            className="primary-button"
+            disabled={!canGenerate}
+            onClick={handleGenerate}
+            type="button"
+          >
             <SendHorizontal aria-hidden="true" size={17} />
             {loading ? 'Preparando...' : 'Preparar orden del día'}
           </button>
@@ -119,6 +155,61 @@ export function MeetingAgendaPanel() {
   );
 }
 
+function MeetingSelector({
+  error,
+  meetings,
+  onChange,
+  selectedMeeting,
+  selectedMeetingId,
+  status,
+}: {
+  readonly error?: string;
+  readonly meetings: readonly Meeting[];
+  readonly onChange: (event: ChangeEvent<HTMLSelectElement>) => void;
+  readonly selectedMeeting?: Meeting;
+  readonly selectedMeetingId: string;
+  readonly status: 'loading' | 'ready' | 'error';
+}) {
+  return (
+    <>
+      <div className="space-y-2">
+        <label className="text-sm font-extrabold text-navy-950" htmlFor="meeting-selector">
+          Junta demo
+        </label>
+        <select
+          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-navy-950 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-50 disabled:text-slate-400"
+          disabled={status !== 'ready' || meetings.length === 0}
+          id="meeting-selector"
+          onChange={onChange}
+          value={selectedMeetingId}
+        >
+          {meetings.map((meeting) => (
+            <option key={meeting.id} value={meeting.id}>
+              {formatMeetingOption(meeting)}
+            </option>
+          ))}
+        </select>
+      </div>
+      {status === 'loading' && (
+        <p className="text-sm font-semibold text-slate-600">Cargando juntas demo...</p>
+      )}
+      {status === 'ready' && meetings.length === 0 && (
+        <p className="text-sm font-semibold text-slate-600">No hay juntas demo disponibles.</p>
+      )}
+      {error && (
+        <p className="text-sm font-semibold text-red-700" role="alert">
+          {error}
+        </p>
+      )}
+      {selectedMeeting && (
+        <p className="rounded-2xl bg-sky-50 p-4 text-sm font-semibold text-sky-900">
+          Seleccionada: {formatMeetingOption(selectedMeeting)}
+        </p>
+      )}
+    </>
+  );
+}
+
 function AgendaInputItem({ item }: { readonly item: MeetingAgendaItem }) {
   return (
     <li className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
@@ -137,4 +228,17 @@ function AgendaInputItem({ item }: { readonly item: MeetingAgendaItem }) {
       </p>
     </li>
   );
+}
+
+function formatMeetingOption(meeting: Meeting): string {
+  return `${meeting.title} · ${formatMeetingDate(meeting.scheduledAt)}`;
+}
+
+function formatMeetingDate(scheduledAt: string): string {
+  return new Intl.DateTimeFormat('es-ES', {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'Europe/Madrid',
+    year: 'numeric',
+  }).format(new Date(scheduledAt));
 }

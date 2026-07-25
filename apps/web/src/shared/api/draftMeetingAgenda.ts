@@ -6,9 +6,10 @@ import {
 import { apiBaseUrl } from './apiConfig';
 
 export async function draftMeetingAgenda(
+  meetingId: string,
   signal?: AbortSignal,
 ): Promise<MeetingAgendaDraftResponse> {
-  const payload = MeetingAgendaDraftRequestSchema.parse({});
+  const payload = MeetingAgendaDraftRequestSchema.parse({ meetingId });
   const response = await fetch(`${apiBaseUrl}/api/meeting-agendas/draft`, {
     body: JSON.stringify(payload),
     credentials: 'include',
