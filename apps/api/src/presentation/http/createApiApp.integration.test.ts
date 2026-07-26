@@ -585,10 +585,16 @@ describe('createApiApp', () => {
   });
 
   it('crea y lista propuestas vecinales de la sesion de mas reciente a mas antigua', async () => {
-    const agent = request.agent(buildApp(6));
+    let currentDate = new Date('2026-06-23T08:00:00.000Z');
+    const agent = request.agent(
+      buildApp(6, {
+        clock: { now: () => currentDate },
+      }),
+    );
     const first = await agent.post('/api/proposals').send({
       description: 'Instalar aparcabicis en el patio interior.',
     });
+    currentDate = new Date('2026-06-23T08:00:30.000Z');
     const second = await agent.post('/api/proposals').send({
       description: 'Crear una zona de compostaje comunitario.',
     });
@@ -603,8 +609,9 @@ describe('createApiApp', () => {
       },
     });
     expect(second.status).toBe(201);
+    expect(second.body.proposal.createdAt).toBe('2026-06-23T08:00:30.000Z');
     expect(list.status).toBe(200);
-    expect(list.body.proposals).toEqual([first.body.proposal, second.body.proposal]);
+    expect(list.body.proposals).toEqual([second.body.proposal, first.body.proposal]);
     expect(list.headers['set-cookie']?.[0]).toContain('va_session=');
   });
 
@@ -612,10 +619,10 @@ describe('createApiApp', () => {
     const app = buildApp(6);
     const firstAgent = request.agent(app);
     const secondAgent = request.agent(app);
-    await firstAgent.post('/api/proposals').send({
+    const first = await firstAgent.post('/api/proposals').send({
       description: 'Instalar aparcabicis en el patio interior.',
     });
-    await firstAgent.post('/api/proposals').send({
+    const duplicate = await firstAgent.post('/api/proposals').send({
       description: 'Instalar aparcabicis en el patio interior.',
     });
     await secondAgent.post('/api/proposals').send({
@@ -625,10 +632,7 @@ describe('createApiApp', () => {
     const firstList = await firstAgent.get('/api/proposals');
     const secondList = await secondAgent.get('/api/proposals');
 
-    expect(firstList.body.proposals).toHaveLength(2);
-    expect(firstList.body.proposals[0].description).toBe(
-      'Instalar aparcabicis en el patio interior.',
-    );
+    expect(firstList.body.proposals).toEqual([first.body.proposal, duplicate.body.proposal]);
     expect(firstList.body.proposals[0].id).not.toBe(firstList.body.proposals[1].id);
     expect(secondList.body.proposals).toEqual([
       expect.objectContaining({
