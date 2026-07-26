@@ -26,6 +26,14 @@ describe('listMeetings api', () => {
 
     await expect(listMeetings()).rejects.toThrow('No se pudieron cargar las juntas (HTTP 503).');
   });
+
+  it('rechaza respuestas exitosas que no cumplen el contrato', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ meetings: [{ id: '' }] }), { status: 200 }),
+    );
+
+    await expect(listMeetings()).rejects.toThrow();
+  });
 });
 
 function validMeetingsResponse(): Response {

@@ -19,6 +19,13 @@ export class InMemoryPendingAgreementRepository implements PendingAgreementRepos
 
     this.agreements.set(pendingAgreement.sessionId, [...current, pendingAgreement]);
   }
+
+  async saveIfAbsent(pendingAgreement: PendingAgreement): Promise<void> {
+    const current = this.agreements.get(pendingAgreement.sessionId) ?? [];
+    if (current.some((agreement) => agreement.id === pendingAgreement.id)) return;
+
+    this.agreements.set(pendingAgreement.sessionId, [...current, pendingAgreement]);
+  }
 }
 
 function createPendingAgreementSignature(agreement: PendingAgreement): string {

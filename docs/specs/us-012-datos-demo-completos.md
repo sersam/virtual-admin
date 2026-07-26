@@ -6,11 +6,11 @@ Como evaluador, quiero encontrar una comunidad demo completa desde el primer acc
 
 ## Criterios de aceptacion
 
-- El corpus documental incluye presupuesto comunitario de 2026 y dos comunicados historicos.
+- El corpus documental incluye presupuesto comunitario de 2026 y dos comunicados históricos.
 - Los nuevos documentos estan enlazados a PDFs reales servidos por la aplicacion.
-- La home muestra 4 incidencias abiertas y ese contador coincide con el estado inicial de la sesion.
-- Cada sesion demo se inicializa con 4 incidencias abiertas y 2 acuerdos pendientes.
-- La inicializacion es idempotente por sesion: repetirla no duplica datos ni elimina datos creados por el usuario.
+- La home muestra 4 incidencias abiertas y ese contador coincide con el estado inicial de la sesión.
+- Cada sesión demo se inicializa con 4 incidencias abiertas y 2 acuerdos pendientes.
+- La inicialización es idempotente por sesión: repetirla no duplica datos ni elimina datos creados por el usuario.
 - Existen 2 juntas demo seleccionables para preparar el orden del dia.
 - El borrador de orden del dia se genera usando la junta seleccionada y muestra su tipo y fecha.
 
@@ -20,7 +20,7 @@ Documentos nuevos:
 
 - Presupuesto comunitario 2026: cuotas ordinarias por 108.000 euros, gastos previstos por 96.000 euros y reserva por 12.000 euros.
 - Comunicado mantenimiento piscina junio 2026: cierre el 16 de junio de 2026 entre las 08:00 y las 14:00.
-- Comunicado revision garaje julio 2026: revision electrica el 22 de julio de 2026 entre las 09:00 y las 12:00.
+- Comunicado revisión garaje julio 2026: revisión eléctrica el 22 de julio de 2026 entre las 09:00 y las 12:00.
 
 Incidencias iniciales:
 
@@ -43,14 +43,14 @@ Juntas demo:
 
 - `MeetingAgendaDraftRequest` recibe `meetingId`.
 - `MeetingAgendaDraftResponse` incluye la junta usada para generar el borrador.
-- Se expone `GET /api/meetings` para listar las juntas disponibles de la sesion.
+- Se expone `GET /api/meetings` para listar las juntas disponibles de la sesión.
 - Todos los DTOs se validan mediante Zod.
 - Los tipos documentales aceptan `presupuesto` y `comunicado`.
 
 ## Casos de error
 
 - Si `meetingId` no cumple el contrato, la API responde `400 VALIDATION_ERROR`.
-- Si la junta no existe para la sesion actual, la API responde `404 MEETING_NOT_FOUND`.
+- Si la junta no existe para la sesión actual, la API responde `404 MEETING_NOT_FOUND`.
 - Si no hay juntas disponibles, la interfaz muestra un estado vacio y no permite generar el borrador.
 
 ## Estrategia TDD

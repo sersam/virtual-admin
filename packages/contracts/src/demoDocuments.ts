@@ -53,7 +53,7 @@ const demoDocumentMetadata = {
     '/documents/comunicado-mantenimiento-piscina-junio-2026.pdf',
   ),
   garageInspectionNotice: defineMetadata(
-    'Comunicado revision garaje julio 2026',
+    'Comunicado revisión garaje julio 2026',
     'comunicado',
     '/documents/comunicado-revision-garaje-julio-2026.pdf',
   ),
@@ -102,19 +102,19 @@ export const demoCommunityDocuments: readonly DemoCommunityDocument[] = [
     'presupuesto-2026-resumen',
     'communityBudget2026',
     'Resumen presupuestario',
-    'El presupuesto comunitario 2026 preve cuotas ordinarias por 108.000 euros, gastos previstos por 96.000 euros y una reserva anual de 12.000 euros para imprevistos y mantenimiento preventivo.',
+    'El presupuesto comunitario 2026 prevé cuotas ordinarias por 108.000 euros, gastos previstos por 96.000 euros y una reserva anual de 12.000 euros para imprevistos y mantenimiento preventivo.',
   ),
   defineDemoDocument(
     'comunicado-piscina-junio-2026',
     'poolMaintenanceNotice',
     'Mantenimiento de piscina',
-    'La piscina comunitaria permanecera cerrada el 16 de junio de 2026 entre las 08:00 y las 14:00 por trabajos de mantenimiento preventivo, limpieza tecnica y revision de depuradora.',
+    'La piscina comunitaria permanecerá cerrada el 16 de junio de 2026 entre las 08:00 y las 14:00 por trabajos de mantenimiento preventivo, limpieza técnica y revisión de depuradora.',
   ),
   defineDemoDocument(
     'comunicado-garaje-julio-2026',
     'garageInspectionNotice',
-    'Revision electrica del garaje',
-    'El garaje comunitario tendra una revision electrica el 22 de julio de 2026 entre las 09:00 y las 12:00. Se solicita dejar libres los accesos a cuartos tecnicos y plazas de maniobra.',
+    'Revisión eléctrica del garaje',
+    'El garaje comunitario tendrá una revisión eléctrica el 22 de julio de 2026 entre las 09:00 y las 12:00. Se solicita dejar libres los accesos a cuartos técnicos y plazas de maniobra.',
   ),
 ];
 

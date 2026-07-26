@@ -26,6 +26,12 @@ describe('meeting agenda contracts', () => {
     expect(() => MeetingAgendaDraftRequestSchema.parse({})).toThrow();
   });
 
+  it('rechaza identificadores de junta vacíos, en blanco o demasiado largos', () => {
+    expect(() => MeetingAgendaDraftRequestSchema.parse({ meetingId: '' })).toThrow();
+    expect(() => MeetingAgendaDraftRequestSchema.parse({ meetingId: '   ' })).toThrow();
+    expect(() => MeetingAgendaDraftRequestSchema.parse({ meetingId: 'a'.repeat(81) })).toThrow();
+  });
+
   it('valida un borrador trazable con incidencias y acuerdos pendientes', () => {
     const response = MeetingAgendaDraftResponseSchema.parse({
       draft: {
@@ -58,6 +64,12 @@ describe('meeting agenda contracts', () => {
     });
 
     expect(response.draft.items).toHaveLength(2);
+    expect(response.meeting).toEqual({
+      id: 'meeting-ordinary-2026-09-18',
+      kind: 'ordinaria',
+      title: 'Junta ordinaria',
+      scheduledAt: '2026-09-18T17:00:00.000Z',
+    });
   });
 
   it('rechaza modos de respuesta no soportados', () => {

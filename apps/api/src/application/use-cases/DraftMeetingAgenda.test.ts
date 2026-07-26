@@ -51,6 +51,9 @@ describe('DraftMeetingAgenda', () => {
         save: async () => {
           /* no-op */
         },
+        saveIfAbsent: async () => {
+          /* no-op */
+        },
       },
       pendingAgreementRepository: {
         listBySession: async () => [
@@ -70,6 +73,9 @@ describe('DraftMeetingAgenda', () => {
           },
         ],
         save: async () => {
+          /* no-op */
+        },
+        saveIfAbsent: async () => {
           /* no-op */
         },
       },
@@ -140,10 +146,16 @@ describe('DraftMeetingAgenda', () => {
         save: async () => {
           /* no-op */
         },
+        saveIfAbsent: async () => {
+          /* no-op */
+        },
       },
       pendingAgreementRepository: {
         listBySession: async () => [],
         save: async () => {
+          /* no-op */
+        },
+        saveIfAbsent: async () => {
           /* no-op */
         },
       },
@@ -342,6 +354,9 @@ function createIncidentRepository(incidents: readonly CommunityIncident[]): Inci
     save: async () => {
       /* no-op */
     },
+    saveIfAbsent: async () => {
+      /* no-op */
+    },
   };
 }
 
@@ -352,6 +367,9 @@ function createPendingAgreementRepository(
     listBySession: async (sessionId) =>
       agreements.filter((agreement) => agreement.sessionId === sessionId),
     save: async () => {
+      /* no-op */
+    },
+    saveIfAbsent: async () => {
       /* no-op */
     },
   };

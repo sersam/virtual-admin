@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import type { IncidentListFilters, IncidentRepository } from '../ports/IncidentRepository.js';
+import type { PendingAgreementRepository } from '../ports/PendingAgreementRepository.js';
+import type { CommunityIncident } from '../../domain/incident/CommunityIncident.js';
+import type { PendingAgreement } from '../../domain/meetingAgenda/PendingAgreement.js';
 import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemoryIncidentRepository.js';
 import { InMemoryPendingAgreementRepository } from '../../infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
 import { InitializeDemoSessionData } from './InitializeDemoSessionData.js';
@@ -26,9 +30,9 @@ describe('InitializeDemoSessionData', () => {
     ]);
   });
 
-  it('es idempotente y conserva datos creados por el usuario', async () => {
-    const incidentRepository = new InMemoryIncidentRepository();
-    const pendingAgreementRepository = new InMemoryPendingAgreementRepository();
+  it('usa inserciones idempotentes por contrato y conserva datos creados por el usuario', async () => {
+    const incidentRepository = new RecordingIncidentRepository();
+    const pendingAgreementRepository = new RecordingPendingAgreementRepository();
     const useCase = new InitializeDemoSessionData({
       incidentRepository,
       pendingAgreementRepository,
@@ -58,6 +62,8 @@ describe('InitializeDemoSessionData', () => {
 
     await expect(incidentRepository.listBySession('session-a')).resolves.toHaveLength(5);
     await expect(pendingAgreementRepository.listBySession('session-a')).resolves.toHaveLength(3);
+    expect(incidentRepository.saveCalls).toHaveLength(1);
+    expect(pendingAgreementRepository.saveCalls).toHaveLength(1);
   });
 
   it('mantiene aislados los datos entre sesiones', async () => {
@@ -77,3 +83,59 @@ describe('InitializeDemoSessionData', () => {
     await expect(pendingAgreementRepository.listBySession('session-b')).resolves.toHaveLength(2);
   });
 });
+
+class RecordingIncidentRepository implements IncidentRepository {
+  readonly saveCalls: CommunityIncident[] = [];
+  private readonly incidents: CommunityIncident[] = [];
+  private readonly idempotentKeys = new Set<string>();
+
+  async listBySession(
+    sessionId: string,
+    filters: IncidentListFilters = {},
+  ): Promise<CommunityIncident[]> {
+    return this.incidents.filter(
+      (incident) =>
+        incident.sessionId === sessionId && (!filters.type || incident.type === filters.type),
+    );
+  }
+
+  async resolve(): Promise<CommunityIncident | undefined> {
+    return undefined;
+  }
+
+  async save(incident: CommunityIncident): Promise<void> {
+    this.saveCalls.push(incident);
+    this.incidents.push(incident);
+  }
+
+  async saveIfAbsent(incident: CommunityIncident): Promise<void> {
+    const key = `${incident.sessionId}:${incident.id}`;
+    if (this.idempotentKeys.has(key)) return;
+
+    this.idempotentKeys.add(key);
+    this.incidents.push(incident);
+  }
+}
+
+class RecordingPendingAgreementRepository implements PendingAgreementRepository {
+  readonly saveCalls: PendingAgreement[] = [];
+  private readonly agreements: PendingAgreement[] = [];
+  private readonly idempotentKeys = new Set<string>();
+
+  async listBySession(sessionId: string): Promise<PendingAgreement[]> {
+    return this.agreements.filter((agreement) => agreement.sessionId === sessionId);
+  }
+
+  async save(pendingAgreement: PendingAgreement): Promise<void> {
+    this.saveCalls.push(pendingAgreement);
+    this.agreements.push(pendingAgreement);
+  }
+
+  async saveIfAbsent(pendingAgreement: PendingAgreement): Promise<void> {
+    const key = `${pendingAgreement.sessionId}:${pendingAgreement.id}`;
+    if (this.idempotentKeys.has(key)) return;
+
+    this.idempotentKeys.add(key);
+    this.agreements.push(pendingAgreement);
+  }
+}

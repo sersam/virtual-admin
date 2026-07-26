@@ -30,6 +30,14 @@ describe('InMemoryMeetingRepository', () => {
         sessionId: 'session-a',
       }),
     );
+    await expect(
+      repository.findBySession('session-b', 'meeting-ordinary-2026-09-18'),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        id: 'meeting-ordinary-2026-09-18',
+        sessionId: 'session-b',
+      }),
+    );
     await expect(repository.findBySession('session-a', 'meeting-missing')).resolves.toBeUndefined();
   });
 });

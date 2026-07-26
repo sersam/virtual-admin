@@ -16,7 +16,7 @@ describe('demoCommunityDocuments', () => {
     });
   });
 
-  it('incluye presupuesto y comunicados historicos enlazados a PDFs reales', () => {
+  it('incluye presupuesto y comunicados históricos enlazados a PDFs reales', () => {
     expect(demoCommunityDocuments).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -34,7 +34,7 @@ describe('demoCommunityDocuments', () => {
         expect.objectContaining({
           documentUrl: '/documents/comunicado-revision-garaje-julio-2026.pdf',
           id: 'comunicado-garaje-julio-2026',
-          title: 'Comunicado revision garaje julio 2026',
+          title: 'Comunicado revisión garaje julio 2026',
           type: 'comunicado',
         }),
       ]),
