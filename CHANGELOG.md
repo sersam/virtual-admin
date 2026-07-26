@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-26 · PR [#19](https://github.com/sersam/virtual-admin/pull/19)
+
+### Added
+
+- Permite registrar propuestas vecinales de sesion y usarlas como entradas trazables del orden del dia.
+
 ## 2026-07-26 · PR [#18](https://github.com/sersam/virtual-admin/pull/18)
 
 ### Added
