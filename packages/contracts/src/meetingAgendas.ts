@@ -8,16 +8,32 @@ export const MeetingAgendaDraftRequestSchema = z
   })
   .strict();
 
-export const MeetingAgendaItemSourceTypeSchema = z.enum(['incident', 'pending-agreement']);
+export const MeetingAgendaItemSourceTypeSchema = z.enum([
+  'incident',
+  'pending-agreement',
+  'proposal',
+]);
 
-export const MeetingAgendaItemSchema = z.object({
+const MeetingAgendaBaseItemSchema = z.object({
   description: z.string().trim().min(1).max(1_000),
-  priority: IncidentPrioritySchema,
-  sourceType: MeetingAgendaItemSourceTypeSchema,
   sourceId: z.string().trim().min(1).max(80),
-  assignee: z.string().trim().min(1).max(120).optional(),
-  dueDate: z.string().trim().min(1).max(80).optional(),
 });
+
+export const MeetingAgendaItemSchema = z.discriminatedUnion('sourceType', [
+  MeetingAgendaBaseItemSchema.extend({
+    priority: IncidentPrioritySchema,
+    sourceType: z.literal('incident'),
+  }).strict(),
+  MeetingAgendaBaseItemSchema.extend({
+    priority: IncidentPrioritySchema,
+    sourceType: z.literal('pending-agreement'),
+    assignee: z.string().trim().min(1).max(120).optional(),
+    dueDate: z.string().trim().min(1).max(80).optional(),
+  }).strict(),
+  MeetingAgendaBaseItemSchema.extend({
+    sourceType: z.literal('proposal'),
+  }).strict(),
+]);
 
 export const MeetingAgendaDraftSchema = z.object({
   title: z.string().trim().min(1).max(120),

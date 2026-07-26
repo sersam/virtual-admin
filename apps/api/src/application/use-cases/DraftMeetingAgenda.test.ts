@@ -1,9 +1,11 @@
 import type { CommunityIncident } from '../../domain/incident/CommunityIncident.js';
 import type { PendingAgreement } from '../../domain/meetingAgenda/PendingAgreement.js';
 import type { CommunityMeeting } from '../../domain/meeting/CommunityMeeting.js';
+import type { CommunityProposal } from '../../domain/proposal/CommunityProposal.js';
 import type { IncidentRepository } from '../ports/IncidentRepository.js';
 import type { MeetingRepository } from '../ports/MeetingRepository.js';
 import type { PendingAgreementRepository } from '../ports/PendingAgreementRepository.js';
+import type { ProposalRepository } from '../ports/ProposalRepository.js';
 import { describe, expect, it } from 'vitest';
 import { DraftMeetingAgenda } from './DraftMeetingAgenda.js';
 
@@ -79,6 +81,7 @@ describe('DraftMeetingAgenda', () => {
           /* no-op */
         },
       },
+      proposalRepository: createProposalRepository([]),
       meetingRepository: createMeetingRepository(),
     });
 
@@ -159,6 +162,7 @@ describe('DraftMeetingAgenda', () => {
           /* no-op */
         },
       },
+      proposalRepository: createProposalRepository([]),
       meetingRepository: createMeetingRepository(),
     });
 
@@ -181,6 +185,7 @@ describe('DraftMeetingAgenda', () => {
     const useCase = new DraftMeetingAgenda({
       incidentRepository: createIncidentRepository([]),
       pendingAgreementRepository: createPendingAgreementRepository([]),
+      proposalRepository: createProposalRepository([]),
       meetingRepository: createMeetingRepository(),
     });
 
@@ -202,6 +207,7 @@ describe('DraftMeetingAgenda', () => {
         }),
       ]),
       pendingAgreementRepository: createPendingAgreementRepository([]),
+      proposalRepository: createProposalRepository([]),
       meetingRepository: createMeetingRepository(),
     });
 
@@ -219,6 +225,64 @@ describe('DraftMeetingAgenda', () => {
     expect(response.draft.body).not.toContain('Fuga de agua ya reparada');
   });
 
+  it('anade propuestas al final sin prioridad y en orden de antiguedad', async () => {
+    const useCase = new DraftMeetingAgenda({
+      incidentRepository: createIncidentRepository([
+        createIncident({
+          id: 'inc-urgent',
+          description: 'Fuga de agua urgente en el garaje',
+          priority: 'urgente',
+          createdAt: new Date('2026-06-23T11:00:00.000Z'),
+        }),
+      ]),
+      pendingAgreementRepository: createPendingAgreementRepository([
+        createPendingAgreement({
+          id: 'pending-a',
+          description: 'Revisar contrato de limpieza',
+          dueDate: '30 de junio',
+          createdAt: new Date('2026-06-23T09:00:00.000Z'),
+        }),
+      ]),
+      proposalRepository: createProposalRepository([
+        createProposal({
+          id: 'proposal-new',
+          description: 'Crear una zona de compostaje comunitario.',
+          createdAt: new Date('2026-07-26T10:00:00.000Z'),
+        }),
+        createProposal({
+          id: 'proposal-old',
+          description: 'Instalar aparcabicis en el patio interior.',
+          createdAt: new Date('2026-07-26T09:00:00.000Z'),
+        }),
+      ]),
+      meetingRepository: createMeetingRepository(),
+    });
+
+    const response = await useCase.execute({
+      sessionId: 'session-a',
+      meetingId: 'meeting-ordinary-2026-09-18',
+    });
+
+    expect(response.draft.items).toEqual([
+      expect.objectContaining({ sourceId: 'inc-urgent', priority: 'urgente' }),
+      expect.objectContaining({ sourceId: 'pending-a', priority: 'alta' }),
+      {
+        description: 'Instalar aparcabicis en el patio interior.',
+        sourceType: 'proposal',
+        sourceId: 'proposal-old',
+      },
+      {
+        description: 'Crear una zona de compostaje comunitario.',
+        sourceType: 'proposal',
+        sourceId: 'proposal-new',
+      },
+    ]);
+    expect(response.draft.body).toContain('3. Instalar aparcabicis en el patio interior.');
+    expect(response.draft.body).toContain('4. Crear una zona de compostaje comunitario.');
+    expect(response.draft.body).not.toContain('[Media] Instalar aparcabicis');
+    expect(response.draft.body).not.toContain('Origen: propuesta');
+  });
+
   it('limita el orden del día a las 100 entradas más prioritarias', async () => {
     const useCase = new DraftMeetingAgenda({
       incidentRepository: createIncidentRepository(
@@ -231,6 +295,12 @@ describe('DraftMeetingAgenda', () => {
         ),
       ),
       pendingAgreementRepository: createPendingAgreementRepository([]),
+      proposalRepository: createProposalRepository([
+        createProposal({
+          id: 'proposal-excluded',
+          createdAt: new Date('2026-06-22T10:00:00.000Z'),
+        }),
+      ]),
       meetingRepository: createMeetingRepository(),
     });
 
@@ -242,6 +312,9 @@ describe('DraftMeetingAgenda', () => {
     expect(response.draft.items).toHaveLength(100);
     expect(response.draft.items.at(-1)).toEqual(expect.objectContaining({ sourceId: 'inc-100' }));
     expect(response.draft.body).not.toContain('Incidencia 101');
+    expect(response.draft.items).not.toContainEqual(
+      expect.objectContaining({ sourceId: 'proposal-excluded' }),
+    );
   });
 
   it('ordena de forma determinista cuando prioridad y fecha coinciden', async () => {
@@ -254,6 +327,7 @@ describe('DraftMeetingAgenda', () => {
       pendingAgreementRepository: createPendingAgreementRepository([
         createPendingAgreement({ id: 'pending-a', createdAt: sharedCreatedAt }),
       ]),
+      proposalRepository: createProposalRepository([]),
       meetingRepository: createMeetingRepository(),
     });
 
@@ -295,6 +369,18 @@ describe('DraftMeetingAgenda', () => {
           sessionId: 'session-b',
         }),
       ]),
+      proposalRepository: createProposalRepository([
+        createProposal({
+          id: 'proposal-session-a',
+          description: 'Instalar aparcabicis en el patio interior.',
+          sessionId: 'session-a',
+        }),
+        createProposal({
+          id: 'proposal-session-b',
+          description: 'Propuesta de otra sesión',
+          sessionId: 'session-b',
+        }),
+      ]),
       meetingRepository: createMeetingRepository(),
     });
 
@@ -306,9 +392,43 @@ describe('DraftMeetingAgenda', () => {
     expect(response.draft.items.map((item) => item.sourceId)).toEqual([
       'inc-session-a',
       'pending-session-a',
+      'proposal-session-a',
     ]);
     expect(response.draft.body).not.toContain('Incidencia de otra sesión');
     expect(response.draft.body).not.toContain('Acuerdo de otra sesión');
+    expect(response.draft.body).not.toContain('Propuesta de otra sesión');
+  });
+
+  it('abrevia el cuerpo por bloques completos sin truncar entradas estructuradas', async () => {
+    const longDescription = 'a'.repeat(990);
+    const useCase = new DraftMeetingAgenda({
+      incidentRepository: createIncidentRepository([]),
+      pendingAgreementRepository: createPendingAgreementRepository([]),
+      proposalRepository: createProposalRepository(
+        Array.from({ length: 5 }, (_, index) =>
+          createProposal({
+            id: `proposal-${index + 1}`,
+            description: `${longDescription}${index}`,
+            createdAt: new Date(new Date('2026-07-26T09:00:00.000Z').getTime() + index * 60_000),
+          }),
+        ),
+      ),
+      meetingRepository: createMeetingRepository(),
+    });
+
+    const response = await useCase.execute({
+      sessionId: 'session-a',
+      meetingId: 'meeting-ordinary-2026-09-18',
+    });
+
+    expect(response.draft.items).toHaveLength(5);
+    expect(response.draft.body.length).toBeLessThanOrEqual(4_000);
+    expect(response.draft.body).toContain('1. ');
+    expect(response.draft.body).toContain('3. ');
+    expect(response.draft.body).not.toContain('5. ');
+    expect(response.draft.body).toContain(
+      'Contenido abreviado por el límite del borrador. Consulta «Entradas utilizadas» para ver todas las fuentes.',
+    );
   });
 
   it('propaga errores al listar incidencias', async () => {
@@ -320,6 +440,7 @@ describe('DraftMeetingAgenda', () => {
         },
       },
       pendingAgreementRepository: createPendingAgreementRepository([]),
+      proposalRepository: createProposalRepository([]),
       meetingRepository: createMeetingRepository(),
     });
 
@@ -337,12 +458,31 @@ describe('DraftMeetingAgenda', () => {
           throw new Error('pending agreements unavailable');
         },
       },
+      proposalRepository: createProposalRepository([]),
       meetingRepository: createMeetingRepository(),
     });
 
     await expect(
       useCase.execute({ sessionId: 'session-a', meetingId: 'meeting-ordinary-2026-09-18' }),
     ).rejects.toThrow('pending agreements unavailable');
+  });
+
+  it('propaga errores al listar propuestas', async () => {
+    const useCase = new DraftMeetingAgenda({
+      incidentRepository: createIncidentRepository([]),
+      pendingAgreementRepository: createPendingAgreementRepository([]),
+      proposalRepository: {
+        ...createProposalRepository([]),
+        listBySession: async () => {
+          throw new Error('proposals unavailable');
+        },
+      },
+      meetingRepository: createMeetingRepository(),
+    });
+
+    await expect(
+      useCase.execute({ sessionId: 'session-a', meetingId: 'meeting-ordinary-2026-09-18' }),
+    ).rejects.toThrow('proposals unavailable');
   });
 });
 
@@ -357,6 +497,14 @@ function createIncidentRepository(incidents: readonly CommunityIncident[]): Inci
     saveIfAbsent: async () => {
       /* no-op */
     },
+  };
+}
+
+function createProposalRepository(proposals: readonly CommunityProposal[]): ProposalRepository {
+  return {
+    listBySession: async (sessionId) =>
+      proposals.filter((proposal) => proposal.sessionId === sessionId),
+    save: async () => undefined,
   };
 }
 
@@ -440,6 +588,16 @@ function createPendingAgreement(overrides: Partial<PendingAgreement> = {}): Pend
     sessionId: 'session-a',
     description: 'Acuerdo pendiente',
     createdAt: new Date('2026-06-23T10:00:00.000Z'),
+    ...overrides,
+  };
+}
+
+function createProposal(overrides: Partial<CommunityProposal> = {}): CommunityProposal {
+  return {
+    id: 'proposal-1',
+    sessionId: 'session-a',
+    description: 'Instalar aparcabicis en el patio interior.',
+    createdAt: new Date('2026-07-26T10:00:00.000Z'),
     ...overrides,
   };
 }

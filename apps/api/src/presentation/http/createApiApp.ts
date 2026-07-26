@@ -9,6 +9,8 @@ import {
   CommunityNoticeDraftResponseSchema,
   CreateIncidentRequestSchema,
   CreateIncidentResponseSchema,
+  CreateProposalRequestSchema,
+  CreateProposalResponseSchema,
   DocumentQueryRequestSchema,
   DocumentQueryResponseSchema,
   ErrorResponseSchema,
@@ -23,6 +25,7 @@ import {
   MeetingMinutesDraftRequestSchema,
   MeetingMinutesDraftResponseSchema,
   PdfUploadConstraints,
+  ProposalListResponseSchema,
   SessionResponseSchema,
   UploadedDocumentResponseSchema,
   UploadedDocumentsResponseSchema,
@@ -37,6 +40,10 @@ import {
   CreateIncident,
   InvalidIncidentDescriptionError,
 } from '../../application/use-cases/CreateIncident.js';
+import {
+  CreateProposal,
+  InvalidProposalDescriptionError,
+} from '../../application/use-cases/CreateProposal.js';
 import { DraftCommunityNotice } from '../../application/use-cases/DraftCommunityNotice.js';
 import {
   DraftMeetingAgenda,
@@ -56,6 +63,7 @@ import {
 } from '../../application/use-cases/StoreUploadedDocument.js';
 import { ListIncidents } from '../../application/use-cases/ListIncidents.js';
 import { ListMeetings } from '../../application/use-cases/ListMeetings.js';
+import { ListProposals } from '../../application/use-cases/ListProposals.js';
 import {
   IncidentNotFoundError,
   ResolveIncident,
@@ -72,9 +80,11 @@ import type { IncidentClassifier } from '../../application/ports/IncidentClassif
 import type { IncidentRepository } from '../../application/ports/IncidentRepository.js';
 import type { MeetingRepository } from '../../application/ports/MeetingRepository.js';
 import type { PendingAgreementRepository } from '../../application/ports/PendingAgreementRepository.js';
+import type { ProposalRepository } from '../../application/ports/ProposalRepository.js';
 import type { SessionDocumentRetriever } from '../../application/ports/SessionDocumentRetriever.js';
 import { AiProviderError } from '../../application/ports/AiProviderError.js';
 import { presentIncident } from './incidentPresenter.js';
+import { presentProposal } from './proposalPresenter.js';
 import { presentSession } from './sessionPresenter.js';
 
 const SESSION_COOKIE = 'va_session';
@@ -101,6 +111,7 @@ interface ApiAppOptions {
   readonly incidentRepository: IncidentRepository;
   readonly meetingRepository: MeetingRepository;
   readonly pendingAgreementRepository: PendingAgreementRepository;
+  readonly proposalRepository: ProposalRepository;
   readonly repository: SessionRepository;
   readonly requestsLimit?: number;
   readonly secureCookies?: boolean;
@@ -123,11 +134,18 @@ export function createApiApp(options: ApiAppOptions) {
     ids: options.ids,
     repository: options.incidentRepository,
   });
+  const createProposal = new CreateProposal({
+    clock: options.clock,
+    ids: options.ids,
+    repository: options.proposalRepository,
+  });
   const listIncidents = new ListIncidents({ repository: options.incidentRepository });
+  const listProposals = new ListProposals({ repository: options.proposalRepository });
   const draftMeetingAgenda = new DraftMeetingAgenda({
     incidentRepository: options.incidentRepository,
     meetingRepository: options.meetingRepository,
     pendingAgreementRepository: options.pendingAgreementRepository,
+    proposalRepository: options.proposalRepository,
   });
   const listMeetings = new ListMeetings({ meetingRepository: options.meetingRepository });
   const draftCommunityNotice = new DraftCommunityNotice({
@@ -368,6 +386,47 @@ export function createApiApp(options: ApiAppOptions) {
     }
   });
 
+  app.post('/api/proposals', async (request: Request, response: Response, next) => {
+    try {
+      const payloadResult = CreateProposalRequestSchema.safeParse(request.body);
+      if (!payloadResult.success) {
+        sendError(response, 400, 'VALIDATION_ERROR', 'La petición no tiene un formato válido.');
+        return;
+      }
+
+      const session = await ensureSession.execute(readSignedSessionId(request));
+      const proposal = await createProposal.execute({
+        sessionId: session.id,
+        description: payloadResult.data.description,
+      });
+
+      attachSessionCookie(response, session.id, options);
+      response.status(201).json(
+        CreateProposalResponseSchema.parse({
+          proposal: presentProposal(proposal),
+        }),
+      );
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get('/api/proposals', async (request: Request, response: Response, next) => {
+    try {
+      const session = await ensureSession.execute(readSignedSessionId(request));
+      const proposals = await listProposals.execute({ sessionId: session.id });
+
+      attachSessionCookie(response, session.id, options);
+      response.json(
+        ProposalListResponseSchema.parse({
+          proposals: proposals.map(presentProposal),
+        }),
+      );
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.patch(
     '/api/incidents/:incidentId/resolve',
     async (request: Request, response: Response, next) => {
@@ -492,6 +551,15 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
     return;
   }
 
+  if (sendSessionError(error, response)) return;
+  if (sendUploadError(error, response)) return;
+  if (sendDomainError(error, response)) return;
+  if (sendAiProviderError(error, response)) return;
+
+  sendError(response, 500, 'INTERNAL_ERROR', 'No se pudo procesar la petición.');
+};
+
+function sendSessionError(error: unknown, response: Response): boolean {
   if (error instanceof SessionUsageLimitReachedError) {
     sendError(
       response,
@@ -499,23 +567,27 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
       'SESSION_LIMIT_REACHED',
       'Has alcanzado el límite de uso de esta sesión demo.',
     );
-    return;
+    return true;
   }
 
+  return false;
+}
+
+function sendUploadError(error: unknown, response: Response): boolean {
   if (error instanceof InvalidUploadedDocumentError) {
     sendError(response, 400, 'INVALID_UPLOADED_DOCUMENT', 'El archivo adjunto debe ser un PDF.');
-    return;
+    return true;
   }
 
   if (error instanceof UploadedDocumentNotFoundError) {
     sendError(response, 404, 'UPLOADED_DOCUMENT_NOT_FOUND', 'No se ha encontrado el PDF adjunto.');
-    return;
+    return true;
   }
 
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       sendError(response, 413, 'UPLOAD_TOO_LARGE', 'El PDF no puede superar 5 MB.');
-      return;
+      return true;
     }
 
     sendError(
@@ -524,37 +596,50 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
       'INVALID_UPLOADED_DOCUMENT',
       'Debes adjuntar un único archivo PDF en el campo "document".',
     );
-    return;
+    return true;
   }
 
   if (error instanceof UploadedDocumentTooLargeError) {
     sendError(response, 413, 'UPLOAD_TOO_LARGE', 'El PDF no puede superar 5 MB.');
-    return;
+    return true;
   }
 
+  return false;
+}
+
+function sendDomainError(error: unknown, response: Response): boolean {
   if (error instanceof InvalidIncidentDescriptionError) {
     sendError(response, 400, 'VALIDATION_ERROR', error.message);
-    return;
+    return true;
+  }
+
+  if (error instanceof InvalidProposalDescriptionError) {
+    sendError(response, 400, 'VALIDATION_ERROR', error.message);
+    return true;
   }
 
   if (error instanceof IncidentNotFoundError) {
     sendError(response, 404, 'INCIDENT_NOT_FOUND', error.message);
-    return;
+    return true;
   }
 
   if (error instanceof MeetingNotFoundError) {
     sendError(response, 404, 'MEETING_NOT_FOUND', error.message);
-    return;
+    return true;
   }
 
+  return false;
+}
+
+function sendAiProviderError(error: unknown, response: Response): boolean {
   if (error instanceof AiProviderError) {
     console.error('openai.error', sanitizeOpenAiError(error.cause));
     sendError(response, 502, 'AI_PROVIDER_ERROR', 'No se pudo completar la operación con OpenAI.');
-    return;
+    return true;
   }
 
-  sendError(response, 500, 'INTERNAL_ERROR', 'No se pudo procesar la petición.');
-};
+  return false;
+}
 
 function sendError(response: Response, status: number, code: string, message: string): void {
   response.status(status).json(ErrorResponseSchema.parse({ error: { code, message } }));

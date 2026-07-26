@@ -1,9 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MeetingAgendaPanel } from './MeetingAgendaPanel';
 import { useMeetingAgendaDraft } from '../hooks/useMeetingAgendaDraft';
 import { useMeetings } from '../hooks/useMeetings';
+import { useProposals } from '../../proposals/hooks/useProposals';
 
 vi.mock('../hooks/useMeetingAgendaDraft', () => ({
   useMeetingAgendaDraft: vi.fn(),
@@ -11,13 +12,25 @@ vi.mock('../hooks/useMeetingAgendaDraft', () => ({
 vi.mock('../hooks/useMeetings', () => ({
   useMeetings: vi.fn(),
 }));
+vi.mock('../../proposals/hooks/useProposals', () => ({
+  useProposals: vi.fn(),
+}));
 
 const useMeetingAgendaDraftMock = vi.mocked(useMeetingAgendaDraft);
 const useMeetingsMock = vi.mocked(useMeetings);
+const useProposalsMock = vi.mocked(useProposals);
 
 describe('MeetingAgendaPanel', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  beforeEach(() => {
+    useProposalsMock.mockReturnValue({
+      create: vi.fn(),
+      proposals: [],
+      status: 'ready',
+    });
   });
 
   it('genera un orden del día editable con entradas trazables', async () => {
@@ -50,6 +63,11 @@ describe('MeetingAgendaPanel', () => {
               assignee: 'Ana',
               dueDate: '30 de junio',
             },
+            {
+              description: 'Instalar aparcabicis en el patio interior.',
+              sourceType: 'proposal',
+              sourceId: 'proposal-1',
+            },
           ],
         },
         meeting: demoMeetings[0]!,
@@ -69,8 +87,11 @@ describe('MeetingAgendaPanel', () => {
     expect(screen.getByText('Entradas utilizadas')).toBeInTheDocument();
     expect(screen.getByText('Hay una fuga de agua urgente')).toBeInTheDocument();
     expect(screen.getByText('Revisar contrato de limpieza')).toBeInTheDocument();
+    expect(screen.getByText('Instalar aparcabicis en el patio interior.')).toBeInTheDocument();
     expect(screen.getByText('Incidencia')).toBeInTheDocument();
     expect(screen.getByText('Acuerdo pendiente')).toBeInTheDocument();
+    expect(screen.getByText('Propuesta vecinal')).toBeInTheDocument();
+    expect(screen.getByText('proposal-1')).toBeInTheDocument();
 
     await user.clear(editableDraft);
     await waitFor(() => expect(editableDraft).toHaveValue(''));
@@ -186,6 +207,122 @@ describe('MeetingAgendaPanel', () => {
     render(<MeetingAgendaPanel />);
 
     expect(screen.getByRole('alert')).toHaveTextContent('No se pudieron cargar las juntas demo.');
+  });
+
+  it('lista propuestas y muestra sus fechas en español', () => {
+    useMeetingsMock.mockReturnValue({
+      meetings: demoMeetings,
+      status: 'ready',
+    });
+    useMeetingAgendaDraftMock.mockReturnValue({
+      generate: vi.fn(),
+      reset: vi.fn(),
+      result: undefined,
+      status: 'idle',
+    });
+    useProposalsMock.mockReturnValue({
+      create: vi.fn(),
+      proposals: [
+        {
+          id: 'proposal-1',
+          description: 'Instalar aparcabicis en el patio interior.',
+          createdAt: '2026-07-26T10:00:00.000Z',
+        },
+      ],
+      status: 'ready',
+    });
+
+    render(<MeetingAgendaPanel />);
+
+    expect(screen.getByText('Propuestas vecinales')).toBeInTheDocument();
+    expect(screen.getByText('Instalar aparcabicis en el patio interior.')).toBeInTheDocument();
+    expect(screen.getByText(/^26 jul\.? 2026, 12:00$/)).toBeInTheDocument();
+  });
+
+  it('registra una propuesta, limpia el campo e invalida el borrador visible', async () => {
+    const user = userEvent.setup();
+    const reset = vi.fn();
+    const create = vi.fn().mockResolvedValue({
+      id: 'proposal-2',
+      description: 'Crear una zona de compostaje comunitario.',
+      createdAt: '2026-07-26T11:00:00.000Z',
+    });
+    useMeetingsMock.mockReturnValue({
+      meetings: demoMeetings,
+      status: 'ready',
+    });
+    useMeetingAgendaDraftMock.mockReturnValue({
+      generate: vi.fn(),
+      reset,
+      result: {
+        draft: {
+          title: 'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
+          body: 'Orden del día\n\n1. [Alta] Revisar contrato.',
+          items: [],
+        },
+        meeting: demoMeetings[0]!,
+        mode: 'deterministic-demo',
+      },
+      status: 'ready',
+    });
+    useProposalsMock.mockReturnValue({
+      create,
+      proposals: [],
+      status: 'ready',
+      successMessage: 'Propuesta registrada.',
+    });
+
+    render(<MeetingAgendaPanel />);
+
+    await user.type(
+      screen.getByLabelText('Descripción de la propuesta'),
+      'Crear una zona de compostaje comunitario.',
+    );
+    await user.click(screen.getByRole('button', { name: 'Registrar propuesta' }));
+
+    await waitFor(() =>
+      expect(create).toHaveBeenCalledWith('Crear una zona de compostaje comunitario.'),
+    );
+    expect(reset).toHaveBeenCalledOnce();
+    expect(screen.getByLabelText('Descripción de la propuesta')).toHaveValue('');
+    expect(screen.queryByLabelText('Borrador editable del orden del día')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Propuesta registrada.');
+  });
+
+  it('conserva el texto si falla el alta y mantiene disponible el formulario tras fallo de carga', async () => {
+    const user = userEvent.setup();
+    const create = vi.fn().mockResolvedValue(undefined);
+    useMeetingsMock.mockReturnValue({
+      meetings: demoMeetings,
+      status: 'ready',
+    });
+    useMeetingAgendaDraftMock.mockReturnValue({
+      generate: vi.fn(),
+      reset: vi.fn(),
+      result: undefined,
+      status: 'idle',
+    });
+    useProposalsMock.mockReturnValue({
+      create,
+      error: 'No se pudieron cargar las propuestas.',
+      proposals: [],
+      status: 'error',
+    });
+
+    render(<MeetingAgendaPanel />);
+
+    const textarea = screen.getByLabelText('Descripción de la propuesta');
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pudieron cargar las propuestas.');
+    expect(textarea).toHaveAttribute(
+      'aria-describedby',
+      'proposal-description-help proposal-description-error',
+    );
+    expect(textarea).toBeEnabled();
+
+    await user.type(textarea, 'Crear una zona de compostaje comunitario.');
+    await user.click(screen.getByRole('button', { name: 'Registrar propuesta' }));
+
+    expect(textarea).toHaveValue('Crear una zona de compostaje comunitario.');
   });
 
   it('muestra estado vacío si no hay juntas disponibles', () => {

@@ -11,6 +11,7 @@ import { LangGraphChatWorkflow } from './infrastructure/agent/LangGraphChatWorkf
 import { InMemoryIncidentRepository } from './infrastructure/incident/InMemoryIncidentRepository.js';
 import { InMemoryMeetingRepository } from './infrastructure/meeting/InMemoryMeetingRepository.js';
 import { InMemoryPendingAgreementRepository } from './infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
+import { InMemoryProposalRepository } from './infrastructure/proposal/InMemoryProposalRepository.js';
 import { createAiProviders } from './infrastructure/openai/createAiProviders.js';
 
 const port = Number(process.env.PORT ?? 3000);
@@ -42,6 +43,7 @@ const app = createApiApp({
   incidentRepository: new InMemoryIncidentRepository(),
   meetingRepository: new InMemoryMeetingRepository(),
   pendingAgreementRepository: new InMemoryPendingAgreementRepository(),
+  proposalRepository: new InMemoryProposalRepository(),
   repository: new InMemorySessionRepository(),
   secureCookies: process.env.NODE_ENV === 'production',
   version: '0.1.0',
