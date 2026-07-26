@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-26 · PR [#18](https://github.com/sersam/virtual-admin/pull/18)
+
+### Added
+
+- US-012 añade datos demo iniciales completos para evaluar la comunidad desde el primer acceso, incorporando presupuesto, comunicados históricos, incidencias, acuerdos y juntas demo seleccionables.
+
 ## 2026-07-25 · PR [#17](https://github.com/sersam/virtual-admin/pull/17)
 
 ### Added
