@@ -1,4 +1,11 @@
-export type CommunityDocumentType = 'estatutos' | 'normas' | 'acta' | 'contrato' | 'adjunto';
+export type CommunityDocumentType =
+  | 'estatutos'
+  | 'normas'
+  | 'acta'
+  | 'contrato'
+  | 'presupuesto'
+  | 'comunicado'
+  | 'adjunto';
 
 export interface CommunityDocument {
   readonly id: string;

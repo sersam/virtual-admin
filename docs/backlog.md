@@ -157,3 +157,9 @@ Como tribunal, quiero evidencias cuantitativas de calidad para justificar el com
 Como autor del TFM, quiero preparar evidencias finales de utilidad, limitaciones y trazabilidad para la defensa.
 
 **Aceptación:** protocolo con 10 participantes anónimos; resultados agregados; SUS o cuestionario equivalente; actualización de README, arquitectura, despliegue, métricas y limitaciones; matriz objetivo-implementación-prueba.
+
+## US-026 · Preparador de juntas con filtros temporales
+
+Como administrador, quiero preparar el orden del día de una junta usando solo los datos disponibles en la demo que correspondan a su periodo de revisión.
+
+**Aceptación:** selección de junta con ventana temporal asociada; inclusión de incidencias pendientes creadas antes de la junta; exclusión de incidencias resueltas antes del periodo revisado; inclusión trazable de incidencias resueltas dentro del periodo cuando aporten contexto; acuerdos pendientes filtrados por fecha límite o creación; explicación visible de los filtros aplicados; pruebas unitarias, integración y E2E para juntas ordinarias y extraordinarias.

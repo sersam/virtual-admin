@@ -5,18 +5,37 @@ import {
 } from './meetingAgendas.js';
 
 describe('meeting agenda contracts', () => {
-  it('valida la petición vacía para generar un orden del día', () => {
-    expect(MeetingAgendaDraftRequestSchema.parse({})).toEqual({});
+  it('valida la petición con junta seleccionada para generar un orden del día', () => {
+    expect(
+      MeetingAgendaDraftRequestSchema.parse({ meetingId: 'meeting-ordinary-2026-09-18' }),
+    ).toEqual({
+      meetingId: 'meeting-ordinary-2026-09-18',
+    });
   });
 
   it('rechaza campos desconocidos en la petición', () => {
-    expect(() => MeetingAgendaDraftRequestSchema.parse({ sessionId: 'session-a' })).toThrow();
+    expect(() =>
+      MeetingAgendaDraftRequestSchema.parse({
+        meetingId: 'meeting-ordinary-2026-09-18',
+        sessionId: 'session-a',
+      }),
+    ).toThrow();
+  });
+
+  it('rechaza peticiones sin junta seleccionada', () => {
+    expect(() => MeetingAgendaDraftRequestSchema.parse({})).toThrow();
+  });
+
+  it('rechaza identificadores de junta vacíos, en blanco o demasiado largos', () => {
+    expect(() => MeetingAgendaDraftRequestSchema.parse({ meetingId: '' })).toThrow();
+    expect(() => MeetingAgendaDraftRequestSchema.parse({ meetingId: '   ' })).toThrow();
+    expect(() => MeetingAgendaDraftRequestSchema.parse({ meetingId: 'a'.repeat(81) })).toThrow();
   });
 
   it('valida un borrador trazable con incidencias y acuerdos pendientes', () => {
     const response = MeetingAgendaDraftResponseSchema.parse({
       draft: {
-        title: 'Orden del día',
+        title: 'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
         body: '1. Incidencia urgente',
         items: [
           {
@@ -35,10 +54,22 @@ describe('meeting agenda contracts', () => {
           },
         ],
       },
+      meeting: {
+        id: 'meeting-ordinary-2026-09-18',
+        kind: 'ordinaria',
+        title: 'Junta ordinaria',
+        scheduledAt: '2026-09-18T17:00:00.000Z',
+      },
       mode: 'deterministic-demo',
     });
 
     expect(response.draft.items).toHaveLength(2);
+    expect(response.meeting).toEqual({
+      id: 'meeting-ordinary-2026-09-18',
+      kind: 'ordinaria',
+      title: 'Junta ordinaria',
+      scheduledAt: '2026-09-18T17:00:00.000Z',
+    });
   });
 
   it('rechaza modos de respuesta no soportados', () => {
@@ -49,6 +80,12 @@ describe('meeting agenda contracts', () => {
           body: '1. Incidencia urgente',
           items: [],
         },
+        meeting: {
+          id: 'meeting-ordinary-2026-09-18',
+          kind: 'ordinaria',
+          title: 'Junta ordinaria',
+          scheduledAt: '2026-09-18T17:00:00.000Z',
+        },
         mode: 'remote-ai',
       }),
     ).toThrow();
@@ -58,7 +95,7 @@ describe('meeting agenda contracts', () => {
     expect(() =>
       MeetingAgendaDraftResponseSchema.parse({
         draft: {
-          title: 'Orden del día',
+          title: 'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
           body: '1. Incidencia urgente',
           items: [
             {
@@ -68,6 +105,12 @@ describe('meeting agenda contracts', () => {
               sourceId: 'doc-1',
             },
           ],
+        },
+        meeting: {
+          id: 'meeting-ordinary-2026-09-18',
+          kind: 'ordinaria',
+          title: 'Junta ordinaria',
+          scheduledAt: '2026-09-18T17:00:00.000Z',
         },
         mode: 'deterministic-demo',
       }),

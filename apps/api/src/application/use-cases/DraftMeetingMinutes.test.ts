@@ -34,6 +34,9 @@ describe('DraftMeetingMinutes', () => {
         save: async (pendingAgreement) => {
           saved.push(pendingAgreement);
         },
+        saveIfAbsent: async (pendingAgreement) => {
+          saved.push(pendingAgreement);
+        },
       },
     });
 

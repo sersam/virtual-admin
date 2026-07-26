@@ -12,8 +12,10 @@ const documentTypeLabels: Record<DocumentSource['type'], string> = {
   acta: 'Acta',
   adjunto: 'Adjunto',
   contrato: 'Contrato',
+  comunicado: 'Comunicado',
   estatutos: 'Estatutos',
   normas: 'Normas',
+  presupuesto: 'Presupuesto',
 };
 
 export const documentLibrary: LibraryDocument[] = demoCommunityDocuments.map(

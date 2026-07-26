@@ -56,7 +56,7 @@ test('consulta documentos y muestra fuentes recuperadas', async ({ page }, testI
     answerRegion.getByRole('article').getByText(/piscina comunitaria abre de 10:00 a 21:00/i),
   ).toBeVisible();
 
-  const pdfLink = answerRegion.getByRole('link', { name: 'Abrir PDF completo' });
+  const pdfLink = answerRegion.getByRole('link', { name: 'Abrir PDF completo' }).first();
   await expect(pdfLink).toHaveAttribute('href', /\/documents\/normas-zonas-comunes\.pdf$/);
   await expect(pdfLink).toHaveAttribute('target', '_blank');
 
@@ -204,14 +204,39 @@ test('genera actas desde notas de reunión', async ({ page }, testInfo) => {
 });
 
 test('prepara juntas con entradas trazables y borrador editable', async ({ page }, testInfo) => {
+  await page.route('**/api/meetings', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        meetings: [
+          {
+            id: 'meeting-ordinary-2026-09-18',
+            kind: 'ordinaria',
+            title: 'Junta ordinaria',
+            scheduledAt: '2026-09-18T17:00:00.000Z',
+          },
+          {
+            id: 'meeting-extraordinary-2026-10-15',
+            kind: 'extraordinaria',
+            title: 'Junta extraordinaria',
+            scheduledAt: '2026-10-15T17:00:00.000Z',
+          },
+        ],
+      },
+      status: 200,
+    });
+  });
   await page.route('**/api/meeting-agendas/draft', async (route) => {
+    const payload = route.request().postDataJSON() as { readonly meetingId: string };
+    expect(payload.meetingId).toBe('meeting-extraordinary-2026-10-15');
+
     await route.fulfill({
       contentType: 'application/json',
       json: {
         draft: {
-          title: 'Orden del día',
+          title: 'Orden del día · Junta extraordinaria · 15 de octubre de 2026',
           body: [
-            'Orden del día',
+            'Orden del día · Junta extraordinaria · 15 de octubre de 2026',
             '',
             '1. [Urgente] Hay una fuga de agua urgente en el garaje.',
             '   Origen: incidencia inc-1.',
@@ -235,6 +260,12 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
             },
           ],
         },
+        meeting: {
+          id: 'meeting-extraordinary-2026-10-15',
+          kind: 'extraordinaria',
+          title: 'Junta extraordinaria',
+          scheduledAt: '2026-10-15T17:00:00.000Z',
+        },
         mode: 'deterministic-demo',
       },
       status: 200,
@@ -249,10 +280,12 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
   await expect(
     page.getByRole('heading', { level: 1, name: 'Prepara el orden del día' }),
   ).toBeVisible();
+  await page.getByLabel('Junta demo').selectOption('meeting-extraordinary-2026-10-15');
   await page.getByRole('button', { name: 'Preparar orden del día' }).click();
 
   const draftRegion = page.getByLabel('Orden del día generado');
   const editableDraft = draftRegion.getByLabel('Borrador editable del orden del día');
+  await expect(draftRegion.getByRole('heading', { name: /Junta extraordinaria/ })).toBeVisible();
   await expect(editableDraft).toHaveValue(/fuga de agua urgente/);
   await editableDraft.fill('Orden del día revisado por administración.');
   await expect(editableDraft).toHaveValue('Orden del día revisado por administración.');

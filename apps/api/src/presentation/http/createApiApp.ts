@@ -15,6 +15,7 @@ import {
   HealthResponseSchema,
   IncidentListQuerySchema,
   IncidentListResponseSchema,
+  MeetingListResponseSchema,
   MeetingAgendaDraftRequestSchema,
   MeetingAgendaDraftResponseSchema,
   ResolveIncidentParamsSchema,
@@ -37,12 +38,16 @@ import {
   InvalidIncidentDescriptionError,
 } from '../../application/use-cases/CreateIncident.js';
 import { DraftCommunityNotice } from '../../application/use-cases/DraftCommunityNotice.js';
-import { DraftMeetingAgenda } from '../../application/use-cases/DraftMeetingAgenda.js';
+import {
+  DraftMeetingAgenda,
+  MeetingNotFoundError,
+} from '../../application/use-cases/DraftMeetingAgenda.js';
 import { DraftMeetingMinutes } from '../../application/use-cases/DraftMeetingMinutes.js';
 import {
   GetUploadedDocument,
   UploadedDocumentNotFoundError,
 } from '../../application/use-cases/GetUploadedDocument.js';
+import { InitializeDemoSessionData } from '../../application/use-cases/InitializeDemoSessionData.js';
 import { ListUploadedDocuments } from '../../application/use-cases/ListUploadedDocuments.js';
 import {
   InvalidUploadedDocumentError,
@@ -50,6 +55,7 @@ import {
   UploadedDocumentTooLargeError,
 } from '../../application/use-cases/StoreUploadedDocument.js';
 import { ListIncidents } from '../../application/use-cases/ListIncidents.js';
+import { ListMeetings } from '../../application/use-cases/ListMeetings.js';
 import {
   IncidentNotFoundError,
   ResolveIncident,
@@ -64,6 +70,7 @@ import type { ChatWorkflow } from '../../application/ports/ChatWorkflow.js';
 import type { CommunityNoticeGenerator } from '../../application/ports/CommunityNoticeGenerator.js';
 import type { IncidentClassifier } from '../../application/ports/IncidentClassifier.js';
 import type { IncidentRepository } from '../../application/ports/IncidentRepository.js';
+import type { MeetingRepository } from '../../application/ports/MeetingRepository.js';
 import type { PendingAgreementRepository } from '../../application/ports/PendingAgreementRepository.js';
 import type { SessionDocumentRetriever } from '../../application/ports/SessionDocumentRetriever.js';
 import { AiProviderError } from '../../application/ports/AiProviderError.js';
@@ -92,6 +99,7 @@ interface ApiAppOptions {
   readonly ids: IdGenerator;
   readonly incidentClassifier: IncidentClassifier;
   readonly incidentRepository: IncidentRepository;
+  readonly meetingRepository: MeetingRepository;
   readonly pendingAgreementRepository: PendingAgreementRepository;
   readonly repository: SessionRepository;
   readonly requestsLimit?: number;
@@ -118,8 +126,10 @@ export function createApiApp(options: ApiAppOptions) {
   const listIncidents = new ListIncidents({ repository: options.incidentRepository });
   const draftMeetingAgenda = new DraftMeetingAgenda({
     incidentRepository: options.incidentRepository,
+    meetingRepository: options.meetingRepository,
     pendingAgreementRepository: options.pendingAgreementRepository,
   });
+  const listMeetings = new ListMeetings({ meetingRepository: options.meetingRepository });
   const draftCommunityNotice = new DraftCommunityNotice({
     generator: options.communityNoticeGenerator,
   });
@@ -143,6 +153,10 @@ export function createApiApp(options: ApiAppOptions) {
   });
   const ensureSession = new EnsureDemoSession({
     clock: options.clock,
+    demoDataInitializer: new InitializeDemoSessionData({
+      incidentRepository: options.incidentRepository,
+      pendingAgreementRepository: options.pendingAgreementRepository,
+    }),
     ids: options.ids,
     repository: options.repository,
     requestsLimit: options.requestsLimit ?? 120,
@@ -279,10 +293,25 @@ export function createApiApp(options: ApiAppOptions) {
       }
 
       const session = await ensureSession.execute(readSignedSessionId(request));
-      const draft = await draftMeetingAgenda.execute({ sessionId: session.id });
+      const draft = await draftMeetingAgenda.execute({
+        sessionId: session.id,
+        meetingId: payloadResult.data.meetingId,
+      });
 
       attachSessionCookie(response, session.id, options);
       response.json(MeetingAgendaDraftResponseSchema.parse(draft));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get('/api/meetings', async (request: Request, response: Response, next) => {
+    try {
+      const session = await ensureSession.execute(readSignedSessionId(request));
+      const meetings = await listMeetings.execute({ sessionId: session.id });
+
+      attachSessionCookie(response, session.id, options);
+      response.json(MeetingListResponseSchema.parse(meetings));
     } catch (error) {
       next(error);
     }
@@ -510,6 +539,11 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
 
   if (error instanceof IncidentNotFoundError) {
     sendError(response, 404, 'INCIDENT_NOT_FOUND', error.message);
+    return;
+  }
+
+  if (error instanceof MeetingNotFoundError) {
+    sendError(response, 404, 'MEETING_NOT_FOUND', error.message);
     return;
   }
 

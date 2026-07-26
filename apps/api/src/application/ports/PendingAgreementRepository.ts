@@ -3,4 +3,5 @@ import type { PendingAgreement } from '../../domain/meetingAgenda/PendingAgreeme
 export interface PendingAgreementRepository {
   listBySession(sessionId: string): Promise<PendingAgreement[]>;
   save(pendingAgreement: PendingAgreement): Promise<void>;
+  saveIfAbsent(pendingAgreement: PendingAgreement): Promise<void>;
 }

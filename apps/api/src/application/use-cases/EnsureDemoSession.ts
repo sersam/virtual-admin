@@ -3,6 +3,10 @@ import type { Clock } from '../ports/Clock.js';
 import type { IdGenerator } from '../ports/IdGenerator.js';
 import type { SessionRepository } from '../ports/SessionRepository.js';
 
+interface DemoDataInitializer {
+  execute(sessionId: string): Promise<void>;
+}
+
 export class SessionUsageLimitReachedError extends Error {
   constructor() {
     super('La sesión ha superado el límite de uso de la demo.');
@@ -11,6 +15,7 @@ export class SessionUsageLimitReachedError extends Error {
 
 interface EnsureDemoSessionDependencies {
   readonly clock: Clock;
+  readonly demoDataInitializer?: DemoDataInitializer;
   readonly ids: IdGenerator;
   readonly repository: SessionRepository;
   readonly requestsLimit: number;
@@ -30,6 +35,8 @@ export class EnsureDemoSession {
     });
 
     if (consumed === 'limit_reached') throw new SessionUsageLimitReachedError();
+
+    await this.dependencies.demoDataInitializer?.execute(consumed.id);
 
     return consumed;
   }

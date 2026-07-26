@@ -17,7 +17,13 @@ export class InMemoryIncidentRepository implements IncidentRepository {
   }
 
   async save(incident: CommunityIncident): Promise<void> {
+    await this.saveIfAbsent(incident);
+  }
+
+  async saveIfAbsent(incident: CommunityIncident): Promise<void> {
     const current = this.incidents.get(incident.sessionId) ?? [];
+    if (current.some((storedIncident) => storedIncident.id === incident.id)) return;
+
     this.incidents.set(incident.sessionId, [...current, incident]);
   }
 

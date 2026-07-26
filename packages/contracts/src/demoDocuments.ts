@@ -42,6 +42,21 @@ const demoDocumentMetadata = {
     'acta',
     '/documents/acta-mayo-2026.pdf',
   ),
+  communityBudget2026: defineMetadata(
+    'Presupuesto comunitario 2026',
+    'presupuesto',
+    '/documents/presupuesto-comunitario-2026.pdf',
+  ),
+  poolMaintenanceNotice: defineMetadata(
+    'Comunicado mantenimiento piscina junio 2026',
+    'comunicado',
+    '/documents/comunicado-mantenimiento-piscina-junio-2026.pdf',
+  ),
+  garageInspectionNotice: defineMetadata(
+    'Comunicado revisión garaje julio 2026',
+    'comunicado',
+    '/documents/comunicado-revision-garaje-julio-2026.pdf',
+  ),
 } satisfies Record<string, DemoDocumentMetadata>;
 
 type DemoDocumentMetadataKey = keyof typeof demoDocumentMetadata;
@@ -82,6 +97,24 @@ export const demoCommunityDocuments: readonly DemoCommunityDocument[] = [
     'gardenMaintenanceContract',
     'Frecuencia de servicio',
     'La empresa Jardines Alba realizará mantenimiento semanal los martes por la mañana. En verano se añade una revisión adicional de riego cada viernes.',
+  ),
+  defineDemoDocument(
+    'presupuesto-2026-resumen',
+    'communityBudget2026',
+    'Resumen presupuestario',
+    'El presupuesto comunitario 2026 prevé cuotas ordinarias por 108.000 euros, gastos previstos por 96.000 euros y una reserva anual de 12.000 euros para imprevistos y mantenimiento preventivo.',
+  ),
+  defineDemoDocument(
+    'comunicado-piscina-junio-2026',
+    'poolMaintenanceNotice',
+    'Mantenimiento de piscina',
+    'La piscina comunitaria permanecerá cerrada el 16 de junio de 2026 entre las 08:00 y las 14:00 por trabajos de mantenimiento preventivo, limpieza técnica y revisión de depuradora.',
+  ),
+  defineDemoDocument(
+    'comunicado-garaje-julio-2026',
+    'garageInspectionNotice',
+    'Revisión eléctrica del garaje',
+    'El garaje comunitario tendrá una revisión eléctrica el 22 de julio de 2026 entre las 09:00 y las 12:00. Se solicita dejar libres los accesos a cuartos técnicos y plazas de maniobra.',
   ),
 ];
 

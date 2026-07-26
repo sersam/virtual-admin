@@ -12,4 +12,5 @@ export interface IncidentRepository {
     resolvedAt: Date,
   ): Promise<CommunityIncident | undefined>;
   save(incident: CommunityIncident): Promise<void>;
+  saveIfAbsent(incident: CommunityIncident): Promise<void>;
 }

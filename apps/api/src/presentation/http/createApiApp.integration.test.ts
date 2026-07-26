@@ -10,6 +10,7 @@ import { LangGraphChatWorkflow } from '../../infrastructure/agent/LangGraphChatW
 import { DeterministicCommunityNoticeGenerator } from '../../infrastructure/communication/DeterministicCommunityNoticeGenerator.js';
 import { DeterministicIncidentClassifier } from '../../infrastructure/incident/DeterministicIncidentClassifier.js';
 import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemoryIncidentRepository.js';
+import { InMemoryMeetingRepository } from '../../infrastructure/meeting/InMemoryMeetingRepository.js';
 import { InMemoryPendingAgreementRepository } from '../../infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
 import { AiProviderError } from '../../application/ports/AiProviderError.js';
 import { createApiApp } from './createApiApp.js';
@@ -64,6 +65,7 @@ function buildAppOptions(
     ids: { randomId: () => `00000000-0000-4000-8000-${String(++idSequence).padStart(12, '0')}` },
     incidentClassifier: new DeterministicIncidentClassifier(),
     incidentRepository: new InMemoryIncidentRepository(),
+    meetingRepository: new InMemoryMeetingRepository(),
     pendingAgreementRepository: new InMemoryPendingAgreementRepository(),
     repository: new InMemorySessionRepository(),
     requestsLimit,
@@ -294,6 +296,31 @@ describe('createApiApp', () => {
     expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
   });
 
+  it('lista las juntas demo seleccionables de la sesion', async () => {
+    const agent = request.agent(buildApp());
+
+    const response = await agent.get('/api/meetings');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      meetings: [
+        {
+          id: 'meeting-ordinary-2026-09-18',
+          kind: 'ordinaria',
+          title: 'Junta ordinaria',
+          scheduledAt: '2026-09-18T17:00:00.000Z',
+        },
+        {
+          id: 'meeting-extraordinary-2026-10-15',
+          kind: 'extraordinaria',
+          title: 'Junta extraordinaria',
+          scheduledAt: '2026-10-15T17:00:00.000Z',
+        },
+      ],
+    });
+    expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
+  });
+
   it('genera un orden del día con incidencias y acuerdos pendientes de la sesión', async () => {
     const agent = request.agent(buildApp(6));
     await agent.post('/api/meeting-minutes/draft').send({
@@ -306,14 +333,16 @@ describe('createApiApp', () => {
       description: 'Hay una fuga de agua urgente en el garaje.',
     });
 
-    const response = await agent.post('/api/meeting-agendas/draft').send({});
+    const response = await agent
+      .post('/api/meeting-agendas/draft')
+      .send({ meetingId: 'meeting-ordinary-2026-09-18' });
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
       draft: {
-        title: 'Orden del día',
+        title: 'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
         body: expect.stringContaining('fuga de agua urgente'),
-        items: [
+        items: expect.arrayContaining([
           expect.objectContaining({
             sourceType: 'incident',
             priority: 'urgente',
@@ -325,27 +354,59 @@ describe('createApiApp', () => {
             assignee: 'Ana',
             dueDate: '30 de junio',
           }),
-        ],
+        ]),
       },
       mode: 'deterministic-demo',
     });
+    expect(response.body.draft.items).toHaveLength(8);
     expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
   });
 
-  it('genera un orden del día vacío cuando la sesión no tiene asuntos pendientes', async () => {
+  it('genera un orden del día con los asuntos demo iniciales', async () => {
     const agent = request.agent(buildApp());
 
-    const response = await agent.post('/api/meeting-agendas/draft').send({});
+    const response = await agent
+      .post('/api/meeting-agendas/draft')
+      .send({ meetingId: 'meeting-ordinary-2026-09-18' });
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({
+    expect(response.body).toMatchObject({
       draft: {
-        title: 'Orden del día',
-        body: 'No hay asuntos pendientes para incluir en el orden del día.',
-        items: [],
+        title: 'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
+        body: expect.stringContaining('Fuga de agua urgente'),
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            sourceId: 'demo-fuga-agua-urgente',
+            sourceType: 'incident',
+          }),
+          expect.objectContaining({
+            sourceId: 'demo-acuerdo-ascensor',
+            sourceType: 'pending-agreement',
+          }),
+        ]),
       },
       mode: 'deterministic-demo',
     });
+    expect(response.body.draft.items).toHaveLength(6);
+  });
+
+  it('rechaza borradores de orden del dia sin junta seleccionada', async () => {
+    const response = await request(buildApp()).post('/api/meeting-agendas/draft').send({});
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    expect(response.headers['set-cookie']).toBeUndefined();
+  });
+
+  it('rechaza una junta inexistente para el borrador de orden del dia', async () => {
+    const agent = request.agent(buildApp());
+
+    const response = await agent
+      .post('/api/meeting-agendas/draft')
+      .send({ meetingId: 'meeting-missing' });
+
+    expect(response.status).toBe(404);
+    expect(response.body.error.code).toBe('MEETING_NOT_FOUND');
   });
 
   it('crea incidencias clasificadas desde el endpoint dedicado', async () => {
@@ -481,7 +542,7 @@ describe('createApiApp', () => {
       sources: [],
     });
     expect(listResponse.status).toBe(200);
-    expect(listResponse.body.incidents).toEqual([
+    expect(listResponse.body.incidents).toContainEqual(
       expect.objectContaining({
         description: 'Hay una fuga de agua urgente en el garaje.',
         type: 'agua',
@@ -489,7 +550,8 @@ describe('createApiApp', () => {
         suggestedResponsible: 'Fontanería',
         suggestedNotice: suggestedNoticeFor('Hay una fuga de agua urgente en el garaje.'),
       }),
-    ]);
+    );
+    expect(listResponse.body.incidents).toHaveLength(5);
   });
 
   it('lista incidencias de la sesión y permite filtrarlas por tipo', async () => {
@@ -505,9 +567,13 @@ describe('createApiApp', () => {
     const filtered = await agent.get('/api/incidents').query({ type: 'ascensor' });
 
     expect(list.status).toBe(200);
-    expect(list.body.incidents).toHaveLength(2);
+    expect(list.body.incidents).toHaveLength(6);
     expect(filtered.status).toBe(200);
     expect(filtered.body.incidents).toEqual([
+      expect.objectContaining({
+        id: 'demo-averia-ascensor',
+        type: 'ascensor',
+      }),
       expect.objectContaining({
         id: '00000000-0000-4000-8000-000000000003',
         type: 'ascensor',

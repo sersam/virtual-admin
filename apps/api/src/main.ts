@@ -9,6 +9,7 @@ import { PdfParseUploadedDocumentTextExtractor } from './infrastructure/document
 import { UploadedSessionDocumentRetriever } from './infrastructure/document/UploadedSessionDocumentRetriever.js';
 import { LangGraphChatWorkflow } from './infrastructure/agent/LangGraphChatWorkflow.js';
 import { InMemoryIncidentRepository } from './infrastructure/incident/InMemoryIncidentRepository.js';
+import { InMemoryMeetingRepository } from './infrastructure/meeting/InMemoryMeetingRepository.js';
 import { InMemoryPendingAgreementRepository } from './infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
 import { createAiProviders } from './infrastructure/openai/createAiProviders.js';
 
@@ -39,6 +40,7 @@ const app = createApiApp({
   ids: new UuidGenerator(),
   incidentClassifier: aiProviders.incidentClassifier,
   incidentRepository: new InMemoryIncidentRepository(),
+  meetingRepository: new InMemoryMeetingRepository(),
   pendingAgreementRepository: new InMemoryPendingAgreementRepository(),
   repository: new InMemorySessionRepository(),
   secureCookies: process.env.NODE_ENV === 'production',

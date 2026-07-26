@@ -74,4 +74,32 @@ describe('InMemoryIncidentRepository', () => {
     });
     await expect(repository.resolve('session-b', 'inc-0001', resolvedAt)).resolves.toBeUndefined();
   });
+
+  it('evita duplicar la misma incidencia dentro de una sesion', async () => {
+    const repository = new InMemoryIncidentRepository();
+    const incident = {
+      id: 'inc-0001',
+      sessionId: 'session-a',
+      description: 'Hay una fuga de agua en el garaje.',
+      type: 'agua' as const,
+      priority: 'alta' as const,
+      suggestedResponsible: 'Fontanería',
+      suggestedNotice: waterNotice,
+      createdAt: new Date('2026-06-27T10:00:00.000Z'),
+      status: 'pendiente' as const,
+      resolvedAt: null,
+    };
+
+    await repository.save(incident);
+    await repository.save({
+      ...incident,
+      description: 'Texto que no debe reemplazar el original.',
+    });
+    await repository.save({ ...incident, sessionId: 'session-b' });
+
+    await expect(repository.listBySession('session-a')).resolves.toEqual([incident]);
+    await expect(repository.listBySession('session-b')).resolves.toEqual([
+      expect.objectContaining({ id: 'inc-0001', sessionId: 'session-b' }),
+    ]);
+  });
 });
