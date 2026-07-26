@@ -295,6 +295,107 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
   await expect(draftRegion.getByText('Revisar contrato de limpieza')).toBeVisible();
 });
 
+test('registra propuestas vecinales y las incluye como fuente trazable de junta', async ({
+  page,
+}, testInfo) => {
+  const proposals: Array<{ id: string; description: string; createdAt: string }> = [];
+
+  await page.route('**/api/meetings', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        meetings: [
+          {
+            id: 'meeting-ordinary-2026-09-18',
+            kind: 'ordinaria',
+            title: 'Junta ordinaria',
+            scheduledAt: '2026-09-18T17:00:00.000Z',
+          },
+        ],
+      },
+      status: 200,
+    });
+  });
+  await page.route('**/api/proposals', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        contentType: 'application/json',
+        json: { proposals },
+        status: 200,
+      });
+      return;
+    }
+
+    const payload = route.request().postDataJSON() as { readonly description: string };
+    const proposal = {
+      id: 'proposal-1',
+      description: payload.description,
+      createdAt: '2026-07-26T10:00:00.000Z',
+    };
+    proposals.unshift(proposal);
+    await route.fulfill({
+      contentType: 'application/json',
+      json: { proposal },
+      status: 201,
+    });
+  });
+  await page.route('**/api/meeting-agendas/draft', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        draft: {
+          title: 'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
+          body:
+            proposals.length > 0
+              ? ['Orden del día', '', `1. ${proposals[0]!.description}`].join('\n')
+              : 'No hay asuntos pendientes para incluir en el orden del día.',
+          items: proposals.map((proposal) => ({
+            description: proposal.description,
+            sourceType: 'proposal',
+            sourceId: proposal.id,
+          })),
+        },
+        meeting: {
+          id: 'meeting-ordinary-2026-09-18',
+          kind: 'ordinaria',
+          title: 'Junta ordinaria',
+          scheduledAt: '2026-09-18T17:00:00.000Z',
+        },
+        mode: 'deterministic-demo',
+      },
+      status: 200,
+    });
+  });
+  await page.goto('/juntas');
+
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Registrar propuesta' }).scrollIntoViewIfNeeded();
+  }
+
+  await expect(page.getByText('Aún no hay propuestas registradas en esta sesión.')).toBeVisible();
+  await page.getByRole('button', { name: 'Preparar orden del día' }).click();
+  await expect(page.getByLabel('Borrador editable del orden del día')).toBeVisible();
+
+  await page
+    .getByLabel('Descripción de la propuesta')
+    .fill('Instalar aparcabicis en el patio interior.');
+  await page.getByRole('button', { name: 'Registrar propuesta' }).click();
+
+  await expect(page.getByRole('status')).toHaveText('Propuesta registrada.');
+  await expect(page.getByLabel('Descripción de la propuesta')).toHaveValue('');
+  await expect(page.getByText('Instalar aparcabicis en el patio interior.')).toBeVisible();
+  await expect(page.getByLabel('Borrador editable del orden del día')).toBeHidden();
+
+  await page.getByRole('button', { name: 'Preparar orden del día' }).click();
+
+  const draftRegion = page.getByLabel('Orden del día generado');
+  await expect(draftRegion.getByLabel('Borrador editable del orden del día')).toHaveValue(
+    /Instalar aparcabicis en el patio interior\./,
+  );
+  await expect(draftRegion.getByText('Propuesta vecinal')).toBeVisible();
+  await expect(draftRegion.getByText('proposal-1')).toBeVisible();
+});
+
 test('registra incidencias y filtra por tipo', async ({ context, page }, testInfo) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   const suggestedNoticeFor = (description: string) =>
