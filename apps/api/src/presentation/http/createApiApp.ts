@@ -145,6 +145,7 @@ export function createApiApp(options: ApiAppOptions) {
     incidentRepository: options.incidentRepository,
     meetingRepository: options.meetingRepository,
     pendingAgreementRepository: options.pendingAgreementRepository,
+    proposalRepository: options.proposalRepository,
   });
   const listMeetings = new ListMeetings({ meetingRepository: options.meetingRepository });
   const draftCommunityNotice = new DraftCommunityNotice({
