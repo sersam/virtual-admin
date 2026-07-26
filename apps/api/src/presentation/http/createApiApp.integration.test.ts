@@ -12,6 +12,7 @@ import { DeterministicIncidentClassifier } from '../../infrastructure/incident/D
 import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemoryIncidentRepository.js';
 import { InMemoryMeetingRepository } from '../../infrastructure/meeting/InMemoryMeetingRepository.js';
 import { InMemoryPendingAgreementRepository } from '../../infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
+import { InMemoryProposalRepository } from '../../infrastructure/proposal/InMemoryProposalRepository.js';
 import { AiProviderError } from '../../application/ports/AiProviderError.js';
 import { createApiApp } from './createApiApp.js';
 
@@ -67,6 +68,7 @@ function buildAppOptions(
     incidentRepository: new InMemoryIncidentRepository(),
     meetingRepository: new InMemoryMeetingRepository(),
     pendingAgreementRepository: new InMemoryPendingAgreementRepository(),
+    proposalRepository: new InMemoryProposalRepository(),
     repository: new InMemorySessionRepository(),
     requestsLimit,
     sessionDocumentRetriever: new UploadedSessionDocumentRetriever(uploadedDocumentRepository),
@@ -580,6 +582,91 @@ describe('createApiApp', () => {
         suggestedNotice: suggestedNoticeFor('El ascensor no funciona desde esta mañana.'),
       }),
     ]);
+  });
+
+  it('crea y lista propuestas vecinales de la sesion de mas reciente a mas antigua', async () => {
+    const agent = request.agent(buildApp(6));
+    const first = await agent.post('/api/proposals').send({
+      description: 'Instalar aparcabicis en el patio interior.',
+    });
+    const second = await agent.post('/api/proposals').send({
+      description: 'Crear una zona de compostaje comunitario.',
+    });
+    const list = await agent.get('/api/proposals');
+
+    expect(first.status).toBe(201);
+    expect(first.body).toEqual({
+      proposal: {
+        id: '00000000-0000-4000-8000-000000000002',
+        description: 'Instalar aparcabicis en el patio interior.',
+        createdAt: '2026-06-23T08:00:00.000Z',
+      },
+    });
+    expect(second.status).toBe(201);
+    expect(list.status).toBe(200);
+    expect(list.body.proposals).toEqual([second.body.proposal, first.body.proposal]);
+    expect(list.headers['set-cookie']?.[0]).toContain('va_session=');
+  });
+
+  it('mantiene propuestas aisladas por sesion y permite duplicados', async () => {
+    const app = buildApp(6);
+    const firstAgent = request.agent(app);
+    const secondAgent = request.agent(app);
+    await firstAgent.post('/api/proposals').send({
+      description: 'Instalar aparcabicis en el patio interior.',
+    });
+    await firstAgent.post('/api/proposals').send({
+      description: 'Instalar aparcabicis en el patio interior.',
+    });
+    await secondAgent.post('/api/proposals').send({
+      description: 'Crear una zona de compostaje comunitario.',
+    });
+
+    const firstList = await firstAgent.get('/api/proposals');
+    const secondList = await secondAgent.get('/api/proposals');
+
+    expect(firstList.body.proposals).toHaveLength(2);
+    expect(firstList.body.proposals[0].description).toBe(
+      'Instalar aparcabicis en el patio interior.',
+    );
+    expect(firstList.body.proposals[0].id).not.toBe(firstList.body.proposals[1].id);
+    expect(secondList.body.proposals).toEqual([
+      expect.objectContaining({
+        description: 'Crear una zona de compostaje comunitario.',
+      }),
+    ]);
+  });
+
+  it('valida propuestas antes de consumir sesion', async () => {
+    let consumeRequestCount = 0;
+    const app = buildApp(3, {
+      repository: {
+        consumeRequest: async () => {
+          consumeRequestCount += 1;
+          return 'limit_reached';
+        },
+        findById: async () => undefined,
+        save: async () => {
+          /* no-op */
+        },
+      },
+    });
+
+    const shortDescription = await request(app)
+      .post('/api/proposals')
+      .send({ description: 'corta' });
+    const unknownField = await request(app).post('/api/proposals').send({
+      description: 'Instalar aparcabicis en el patio interior.',
+      priority: 'alta',
+    });
+
+    expect(shortDescription.status).toBe(400);
+    expect(shortDescription.body.error.code).toBe('VALIDATION_ERROR');
+    expect(shortDescription.headers['set-cookie']).toBeUndefined();
+    expect(unknownField.status).toBe(400);
+    expect(unknownField.body.error.code).toBe('VALIDATION_ERROR');
+    expect(unknownField.headers['set-cookie']).toBeUndefined();
+    expect(consumeRequestCount).toBe(0);
   });
 
   it('valida el formato del endpoint de comunicados antes de consumir sesión', async () => {

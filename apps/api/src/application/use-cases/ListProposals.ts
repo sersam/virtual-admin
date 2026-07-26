@@ -23,5 +23,5 @@ function compareRecentFirst(first: CommunityProposal, second: CommunityProposal)
   const createdAtDiff = second.createdAt.getTime() - first.createdAt.getTime();
   if (createdAtDiff !== 0) return createdAtDiff;
 
-  return first.id.localeCompare(second.id);
+  return second.id.localeCompare(first.id);
 }

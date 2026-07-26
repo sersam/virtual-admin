@@ -40,8 +40,8 @@ describe('ListProposals', () => {
     });
 
     await expect(useCase.execute({ sessionId: 'session-a' })).resolves.toEqual([
-      expect.objectContaining({ id: 'proposal-a' }),
       expect.objectContaining({ id: 'proposal-b' }),
+      expect.objectContaining({ id: 'proposal-a' }),
     ]);
   });
 
