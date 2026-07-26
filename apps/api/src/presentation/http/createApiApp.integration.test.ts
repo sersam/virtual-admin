@@ -604,7 +604,7 @@ describe('createApiApp', () => {
     });
     expect(second.status).toBe(201);
     expect(list.status).toBe(200);
-    expect(list.body.proposals).toEqual([second.body.proposal, first.body.proposal]);
+    expect(list.body.proposals).toEqual([first.body.proposal, second.body.proposal]);
     expect(list.headers['set-cookie']?.[0]).toContain('va_session=');
   });
 

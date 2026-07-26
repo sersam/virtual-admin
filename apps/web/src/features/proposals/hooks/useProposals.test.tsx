@@ -122,4 +122,28 @@ describe('useProposals', () => {
     expect(result.current.error).toBe('No se pudo registrar la propuesta. Inténtalo de nuevo.');
     expect(result.current.proposals).toEqual([proposal]);
   });
+
+  it('muestra mensajes de error propagados por la API', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ proposals: [] }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            error: {
+              code: 'SESSION_LIMIT_REACHED',
+              message: 'Has alcanzado el límite de uso de esta sesión demo.',
+            },
+          }),
+          { status: 429 },
+        ),
+      );
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { result } = renderHook(() => useProposals());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await act(() => result.current.create('Crear una zona de compostaje comunitario.'));
+
+    expect(result.current.status).toBe('error');
+    expect(result.current.error).toBe('Has alcanzado el límite de uso de esta sesión demo.');
+  });
 });

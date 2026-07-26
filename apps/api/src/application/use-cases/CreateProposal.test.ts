@@ -41,6 +41,34 @@ describe('CreateProposal', () => {
     ).rejects.toThrow('La descripción de la propuesta debe tener entre 10 y 1000 caracteres.');
   });
 
+  it('acepta limites exactos de descripcion y rechaza valores demasiado largos', async () => {
+    const repository = createProposalRepository();
+    const useCase = new CreateProposal({
+      clock: { now: () => new Date('2026-07-26T10:00:00.000Z') },
+      ids: { randomId: () => 'proposal-0001' },
+      repository,
+    });
+
+    await expect(
+      useCase.execute({
+        sessionId: 'session-a',
+        description: '1234567890',
+      }),
+    ).resolves.toEqual(expect.objectContaining({ description: '1234567890' }));
+    await expect(
+      useCase.execute({
+        sessionId: 'session-a',
+        description: 'a'.repeat(1_000),
+      }),
+    ).resolves.toEqual(expect.objectContaining({ description: 'a'.repeat(1_000) }));
+    await expect(
+      useCase.execute({
+        sessionId: 'session-a',
+        description: 'a'.repeat(1_001),
+      }),
+    ).rejects.toThrow('La descripción de la propuesta debe tener entre 10 y 1000 caracteres.');
+  });
+
   it('propaga errores del repositorio', async () => {
     const useCase = new CreateProposal({
       clock: { now: () => new Date('2026-07-26T10:00:00.000Z') },

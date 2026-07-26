@@ -1,10 +1,8 @@
+import { ProposalDescriptionMaxLength, ProposalDescriptionMinLength } from '@admin/contracts';
 import type { CommunityProposal } from '../../domain/proposal/CommunityProposal.js';
 import type { Clock } from '../ports/Clock.js';
 import type { IdGenerator } from '../ports/IdGenerator.js';
 import type { ProposalRepository } from '../ports/ProposalRepository.js';
-
-const MIN_DESCRIPTION_LENGTH = 10;
-const MAX_DESCRIPTION_LENGTH = 1_000;
 
 interface CreateProposalDependencies {
   readonly clock: Clock;
@@ -29,8 +27,8 @@ export class CreateProposal {
   async execute(input: CreateProposalInput): Promise<CommunityProposal> {
     const description = input.description.trim();
     if (
-      description.length < MIN_DESCRIPTION_LENGTH ||
-      description.length > MAX_DESCRIPTION_LENGTH
+      description.length < ProposalDescriptionMinLength ||
+      description.length > ProposalDescriptionMaxLength
     ) {
       throw new InvalidProposalDescriptionError();
     }

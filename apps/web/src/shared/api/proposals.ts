@@ -1,6 +1,7 @@
 import {
   CreateProposalRequestSchema,
   CreateProposalResponseSchema,
+  ErrorResponseSchema,
   ProposalListResponseSchema,
   type CommunityProposal,
 } from '@admin/contracts';
@@ -20,7 +21,12 @@ export async function createProposal(
   });
 
   if (!response.ok) {
-    throw new Error(`No se pudo registrar la propuesta (HTTP ${response.status}).`);
+    throw new Error(
+      await readErrorMessage(
+        response,
+        `No se pudo registrar la propuesta (HTTP ${response.status}).`,
+      ),
+    );
   }
 
   return CreateProposalResponseSchema.parse(await response.json()).proposal;
@@ -34,8 +40,19 @@ export async function listProposals(signal?: AbortSignal): Promise<CommunityProp
   });
 
   if (!response.ok) {
-    throw new Error(`No se pudieron listar las propuestas (HTTP ${response.status}).`);
+    throw new Error(
+      await readErrorMessage(
+        response,
+        `No se pudieron listar las propuestas (HTTP ${response.status}).`,
+      ),
+    );
   }
 
   return ProposalListResponseSchema.parse(await response.json()).proposals;
+}
+
+async function readErrorMessage(response: Response, fallback: string): Promise<string> {
+  const body = await response.json().catch(() => undefined);
+
+  return ErrorResponseSchema.safeParse(body).data?.error.message ?? fallback;
 }

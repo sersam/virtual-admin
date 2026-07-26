@@ -1,14 +1,25 @@
 import { z } from 'zod';
 
+export const ProposalDescriptionMinLength = 10;
+export const ProposalDescriptionMaxLength = 1_000;
+
 export const CreateProposalRequestSchema = z
   .object({
-    description: z.string().trim().min(10).max(1_000),
+    description: z
+      .string()
+      .trim()
+      .min(ProposalDescriptionMinLength)
+      .max(ProposalDescriptionMaxLength),
   })
   .strict();
 
 export const CommunityProposalSchema = z.object({
   id: z.string().trim().min(1).max(80),
-  description: z.string().trim().min(10).max(1_000),
+  description: z
+    .string()
+    .trim()
+    .min(ProposalDescriptionMinLength)
+    .max(ProposalDescriptionMaxLength),
   createdAt: z.iso.datetime(),
 });
 

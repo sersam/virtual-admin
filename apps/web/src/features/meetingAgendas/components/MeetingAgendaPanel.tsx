@@ -1,4 +1,10 @@
-import type { CommunityProposal, Meeting, MeetingAgendaItem } from '@admin/contracts';
+import {
+  ProposalDescriptionMaxLength,
+  ProposalDescriptionMinLength,
+  type CommunityProposal,
+  type Meeting,
+  type MeetingAgendaItem,
+} from '@admin/contracts';
 import {
   CalendarCheck,
   ClipboardList,
@@ -25,13 +31,9 @@ const priorityLabels = {
   urgente: 'Urgente',
 };
 
-const MIN_PROPOSAL_LENGTH = 10;
-const MAX_PROPOSAL_LENGTH = 1_000;
-
 export function MeetingAgendaPanel() {
   const [editableDraftBody, setEditableDraftBody] = useState('');
   const [draftInvalidated, setDraftInvalidated] = useState(false);
-  const [proposalAnnouncement, setProposalAnnouncement] = useState('');
   const [proposalDescription, setProposalDescription] = useState('');
   const [selectedMeetingId, setSelectedMeetingId] = useState('');
   const { error, generate, reset, result, status } = useMeetingAgendaDraft();
@@ -81,7 +83,6 @@ export function MeetingAgendaPanel() {
     if (!created) return;
 
     setProposalDescription('');
-    setProposalAnnouncement('Propuesta registrada.');
     setDraftInvalidated(true);
     setEditableDraftBody('');
     reset();
@@ -195,7 +196,7 @@ export function MeetingAgendaPanel() {
       </div>
 
       <ProposalsSection
-        announcement={proposalAnnouncement || successMessage}
+        announcement={successMessage}
         creating={creatingProposal}
         description={proposalDescription}
         error={proposalsError}
@@ -306,7 +307,8 @@ function ProposalsSection({
   readonly proposals: readonly CommunityProposal[];
   readonly status: 'idle' | 'loading' | 'ready' | 'creating' | 'error';
 }) {
-  const trimmedLength = description.trim().length;
+  const proposalDescriptionHelpId = 'proposal-description-help';
+  const proposalDescriptionErrorId = 'proposal-description-error';
 
   return (
     <section className="card p-6" aria-labelledby="community-proposals-title">
@@ -333,14 +335,19 @@ function ProposalsSection({
         </label>
         <textarea
           className="min-h-32 w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-6 text-navy-950 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+          aria-describedby={`${proposalDescriptionHelpId}${error ? ` ${proposalDescriptionErrorId}` : ''}`}
           id="proposal-description"
-          maxLength={MAX_PROPOSAL_LENGTH}
+          maxLength={ProposalDescriptionMaxLength}
           onChange={(event) => onDescriptionChange(event.target.value)}
           value={description}
         />
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-            {trimmedLength}/{MAX_PROPOSAL_LENGTH} · mínimo {MIN_PROPOSAL_LENGTH}
+          <p
+            className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500"
+            id={proposalDescriptionHelpId}
+          >
+            {description.length}/{ProposalDescriptionMaxLength} · mínimo{' '}
+            {ProposalDescriptionMinLength}
           </p>
           <button className="primary-button" disabled={creating} type="submit">
             <PlusCircle aria-hidden="true" size={17} />
@@ -354,7 +361,15 @@ function ProposalsSection({
           {announcement}
         </p>
       )}
-      {error && <p className="mt-4 text-sm font-semibold text-red-700">{error}</p>}
+      {error && (
+        <p
+          className="mt-4 text-sm font-semibold text-red-700"
+          id={proposalDescriptionErrorId}
+          role="alert"
+        >
+          {error}
+        </p>
+      )}
       {status === 'loading' && (
         <p className="mt-4 text-sm font-semibold text-slate-600">Cargando propuestas...</p>
       )}

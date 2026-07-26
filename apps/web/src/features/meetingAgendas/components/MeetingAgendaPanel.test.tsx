@@ -236,7 +236,7 @@ describe('MeetingAgendaPanel', () => {
 
     expect(screen.getByText('Propuestas vecinales')).toBeInTheDocument();
     expect(screen.getByText('Instalar aparcabicis en el patio interior.')).toBeInTheDocument();
-    expect(screen.getByText('26 jul 2026, 12:00')).toBeInTheDocument();
+    expect(screen.getByText(/^26 jul\.? 2026, 12:00$/)).toBeInTheDocument();
   });
 
   it('registra una propuesta, limpia el campo e invalida el borrador visible', async () => {
@@ -269,6 +269,7 @@ describe('MeetingAgendaPanel', () => {
       create,
       proposals: [],
       status: 'ready',
+      successMessage: 'Propuesta registrada.',
     });
 
     render(<MeetingAgendaPanel />);
@@ -311,7 +312,11 @@ describe('MeetingAgendaPanel', () => {
     render(<MeetingAgendaPanel />);
 
     const textarea = screen.getByLabelText('Descripción de la propuesta');
-    expect(screen.getByText('No se pudieron cargar las propuestas.')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pudieron cargar las propuestas.');
+    expect(textarea).toHaveAttribute(
+      'aria-describedby',
+      'proposal-description-help proposal-description-error',
+    );
     expect(textarea).toBeEnabled();
 
     await user.type(textarea, 'Crear una zona de compostaje comunitario.');

@@ -56,4 +56,37 @@ describe('proposals api', () => {
     );
     await expect(listProposals()).rejects.toThrow();
   });
+
+  it('propaga mensajes de error del backend si estan disponibles', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            error: {
+              code: 'SESSION_LIMIT_REACHED',
+              message: 'Has alcanzado el límite de uso de esta sesión demo.',
+            },
+          }),
+          { status: 429 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            error: {
+              code: 'SESSION_LIMIT_REACHED',
+              message: 'Has alcanzado el límite de uso de esta sesión demo.',
+            },
+          }),
+          { status: 429 },
+        ),
+      );
+
+    await expect(createProposal(proposal.description)).rejects.toThrow(
+      'Has alcanzado el límite de uso de esta sesión demo.',
+    );
+    await expect(listProposals()).rejects.toThrow(
+      'Has alcanzado el límite de uso de esta sesión demo.',
+    );
+  });
 });

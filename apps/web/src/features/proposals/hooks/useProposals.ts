@@ -1,4 +1,8 @@
-import type { CommunityProposal } from '@admin/contracts';
+import {
+  ProposalDescriptionMaxLength,
+  ProposalDescriptionMinLength,
+  type CommunityProposal,
+} from '@admin/contracts';
 import { useEffect, useRef, useState } from 'react';
 import {
   createProposal as createProposalRequest,
@@ -6,9 +10,6 @@ import {
 } from '../../../shared/api/proposals';
 
 export type ProposalsStatus = 'idle' | 'loading' | 'ready' | 'creating' | 'error';
-
-const MIN_DESCRIPTION_LENGTH = 10;
-const MAX_DESCRIPTION_LENGTH = 1_000;
 
 interface ProposalsState {
   readonly error?: string;
@@ -52,7 +53,7 @@ export function useProposals() {
       console.error('[useProposals] No se pudieron cargar las propuestas de sesión.', error);
       setState((current) => ({
         ...current,
-        error: 'No se pudieron cargar las propuestas.',
+        error: readErrorMessage(error, 'No se pudieron cargar las propuestas.'),
         status: 'error',
         successMessage: undefined,
       }));
@@ -64,12 +65,12 @@ export function useProposals() {
 
     const trimmedDescription = description.trim();
     if (
-      trimmedDescription.length < MIN_DESCRIPTION_LENGTH ||
-      trimmedDescription.length > MAX_DESCRIPTION_LENGTH
+      trimmedDescription.length < ProposalDescriptionMinLength ||
+      trimmedDescription.length > ProposalDescriptionMaxLength
     ) {
       setState((current) => ({
         ...current,
-        error: `La descripción debe tener entre ${MIN_DESCRIPTION_LENGTH} y ${MAX_DESCRIPTION_LENGTH} caracteres.`,
+        error: `La descripción debe tener entre ${ProposalDescriptionMinLength} y ${ProposalDescriptionMaxLength} caracteres.`,
         status: 'error',
         successMessage: undefined,
       }));
@@ -96,7 +97,7 @@ export function useProposals() {
       console.error('[useProposals] No se pudo registrar la propuesta.', error);
       setState((current) => ({
         ...current,
-        error: 'No se pudo registrar la propuesta. Inténtalo de nuevo.',
+        error: readErrorMessage(error, 'No se pudo registrar la propuesta. Inténtalo de nuevo.'),
         status: 'error',
         successMessage: undefined,
       }));
@@ -107,4 +108,10 @@ export function useProposals() {
   }
 
   return { ...state, create };
+}
+
+function readErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof Error) || !error.message || error.message === 'network') return fallback;
+
+  return error.message;
 }

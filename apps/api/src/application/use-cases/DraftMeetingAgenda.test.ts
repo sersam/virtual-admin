@@ -466,6 +466,24 @@ describe('DraftMeetingAgenda', () => {
       useCase.execute({ sessionId: 'session-a', meetingId: 'meeting-ordinary-2026-09-18' }),
     ).rejects.toThrow('pending agreements unavailable');
   });
+
+  it('propaga errores al listar propuestas', async () => {
+    const useCase = new DraftMeetingAgenda({
+      incidentRepository: createIncidentRepository([]),
+      pendingAgreementRepository: createPendingAgreementRepository([]),
+      proposalRepository: {
+        ...createProposalRepository([]),
+        listBySession: async () => {
+          throw new Error('proposals unavailable');
+        },
+      },
+      meetingRepository: createMeetingRepository(),
+    });
+
+    await expect(
+      useCase.execute({ sessionId: 'session-a', meetingId: 'meeting-ordinary-2026-09-18' }),
+    ).rejects.toThrow('proposals unavailable');
+  });
 });
 
 function createIncidentRepository(incidents: readonly CommunityIncident[]): IncidentRepository {

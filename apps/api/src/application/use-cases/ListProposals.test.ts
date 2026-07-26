@@ -45,6 +45,17 @@ describe('ListProposals', () => {
     ]);
   });
 
+  it('devuelve un listado vacio cuando la sesion no tiene propuestas', async () => {
+    const useCase = new ListProposals({
+      repository: {
+        listBySession: async () => [],
+        save: async () => undefined,
+      },
+    });
+
+    await expect(useCase.execute({ sessionId: 'session-a' })).resolves.toEqual([]);
+  });
+
   it('propaga errores del repositorio', async () => {
     const useCase = new ListProposals({
       repository: {
