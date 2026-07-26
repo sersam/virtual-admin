@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   MeetingAgendaDraftRequestSchema,
   MeetingAgendaDraftResponseSchema,
+  MeetingAgendaItemSchema,
 } from './meetingAgendas.js';
 
 describe('meeting agenda contracts', () => {
@@ -113,6 +114,29 @@ describe('meeting agenda contracts', () => {
           scheduledAt: '2026-09-18T17:00:00.000Z',
         },
         mode: 'deterministic-demo',
+      }),
+    ).toThrow();
+  });
+
+  it('acepta propuestas vecinales trazables sin prioridad', () => {
+    expect(
+      MeetingAgendaItemSchema.parse({
+        description: 'Instalar aparcabicis en el patio interior.',
+        sourceType: 'proposal',
+        sourceId: 'proposal-0001',
+      }),
+    ).toEqual({
+      description: 'Instalar aparcabicis en el patio interior.',
+      sourceType: 'proposal',
+      sourceId: 'proposal-0001',
+    });
+
+    expect(() =>
+      MeetingAgendaItemSchema.parse({
+        description: 'Instalar aparcabicis en el patio interior.',
+        priority: 'media',
+        sourceType: 'proposal',
+        sourceId: 'proposal-0001',
       }),
     ).toThrow();
   });
