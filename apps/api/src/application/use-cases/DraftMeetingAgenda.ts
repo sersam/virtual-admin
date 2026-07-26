@@ -230,8 +230,10 @@ function formatPriority(priority: IncidentPriority): string {
 function formatSourceDetails(item: PrioritizedAgendaItem): string {
   const sourceName = item.sourceType === 'incident' ? 'incidencia' : 'acuerdo pendiente';
   const details = [`Origen: ${sourceName} ${item.sourceId}.`];
-  if (item.assignee) details.push(`Responsable: ${item.assignee}.`);
-  if (item.dueDate) details.push(`Fecha: ${item.dueDate}.`);
+  if (item.sourceType === 'pending-agreement') {
+    if (item.assignee) details.push(`Responsable: ${item.assignee}.`);
+    if (item.dueDate) details.push(`Fecha: ${item.dueDate}.`);
+  }
 
   return details.join(' ');
 }
