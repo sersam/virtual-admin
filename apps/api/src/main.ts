@@ -7,18 +7,15 @@ import { InMemoryUploadedDocumentRepository } from './infrastructure/document/In
 import { PdfParseUploadedDocumentTextExtractor } from './infrastructure/document/PdfParseUploadedDocumentTextExtractor.js';
 import { UploadedSessionDocumentRetriever } from './infrastructure/document/UploadedSessionDocumentRetriever.js';
 import { LangGraphChatWorkflow } from './infrastructure/agent/LangGraphChatWorkflow.js';
-import { InMemoryIncidentRepository } from './infrastructure/incident/InMemoryIncidentRepository.js';
 import { InMemoryMeetingRepository } from './infrastructure/meeting/InMemoryMeetingRepository.js';
-import { InMemoryPendingAgreementRepository } from './infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
-import { InMemoryProposalRepository } from './infrastructure/proposal/InMemoryProposalRepository.js';
 import { createAiProviders } from './infrastructure/openai/createAiProviders.js';
-import { createSessionRepository } from './infrastructure/session/createSessionRepository.js';
+import { createApiPersistence } from './infrastructure/persistence/createApiPersistence.js';
 
 const port = Number(process.env.PORT ?? 3000);
 const cookieSecret = readRequiredEnvironmentVariable('COOKIE_SECRET');
 const uploadedDocumentRepository = new InMemoryUploadedDocumentRepository();
 const aiProviders = createAiProviders({ openAiApiKey: process.env.OPENAI_API_KEY });
-const sessionPersistence = await createSessionRepository({ databaseUrl: process.env.DATABASE_URL });
+const persistence = await createApiPersistence({ databaseUrl: process.env.DATABASE_URL });
 
 const app = createApiApp({
   clock: new SystemClock(),
@@ -41,11 +38,11 @@ const app = createApiApp({
   documentRetriever: new LexicalDocumentRetriever(residencialSierraNevadaDocuments),
   ids: new UuidGenerator(),
   incidentClassifier: aiProviders.incidentClassifier,
-  incidentRepository: new InMemoryIncidentRepository(),
+  incidentRepository: persistence.incidentRepository,
   meetingRepository: new InMemoryMeetingRepository(),
-  pendingAgreementRepository: new InMemoryPendingAgreementRepository(),
-  proposalRepository: new InMemoryProposalRepository(),
-  repository: sessionPersistence.repository,
+  pendingAgreementRepository: persistence.pendingAgreementRepository,
+  proposalRepository: persistence.proposalRepository,
+  repository: persistence.sessionRepository,
   secureCookies: process.env.NODE_ENV === 'production',
   version: '0.1.0',
   sessionDocumentRetriever: new UploadedSessionDocumentRetriever(uploadedDocumentRepository),
@@ -60,7 +57,7 @@ const server = app.listen(port, () => {
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
     server.close(() => {
-      void sessionPersistence.close().finally(() => {
+      void persistence.close().finally(() => {
         process.exit(0);
       });
     });

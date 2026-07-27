@@ -1,16 +1,15 @@
 import { fileURLToPath } from 'node:url';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import pg from 'pg';
+import { createPostgresPool } from './createPostgresPool.js';
 
-const { Pool } = pg;
 const migrationsFolder = fileURLToPath(new URL('../../../drizzle', import.meta.url));
 
-export async function migrateSessionsDatabase(databaseUrl: string): Promise<void> {
+export async function migrateDatabase(databaseUrl: string): Promise<void> {
   if (!databaseUrl.trim())
     throw new Error('DATABASE_URL es obligatoria para migrar la base de datos.');
 
-  const pool = new Pool({ connectionString: databaseUrl });
+  const pool = createPostgresPool({ connectionString: databaseUrl });
 
   try {
     await migrate(drizzle(pool), { migrationsFolder });
@@ -19,6 +18,6 @@ export async function migrateSessionsDatabase(databaseUrl: string): Promise<void
   }
 }
 
-export function getSessionsMigrationsFolder(): string {
+export function getMigrationsFolder(): string {
   return migrationsFolder;
 }

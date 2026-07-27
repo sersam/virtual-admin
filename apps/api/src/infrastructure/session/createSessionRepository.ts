@@ -1,9 +1,9 @@
-import pg from 'pg';
+import type pg from 'pg';
 import type { SessionRepository } from '../../application/ports/SessionRepository.js';
+import { createPostgresPool } from '../database/createPostgresPool.js';
 import { InMemorySessionRepository } from './InMemorySessionRepository.js';
 import { PostgresSessionRepository } from './PostgresSessionRepository.js';
 
-const { Pool } = pg;
 const defaultPostgresConnectionTimeoutMillis = 5_000;
 
 interface CreateSessionRepositoryOptions {
@@ -26,7 +26,7 @@ export function createSessionRepository(
     });
   }
 
-  const pool = new Pool({
+  const pool = createPostgresPool({
     connectionString: options.databaseUrl,
     connectionTimeoutMillis:
       options.connectionTimeoutMillis ?? defaultPostgresConnectionTimeoutMillis,

@@ -1,6 +1,6 @@
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { migrateSessionsDatabase } from '../database/migrateSessionsDatabase.js';
+import { migrateDatabase } from '../database/migrateDatabase.js';
 import { InMemorySessionRepository } from './InMemorySessionRepository.js';
 import { PostgresSessionRepository } from './PostgresSessionRepository.js';
 import { createSessionRepository } from './createSessionRepository.js';
@@ -24,7 +24,7 @@ describe('createSessionRepository', () => {
     unmigratedContainer = await new PostgreSqlContainer('postgres:16-alpine').start();
     migratedDatabaseUrl = migratedContainer.getConnectionUri();
     unmigratedDatabaseUrl = unmigratedContainer.getConnectionUri();
-    await migrateSessionsDatabase(migratedDatabaseUrl);
+    await migrateDatabase(migratedDatabaseUrl);
   }, 120_000);
 
   afterAll(async () => {

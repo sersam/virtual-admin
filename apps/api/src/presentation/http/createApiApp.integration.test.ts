@@ -1,3 +1,4 @@
+import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import type { DemoSession } from '../../domain/session/DemoSession.js';
@@ -13,6 +14,9 @@ import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemo
 import { InMemoryMeetingRepository } from '../../infrastructure/meeting/InMemoryMeetingRepository.js';
 import { InMemoryPendingAgreementRepository } from '../../infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
 import { InMemoryProposalRepository } from '../../infrastructure/proposal/InMemoryProposalRepository.js';
+import { createPostgresPool } from '../../infrastructure/database/createPostgresPool.js';
+import { migrateDatabase } from '../../infrastructure/database/migrateDatabase.js';
+import { createApiPersistence } from '../../infrastructure/persistence/createApiPersistence.js';
 import { AiProviderError } from '../../application/ports/AiProviderError.js';
 import { createApiApp } from './createApiApp.js';
 
@@ -113,6 +117,141 @@ describe('createApiApp', () => {
     expect(second.body.session.id).toBe(first.body.session.id);
     expect(second.body.session.requestsUsed).toBe(2);
   });
+
+  it('recupera estado comunitario PostgreSQL tras reiniciar la persistencia', async () => {
+    const container = await new PostgreSqlContainer('postgres:16-alpine').start();
+    const databaseUrl = container.getConnectionUri();
+    await migrateDatabase(databaseUrl);
+    let cookie: string[] | undefined;
+    let sessionId: string | undefined;
+
+    try {
+      const firstPersistence = await createApiPersistence({ databaseUrl });
+      try {
+        const firstAgent = request.agent(
+          buildApp(12, {
+            incidentRepository: firstPersistence.incidentRepository,
+            pendingAgreementRepository: firstPersistence.pendingAgreementRepository,
+            proposalRepository: firstPersistence.proposalRepository,
+            repository: firstPersistence.sessionRepository,
+          }),
+        );
+        const session = await firstAgent.get('/api/session').expect(200);
+        sessionId = session.body.session.id;
+        await firstAgent.post('/api/incidents').send({
+          description: 'Hay una fuga de agua urgente en el garaje.',
+        });
+        await firstAgent.post('/api/proposals').send({
+          description: 'Instalar sensores de presencia en zonas comunes.',
+        });
+        const minutes = await firstAgent.post('/api/meeting-minutes/draft').send({
+          notes: [
+            'Junta ordinaria del 12 de junio.',
+            'Tarea: Revisar contrato de limpieza; Responsable: Ana; Fecha: 30 de junio',
+          ].join('\n'),
+        });
+        cookie = readSetCookie(minutes.headers['set-cookie']);
+        expect(sessionId).toBeTypeOf('string');
+        expect(cookie).toBeDefined();
+      } finally {
+        await firstPersistence.close();
+      }
+
+      const authenticatedCookie = cookie;
+      const capturedSessionId = sessionId;
+      expect(authenticatedCookie).toBeDefined();
+      expect(capturedSessionId).toBeTypeOf('string');
+      if (!authenticatedCookie || !capturedSessionId) {
+        throw new Error('La prueba no capturó la cookie o la sesión PostgreSQL.');
+      }
+
+      const secondPersistence = await createApiPersistence({ databaseUrl });
+      try {
+        let secondIdSequence = 100;
+        const secondApp = buildApp(12, {
+          ids: {
+            randomId: () =>
+              `00000000-0000-4000-8000-${String(++secondIdSequence).padStart(12, '0')}`,
+          },
+          incidentRepository: secondPersistence.incidentRepository,
+          pendingAgreementRepository: secondPersistence.pendingAgreementRepository,
+          proposalRepository: secondPersistence.proposalRepository,
+          repository: secondPersistence.sessionRepository,
+        });
+        const incidents = await request(secondApp)
+          .get('/api/incidents')
+          .set('Cookie', authenticatedCookie);
+        const proposals = await request(secondApp)
+          .get('/api/proposals')
+          .set('Cookie', authenticatedCookie);
+        const agenda = await request(secondApp)
+          .post('/api/meeting-agendas/draft')
+          .set('Cookie', authenticatedCookie)
+          .send({ meetingId: 'meeting-ordinary-2026-09-18' });
+        const isolated = await request(secondApp).get('/api/incidents');
+
+        expect(incidents.body.incidents).toContainEqual(
+          expect.objectContaining({
+            description: 'Hay una fuga de agua urgente en el garaje.',
+          }),
+        );
+        expect(proposals.body.proposals).toContainEqual(
+          expect.objectContaining({
+            description: 'Instalar sensores de presencia en zonas comunes.',
+          }),
+        );
+        expect(agenda.body.draft.items).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              description: 'Revisar contrato de limpieza',
+              sourceType: 'pending-agreement',
+            }),
+            expect.objectContaining({
+              description: 'Instalar sensores de presencia en zonas comunes.',
+              sourceType: 'proposal',
+            }),
+          ]),
+        );
+        expect(isolated.body.incidents).not.toContainEqual(
+          expect.objectContaining({
+            description: 'Hay una fuga de agua urgente en el garaje.',
+          }),
+        );
+      } finally {
+        await secondPersistence.close();
+      }
+
+      const expiredPersistence = await createApiPersistence({ databaseUrl });
+      try {
+        let expiredIdSequence = 200;
+        const expiredApp = buildApp(12, {
+          clock: { now: () => new Date('2026-06-23T08:02:00.000Z') },
+          ids: {
+            randomId: () =>
+              `00000000-0000-4000-8000-${String(++expiredIdSequence).padStart(12, '0')}`,
+          },
+          incidentRepository: expiredPersistence.incidentRepository,
+          pendingAgreementRepository: expiredPersistence.pendingAgreementRepository,
+          proposalRepository: expiredPersistence.proposalRepository,
+          repository: expiredPersistence.sessionRepository,
+        });
+        const renewed = await request(expiredApp)
+          .get('/api/incidents')
+          .set('Cookie', authenticatedCookie);
+
+        expect(renewed.body.incidents).not.toContainEqual(
+          expect.objectContaining({
+            description: 'Hay una fuga de agua urgente en el garaje.',
+          }),
+        );
+        await expect(countCommunityRows(databaseUrl, capturedSessionId)).resolves.toBe(0);
+      } finally {
+        await expiredPersistence.close();
+      }
+    } finally {
+      await container.stop();
+    }
+  }, 120_000);
 
   it('marca la cookie como segura cuando se configura para producción', async () => {
     const app = buildApp(3, {
@@ -933,3 +1072,28 @@ describe('createApiApp', () => {
     expect(failed.body.error.code).toBe('INTERNAL_ERROR');
   });
 });
+
+function readSetCookie(header: string | string[] | undefined): string[] | undefined {
+  if (!header) return undefined;
+  return Array.isArray(header) ? header : [header];
+}
+
+async function countCommunityRows(databaseUrl: string, sessionId: string): Promise<number> {
+  const pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
+
+  try {
+    const result = await pool.query<{ total: string }>(
+      `
+        select
+          (select count(*) from community_incidents where session_id = $1) +
+          (select count(*) from pending_agreements where session_id = $1) +
+          (select count(*) from community_proposals where session_id = $1) as total
+      `,
+      [sessionId],
+    );
+
+    return Number(result.rows[0]?.total ?? 0);
+  } finally {
+    await pool.end();
+  }
+}
