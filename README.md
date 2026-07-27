@@ -69,7 +69,7 @@ Cada operación IA registra en los logs del backend el modelo, versión de promp
 
 ### Estado demo con PostgreSQL
 
-La API usa persistencia en memoria cuando `DATABASE_URL` no está definida o está vacía. Para conservar sesiones demo, incidencias, acuerdos pendientes y propuestas durante reinicios, arranca la API con una base PostgreSQL migrada:
+La API usa persistencia en memoria cuando `DATABASE_URL` no está definida o está vacía. Para conservar sesiones demo, incidencias, acuerdos pendientes, propuestas y documentos subidos durante reinicios, arranca la API con una base PostgreSQL migrada:
 
 ```bash
 DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run db:migrate
@@ -78,7 +78,9 @@ COOKIE_SECRET=local-demo-cookie-secret DATABASE_URL=postgres://usuario:password@
 
 Las migraciones no se ejecutan automáticamente al arrancar la API. Si `DATABASE_URL` está configurada pero la base no conecta o no tiene el esquema migrado, la API falla de forma explícita en lugar de volver silenciosamente al repositorio en memoria.
 
-Con PostgreSQL configurado, la API selecciona todos los repositorios persistentes a la vez y comparte un único pool para sesiones, incidencias, acuerdos pendientes y propuestas. El estado queda aislado por sesión y se elimina en cascada cuando una sesión expirada se descarta. Los documentos subidos, juntas demo, borradores y comunicaciones siguen siendo locales a esta historia.
+Con PostgreSQL configurado, la API selecciona todos los repositorios persistentes a la vez y comparte un único pool para sesiones, incidencias, acuerdos pendientes, propuestas y documentos subidos. El estado queda aislado por sesión y se elimina en cascada cuando una sesión expirada se descarta. Las juntas demo, borradores y comunicaciones siguen siendo locales a esta historia.
+
+Los documentos subidos persisten sus metadatos, texto extraído y binario PDF. La subida conserva las validaciones actuales de formato PDF y límite de 5 MB; el listado, la descarga y la recuperación documental usan el mismo repositorio, por lo que las fuentes mostradas tras un reinicio son documentos reales de la sesión.
 
 Para demostrar la recuperación tras reinicio:
 
@@ -87,7 +89,7 @@ DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run db
 COOKIE_SECRET=local-demo-cookie-secret DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run dev:api
 ```
 
-Registra una incidencia, una propuesta o genera un acta con tareas pendientes desde la interfaz. El acta no se persiste en esta historia, pero sus tareas se guardan como acuerdos pendientes. Detén la API y vuelve a ejecutar el segundo comando: con la misma cookie de navegador, los listados y el preparador de orden del día recuperan el estado comunitario persistido.
+Registra una incidencia, una propuesta o genera un acta con tareas pendientes desde la interfaz. El acta no se persiste en esta historia, pero sus tareas se guardan como acuerdos pendientes. También puedes subir un PDF desde `/documentos`, detener la API y volver a ejecutar el segundo comando: con la misma cookie de navegador, los listados, el preparador de orden del día, la descarga del PDF y las consultas documentales recuperan el estado persistido.
 
 Para verificar que el entorno está correctamente preparado, ejecuta:
 
