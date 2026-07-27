@@ -253,6 +253,99 @@ describe('createApiApp', () => {
     }
   }, 120_000);
 
+  it('recupera PDFs subidos desde PostgreSQL tras reiniciar la persistencia', async () => {
+    const container = await new PostgreSqlContainer('postgres:16-alpine').start();
+    const databaseUrl = container.getConnectionUri();
+    await migrateDatabase(databaseUrl);
+    const pdfContent = Buffer.from('%PDF-1.4 contrato ascensor');
+    let cookie: string[] | undefined;
+    let documentUrl: string | undefined;
+
+    try {
+      const firstPersistence = await createApiPersistence({ databaseUrl });
+      try {
+        const firstAgent = request.agent(
+          buildApp(8, {
+            incidentRepository: firstPersistence.incidentRepository,
+            pendingAgreementRepository: firstPersistence.pendingAgreementRepository,
+            proposalRepository: firstPersistence.proposalRepository,
+            repository: firstPersistence.sessionRepository,
+            uploadedDocumentRepository: firstPersistence.uploadedDocumentRepository,
+          }),
+        );
+        const upload = await firstAgent
+          .post('/api/documents/uploads')
+          .attach('document', pdfContent, {
+            filename: 'contrato-ascensor.pdf',
+            contentType: 'application/pdf',
+          });
+        cookie = readSetCookie(upload.headers['set-cookie']);
+        documentUrl = upload.body.document.documentUrl;
+
+        expect(upload.status).toBe(201);
+        expect(cookie).toBeDefined();
+        expect(documentUrl).toBeTypeOf('string');
+      } finally {
+        await firstPersistence.close();
+      }
+
+      const authenticatedCookie = cookie;
+      const capturedDocumentUrl = documentUrl;
+      expect(authenticatedCookie).toBeDefined();
+      expect(capturedDocumentUrl).toBeTypeOf('string');
+      if (!authenticatedCookie || !capturedDocumentUrl) {
+        throw new Error('La prueba no capturó la cookie o la URL del documento PostgreSQL.');
+      }
+
+      const secondPersistence = await createApiPersistence({ databaseUrl });
+      try {
+        let secondIdSequence = 300;
+        const secondApp = buildApp(8, {
+          ids: {
+            randomId: () =>
+              `00000000-0000-4000-8000-${String(++secondIdSequence).padStart(12, '0')}`,
+          },
+          incidentRepository: secondPersistence.incidentRepository,
+          pendingAgreementRepository: secondPersistence.pendingAgreementRepository,
+          proposalRepository: secondPersistence.proposalRepository,
+          repository: secondPersistence.sessionRepository,
+          uploadedDocumentRepository: secondPersistence.uploadedDocumentRepository,
+        });
+        const list = await request(secondApp)
+          .get('/api/documents/uploads')
+          .set('Cookie', authenticatedCookie);
+        const download = await request(secondApp)
+          .get(capturedDocumentUrl)
+          .set('Cookie', authenticatedCookie);
+        const query = await request(secondApp)
+          .post('/api/documents/query')
+          .set('Cookie', authenticatedCookie)
+          .send({ question: '¿Cuándo vence el contrato del ascensor?' });
+        const isolated = await request(secondApp).get('/api/documents/uploads');
+
+        expect(list.body.documents).toEqual([
+          expect.objectContaining({
+            documentUrl: capturedDocumentUrl,
+            filename: 'contrato-ascensor.pdf',
+          }),
+        ]);
+        expect(download.status).toBe(200);
+        expect(download.body).toEqual(pdfContent);
+        expect(query.body.answer).toContain('contrato de mantenimiento');
+        expect(query.body.sources[0]).toMatchObject({
+          documentUrl: capturedDocumentUrl,
+          title: 'contrato-ascensor',
+          type: 'adjunto',
+        });
+        expect(isolated.body.documents).toEqual([]);
+      } finally {
+        await secondPersistence.close();
+      }
+    } finally {
+      await container.stop();
+    }
+  }, 120_000);
+
   it('marca la cookie como segura cuando se configura para producción', async () => {
     const app = buildApp(3, {
       secureCookies: true,

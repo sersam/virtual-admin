@@ -3,7 +3,6 @@ import { SystemClock } from './infrastructure/runtime/SystemClock.js';
 import { UuidGenerator } from './infrastructure/runtime/UuidGenerator.js';
 import { LexicalDocumentRetriever } from './infrastructure/document/LexicalDocumentRetriever.js';
 import { residencialSierraNevadaDocuments } from './infrastructure/document/residencialSierraNevadaDocuments.js';
-import { InMemoryUploadedDocumentRepository } from './infrastructure/document/InMemoryUploadedDocumentRepository.js';
 import { PdfParseUploadedDocumentTextExtractor } from './infrastructure/document/PdfParseUploadedDocumentTextExtractor.js';
 import { UploadedSessionDocumentRetriever } from './infrastructure/document/UploadedSessionDocumentRetriever.js';
 import { LangGraphChatWorkflow } from './infrastructure/agent/LangGraphChatWorkflow.js';
@@ -13,7 +12,6 @@ import { createApiPersistence } from './infrastructure/persistence/createApiPers
 
 const port = Number(process.env.PORT ?? 3000);
 const cookieSecret = readRequiredEnvironmentVariable('COOKIE_SECRET');
-const uploadedDocumentRepository = new InMemoryUploadedDocumentRepository();
 const aiProviders = createAiProviders({ openAiApiKey: process.env.OPENAI_API_KEY });
 const persistence = await createApiPersistence({ databaseUrl: process.env.DATABASE_URL });
 
@@ -45,8 +43,10 @@ const app = createApiApp({
   repository: persistence.sessionRepository,
   secureCookies: process.env.NODE_ENV === 'production',
   version: '0.1.0',
-  sessionDocumentRetriever: new UploadedSessionDocumentRetriever(uploadedDocumentRepository),
-  uploadedDocumentRepository,
+  sessionDocumentRetriever: new UploadedSessionDocumentRetriever(
+    persistence.uploadedDocumentRepository,
+  ),
+  uploadedDocumentRepository: persistence.uploadedDocumentRepository,
   uploadedDocumentTextExtractor: new PdfParseUploadedDocumentTextExtractor(),
 });
 
