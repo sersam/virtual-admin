@@ -58,6 +58,38 @@ shared/
 
 ---
 
+## Specification-Driven Development (SDD)
+
+Antes de implementar cualquier historia, crear o actualizar una especificación versionada:
+
+```text
+docs/specs/us-NNN-*.md
+```
+
+La especificación es la fuente de verdad de la historia. Cualquier cambio de comportamiento debe reflejarse primero en la especificación antes de escribir o modificar pruebas y código de producción.
+
+Cada especificación debe incluir explícitamente:
+
+- Objetivo funcional.
+- Criterios de aceptación verificables.
+- Contratos, modelo de datos o interfaces afectadas.
+- Casos de error esperados.
+- Restricciones relevantes.
+- Estrategia TDD.
+- Incrementos pequeños, integrables y verificables, cada uno asociado a un único commit Conventional Commit.
+- Definition of Done.
+
+### Flujo incremental obligatorio
+
+- Dividir cada historia en incrementos pequeños, demostrables e integrables.
+- Cada incremento debe tener una validación automatizada clara.
+- Cada incremento debe finalizar con un único commit Conventional Commit.
+- No realizar commits en rojo: las pruebas y el mínimo código de producción se commitean juntos cuando el ciclo TDD del incremento queda en verde.
+- Ejecutar `npm run precommit:check` antes de cada commit.
+- Ejecutar `npm run quality` al cerrar la historia.
+
+---
+
 ## Desarrollo guiado por pruebas (TDD)
 
 Todas las historias deben seguir estrictamente el ciclo:
