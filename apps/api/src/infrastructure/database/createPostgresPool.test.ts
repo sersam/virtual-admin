@@ -7,11 +7,14 @@ describe('createPostgresPool', () => {
       connectionString: 'postgres://test:test@127.0.0.1:1/test',
       logIdleClientErrors: false,
     });
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
     try {
       expect(pool.listenerCount('error')).toBe(1);
       expect(() => pool.emit('error', new Error('Conexion idle cerrada'))).not.toThrow();
+      expect(consoleError).not.toHaveBeenCalled();
     } finally {
+      consoleError.mockRestore();
       await pool.end();
     }
   });
