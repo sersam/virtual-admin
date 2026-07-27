@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-27 · PR [#20](https://github.com/sersam/virtual-admin/pull/20)
+
+### Added
+
+- Añade persistencia PostgreSQL para sesiones demo con migraciones explícitas y fallback local en memoria.
+
 ## 2026-07-26 · PR [#19](https://github.com/sersam/virtual-admin/pull/19)
 
 ### Added
