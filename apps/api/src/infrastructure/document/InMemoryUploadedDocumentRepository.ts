@@ -10,6 +10,8 @@ export class InMemoryUploadedDocumentRepository implements UploadedDocumentRepos
 
   async save(document: UploadedCommunityDocument): Promise<void> {
     const current = this.documents.get(document.sessionId) ?? [];
+    if (current.some((currentDocument) => currentDocument.id === document.id)) return;
+
     this.documents.set(document.sessionId, [...current, document]);
   }
 }
