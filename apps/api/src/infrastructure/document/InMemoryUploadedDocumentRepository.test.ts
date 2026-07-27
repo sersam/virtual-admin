@@ -25,17 +25,23 @@ describe('InMemoryUploadedDocumentRepository', () => {
     const repository = new InMemoryUploadedDocumentRepository();
     await repository.save(uploadedDocument({ title: 'Acta original' }));
     await repository.save(uploadedDocument({ title: 'Acta modificada' }));
+    await repository.save(
+      uploadedDocument({ sessionId: 'session-b', title: 'Acta de otra sesión' }),
+    );
 
     await expect(repository.listBySession('session-a')).resolves.toEqual([
       uploadedDocument({ title: 'Acta original' }),
     ]);
+    await expect(repository.listBySession('session-b')).resolves.toEqual([
+      uploadedDocument({ sessionId: 'session-b', title: 'Acta de otra sesión' }),
+    ]);
   });
 });
 
-function uploadedDocument(overrides: { readonly title: string }) {
+function uploadedDocument(overrides: { readonly sessionId?: string; readonly title: string }) {
   return {
     id: 'pdf-0001',
-    sessionId: 'session-a',
+    sessionId: overrides.sessionId ?? 'session-a',
     filename: 'ascensor.pdf',
     title: overrides.title,
     contentType: 'application/pdf' as const,

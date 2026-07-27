@@ -41,7 +41,9 @@ describe('PostgresUploadedDocumentRepository', () => {
 
   it('persiste metadatos, texto y bytes por sesion tras reabrir el pool', async () => {
     await repository.save(document({ id: 'document-1' }));
-    await repository.save(document({ id: 'document-2', sessionId: sessionB }));
+    await repository.save(
+      document({ id: 'document-1', sessionId: sessionB, title: 'Acta portal B' }),
+    );
     await repository.save(document({ id: 'document-3', title: 'Acta de abril' }));
     await pool.end();
 
@@ -53,7 +55,7 @@ describe('PostgresUploadedDocumentRepository', () => {
       document({ id: 'document-3', title: 'Acta de abril' }),
     ]);
     await expect(repository.listBySession(sessionB)).resolves.toEqual([
-      document({ id: 'document-2', sessionId: sessionB }),
+      document({ id: 'document-1', sessionId: sessionB, title: 'Acta portal B' }),
     ]);
   });
 

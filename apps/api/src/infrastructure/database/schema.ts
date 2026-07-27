@@ -154,7 +154,6 @@ export const uploadedDocuments = pgTable(
     check('uploaded_documents_content_type_pdf', sql`${table.contentType} = 'application/pdf'`),
     check('uploaded_documents_size_bounds', sql`${table.sizeBytes} between 1 and 5242880`),
     check('uploaded_documents_document_url_length', sql`char_length(${table.documentUrl}) >= 1`),
-    check('uploaded_documents_text_content_length', sql`char_length(${table.textContent}) >= 0`),
     check('uploaded_documents_content_not_empty', sql`octet_length(${table.content}) >= 1`),
     check(
       'uploaded_documents_content_length_matches_size',

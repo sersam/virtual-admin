@@ -453,10 +453,6 @@
           "name": "uploaded_documents_document_url_length",
           "value": "char_length(\"uploaded_documents\".\"document_url\") >= 1"
         },
-        "uploaded_documents_text_content_length": {
-          "name": "uploaded_documents_text_content_length",
-          "value": "char_length(\"uploaded_documents\".\"text_content\") >= 0"
-        },
         "uploaded_documents_content_not_empty": {
           "name": "uploaded_documents_content_not_empty",
           "value": "octet_length(\"uploaded_documents\".\"content\") >= 1"

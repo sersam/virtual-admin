@@ -16,7 +16,6 @@ CREATE TABLE "uploaded_documents" (
 	CONSTRAINT "uploaded_documents_content_type_pdf" CHECK ("uploaded_documents"."content_type" = 'application/pdf'),
 	CONSTRAINT "uploaded_documents_size_bounds" CHECK ("uploaded_documents"."size_bytes" between 1 and 5242880),
 	CONSTRAINT "uploaded_documents_document_url_length" CHECK (char_length("uploaded_documents"."document_url") >= 1),
-	CONSTRAINT "uploaded_documents_text_content_length" CHECK (char_length("uploaded_documents"."text_content") >= 0),
 	CONSTRAINT "uploaded_documents_content_not_empty" CHECK (octet_length("uploaded_documents"."content") >= 1),
 	CONSTRAINT "uploaded_documents_content_length_matches_size" CHECK (octet_length("uploaded_documents"."content") = "uploaded_documents"."size_bytes")
 );

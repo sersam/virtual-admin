@@ -367,7 +367,6 @@ describe('migrateDatabase', () => {
         'uploaded_documents_document_url_length',
         'uploaded_documents_filename_length',
         'uploaded_documents_size_bounds',
-        'uploaded_documents_text_content_length',
         'uploaded_documents_title_length',
       ]);
     } finally {

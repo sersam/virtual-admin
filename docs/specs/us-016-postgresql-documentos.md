@@ -46,7 +46,7 @@ La tabla incluye restricciones para:
 - Exigir `size_bytes` entre 1 byte y 5 MB.
 - Rechazar binarios vacíos.
 - Mantener coherencia entre `size_bytes` y la longitud real de `content`.
-- Exigir textos y nombres no vacíos cuando forman parte del contrato actual.
+- Exigir título, nombre de archivo y URL no vacíos. `text_content` se persiste como texto extraído y puede estar vacío si el extractor no obtiene contenido textual.
 
 ## Casos de error
 
