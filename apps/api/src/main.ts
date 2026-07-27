@@ -1,7 +1,6 @@
 import { createApiApp } from './presentation/http/createApiApp.js';
 import { SystemClock } from './infrastructure/runtime/SystemClock.js';
 import { UuidGenerator } from './infrastructure/runtime/UuidGenerator.js';
-import { InMemorySessionRepository } from './infrastructure/session/InMemorySessionRepository.js';
 import { LexicalDocumentRetriever } from './infrastructure/document/LexicalDocumentRetriever.js';
 import { residencialSierraNevadaDocuments } from './infrastructure/document/residencialSierraNevadaDocuments.js';
 import { InMemoryUploadedDocumentRepository } from './infrastructure/document/InMemoryUploadedDocumentRepository.js';
@@ -13,11 +12,13 @@ import { InMemoryMeetingRepository } from './infrastructure/meeting/InMemoryMeet
 import { InMemoryPendingAgreementRepository } from './infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
 import { InMemoryProposalRepository } from './infrastructure/proposal/InMemoryProposalRepository.js';
 import { createAiProviders } from './infrastructure/openai/createAiProviders.js';
+import { createSessionRepository } from './infrastructure/session/createSessionRepository.js';
 
 const port = Number(process.env.PORT ?? 3000);
 const cookieSecret = readRequiredEnvironmentVariable('COOKIE_SECRET');
 const uploadedDocumentRepository = new InMemoryUploadedDocumentRepository();
 const aiProviders = createAiProviders({ openAiApiKey: process.env.OPENAI_API_KEY });
+const sessionPersistence = await createSessionRepository({ databaseUrl: process.env.DATABASE_URL });
 
 const app = createApiApp({
   clock: new SystemClock(),
@@ -44,7 +45,7 @@ const app = createApiApp({
   meetingRepository: new InMemoryMeetingRepository(),
   pendingAgreementRepository: new InMemoryPendingAgreementRepository(),
   proposalRepository: new InMemoryProposalRepository(),
-  repository: new InMemorySessionRepository(),
+  repository: sessionPersistence.repository,
   secureCookies: process.env.NODE_ENV === 'production',
   version: '0.1.0',
   sessionDocumentRetriever: new UploadedSessionDocumentRetriever(uploadedDocumentRepository),
@@ -52,9 +53,19 @@ const app = createApiApp({
   uploadedDocumentTextExtractor: new PdfParseUploadedDocumentTextExtractor(),
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.warn(`API demo disponible en http://127.0.0.1:${port}`);
 });
+
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.once(signal, () => {
+    server.close(() => {
+      void sessionPersistence.close().finally(() => {
+        process.exit(0);
+      });
+    });
+  });
+}
 
 function readRequiredEnvironmentVariable(name: string): string {
   const value = process.env[name];

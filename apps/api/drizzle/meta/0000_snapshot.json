@@ -1,0 +1,85 @@
+{
+  "id": "9e18a7fa-6a54-4be7-8bfd-b103565f5bc2",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.demo_sessions": {
+      "name": "demo_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requests_used": {
+          "name": "requests_used",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requests_limit": {
+          "name": "requests_limit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "demo_sessions_requests_used_non_negative": {
+          "name": "demo_sessions_requests_used_non_negative",
+          "value": "\"demo_sessions\".\"requests_used\" >= 0"
+        },
+        "demo_sessions_requests_limit_positive": {
+          "name": "demo_sessions_requests_limit_positive",
+          "value": "\"demo_sessions\".\"requests_limit\" > 0"
+        },
+        "demo_sessions_requests_used_not_above_limit": {
+          "name": "demo_sessions_requests_used_not_above_limit",
+          "value": "\"demo_sessions\".\"requests_used\" <= \"demo_sessions\".\"requests_limit\""
+        },
+        "demo_sessions_expires_after_created": {
+          "name": "demo_sessions_expires_after_created",
+          "value": "\"demo_sessions\".\"expires_at\" > \"demo_sessions\".\"created_at\""
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

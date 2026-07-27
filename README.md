@@ -29,6 +29,7 @@ Actualmente están implementadas la **US-001**, que incorpora el shell responsiv
 - Node.js 20 o superior.
 - npm 10 o superior.
 - Git.
+- Docker Desktop activo para ejecutar las pruebas de integracion PostgreSQL.
 
 ### Preparación local
 
@@ -66,6 +67,17 @@ El modelo fijado para la US-009 es `gpt-5-nano`. Si `OPENAI_API_KEY` no está de
 
 Cada operación IA registra en los logs del backend el modelo, versión de prompt, tokens de entrada/salida, tokens cacheados, coste estimado, latencia y resultado.
 
+### Sesiones con PostgreSQL
+
+La API usa sesiones demo en memoria cuando `DATABASE_URL` no esta definida. Para conservar sesiones durante reinicios, arranca la API con una base PostgreSQL migrada:
+
+```bash
+DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run db:migrate
+COOKIE_SECRET=local-demo-cookie-secret DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run dev:api
+```
+
+Las migraciones no se ejecutan automaticamente al arrancar la API. Si `DATABASE_URL` esta configurada pero la base no conecta o no tiene el esquema migrado, la API falla de forma explicita en lugar de volver silenciosamente al repositorio en memoria.
+
 Para verificar que el entorno está correctamente preparado, ejecuta:
 
 ```bash
@@ -82,6 +94,8 @@ Comandos disponibles actualmente:
 npm run format        # Aplica Prettier
 npm run dev:api       # Arranca la API Express
 npm run dev:web       # Arranca el frontend Vite
+npm run db:generate   # Genera migraciones Drizzle desde el schema
+npm run db:migrate    # Aplica migraciones PostgreSQL usando DATABASE_URL
 npm run precommit:check # Ejecuta los controles rápidos del pre-commit
 npm run prepush:check # Ejecuta la quality gate del pre-push
 npm run lint          # Ejecuta ESLint
