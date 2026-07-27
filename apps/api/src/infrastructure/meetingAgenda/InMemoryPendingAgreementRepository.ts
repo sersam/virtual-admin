@@ -1,5 +1,8 @@
 import type { PendingAgreementRepository } from '../../application/ports/PendingAgreementRepository.js';
-import type { PendingAgreement } from '../../domain/meetingAgenda/PendingAgreement.js';
+import {
+  createPendingAgreementSignature,
+  type PendingAgreement,
+} from '../../domain/meetingAgenda/PendingAgreement.js';
 
 export class InMemoryPendingAgreementRepository implements PendingAgreementRepository {
   private readonly agreements = new Map<string, PendingAgreement[]>();
@@ -26,12 +29,4 @@ export class InMemoryPendingAgreementRepository implements PendingAgreementRepos
 
     this.agreements.set(pendingAgreement.sessionId, [...current, pendingAgreement]);
   }
-}
-
-function createPendingAgreementSignature(agreement: PendingAgreement): string {
-  return JSON.stringify(
-    [agreement.description, agreement.assignee ?? '', agreement.dueDate ?? ''].map((value) =>
-      value.trim().toLocaleLowerCase('es'),
-    ),
-  );
 }
