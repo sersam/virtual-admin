@@ -117,7 +117,7 @@ describe('PostgresIncidentRepository', () => {
 function incident(
   overrides: Partial<CommunityIncident> & { readonly id: string },
 ): CommunityIncident {
-  return {
+  const base = {
     id: overrides.id,
     sessionId: overrides.sessionId ?? sessionA,
     description: overrides.description ?? 'Hay una fuga de agua en el garaje.',
@@ -126,8 +126,20 @@ function incident(
     suggestedResponsible: overrides.suggestedResponsible ?? 'Fontaneria',
     suggestedNotice: overrides.suggestedNotice ?? notice,
     createdAt: overrides.createdAt ?? createdAt,
+  };
+
+  if (overrides.status === 'resuelta') {
+    return {
+      ...base,
+      status: 'resuelta',
+      resolvedAt: overrides.resolvedAt ?? new Date('2026-06-27T12:30:00.000Z'),
+    };
+  }
+
+  return {
+    ...base,
     status: overrides.status ?? 'pendiente',
-    resolvedAt: overrides.resolvedAt ?? null,
+    resolvedAt: null,
   };
 }
 

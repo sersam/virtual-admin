@@ -151,7 +151,7 @@ describe('createApiApp', () => {
             'Tarea: Revisar contrato de limpieza; Responsable: Ana; Fecha: 30 de junio',
           ].join('\n'),
         });
-        cookie = minutes.headers['set-cookie'];
+        cookie = readSetCookie(minutes.headers['set-cookie']);
       } finally {
         await firstPersistence.close();
       }
@@ -1063,6 +1063,11 @@ describe('createApiApp', () => {
     expect(failed.body.error.code).toBe('INTERNAL_ERROR');
   });
 });
+
+function readSetCookie(header: string | string[] | undefined): string[] | undefined {
+  if (!header) return undefined;
+  return Array.isArray(header) ? header : [header];
+}
 
 async function countCommunityRows(databaseUrl: string, sessionId: string): Promise<number> {
   const pool = new Pool({ connectionString: databaseUrl });

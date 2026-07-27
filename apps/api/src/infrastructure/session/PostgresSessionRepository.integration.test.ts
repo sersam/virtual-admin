@@ -31,7 +31,7 @@ describe('PostgresSessionRepository', () => {
   beforeEach(async () => {
     pool = new Pool({ connectionString: databaseUrl });
     repository = new PostgresSessionRepository(pool);
-    await pool.query('truncate table demo_sessions');
+    await pool.query('truncate table demo_sessions cascade');
   });
 
   afterEach(async () => {
