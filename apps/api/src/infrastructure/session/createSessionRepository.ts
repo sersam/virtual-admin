@@ -4,6 +4,7 @@ import { InMemorySessionRepository } from './InMemorySessionRepository.js';
 import { PostgresSessionRepository } from './PostgresSessionRepository.js';
 
 const { Pool } = pg;
+const defaultPostgresConnectionTimeoutMillis = 5_000;
 
 interface CreateSessionRepositoryOptions {
   readonly connectionTimeoutMillis?: number;
@@ -27,7 +28,8 @@ export function createSessionRepository(
 
   const pool = new Pool({
     connectionString: options.databaseUrl,
-    connectionTimeoutMillis: options.connectionTimeoutMillis,
+    connectionTimeoutMillis:
+      options.connectionTimeoutMillis ?? defaultPostgresConnectionTimeoutMillis,
   });
 
   return validatePostgresSessionSchema(pool).then(() => ({

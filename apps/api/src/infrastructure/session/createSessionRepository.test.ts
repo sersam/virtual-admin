@@ -5,6 +5,14 @@ import { InMemorySessionRepository } from './InMemorySessionRepository.js';
 import { PostgresSessionRepository } from './PostgresSessionRepository.js';
 import { createSessionRepository } from './createSessionRepository.js';
 
+interface RepositoryWithPool {
+  readonly pool: {
+    readonly options: {
+      readonly connectionTimeoutMillis?: number;
+    };
+  };
+}
+
 describe('createSessionRepository', () => {
   let migratedContainer: Awaited<ReturnType<InstanceType<typeof PostgreSqlContainer>['start']>>;
   let unmigratedContainer: Awaited<ReturnType<InstanceType<typeof PostgreSqlContainer>['start']>>;
@@ -55,11 +63,17 @@ describe('createSessionRepository', () => {
 
   it('usa PostgreSQL cuando DATABASE_URL esta configurada y migrada', async () => {
     const persistence = await createSessionRepository({
-      connectionTimeoutMillis: 50,
       databaseUrl: migratedDatabaseUrl,
     });
 
-    expect(persistence.repository).toBeInstanceOf(PostgresSessionRepository);
-    await persistence.close();
+    try {
+      expect(persistence.repository).toBeInstanceOf(PostgresSessionRepository);
+      expect(
+        (persistence.repository as unknown as RepositoryWithPool).pool.options
+          .connectionTimeoutMillis,
+      ).toBe(5_000);
+    } finally {
+      await persistence.close();
+    }
   }, 120_000);
 });
