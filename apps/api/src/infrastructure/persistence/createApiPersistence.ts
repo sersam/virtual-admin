@@ -47,6 +47,10 @@ export async function createApiPersistence(
       options.connectionTimeoutMillis ?? defaultPostgresConnectionTimeoutMillis,
   });
 
+  pool.on('error', (error) => {
+    console.error('Error en un cliente inactivo del pool PostgreSQL', error);
+  });
+
   await validatePostgresApiSchema(pool);
 
   return {
@@ -101,7 +105,7 @@ async function validatePostgresApiSchema(pool: pg.Pool): Promise<void> {
       limit 0
     `);
   } catch (error) {
-    await pool.end();
+    await pool.end().catch(() => undefined);
     if (isMissingApiSchemaError(error)) {
       throw new Error('El esquema PostgreSQL de la API no esta migrado.');
     }

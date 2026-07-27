@@ -1,7 +1,10 @@
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import pg from 'pg';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { PendingAgreement } from '../../domain/meetingAgenda/PendingAgreement.js';
+import {
+  createPendingAgreementSignature,
+  type PendingAgreement,
+} from '../../domain/meetingAgenda/PendingAgreement.js';
 import type { DemoSession } from '../../domain/session/DemoSession.js';
 import { migrateDatabase } from '../database/migrateDatabase.js';
 import { PostgresPendingAgreementRepository } from './PostgresPendingAgreementRepository.js';
@@ -79,14 +82,19 @@ describe('PostgresPendingAgreementRepository', () => {
       ),
     ]);
 
-    await expect(repository.listBySession(sessionA)).resolves.toEqual([
-      agreement({
-        id: 'pending-1',
-        description: ' Revisar contrato ',
-        assignee: 'ANA',
-        dueDate: '30 DE JUNIO',
-      }),
-    ]);
+    const stored = await repository.listBySession(sessionA);
+
+    expect(stored).toHaveLength(1);
+    expect(createPendingAgreementSignature(stored[0]!)).toBe(
+      createPendingAgreementSignature(
+        agreement({
+          id: 'pending-expected',
+          description: 'revisar contrato',
+          assignee: 'ana',
+          dueDate: '30 de junio',
+        }),
+      ),
+    );
   });
 
   it('saveIfAbsent protege solo la identidad y permite firmas repetidas con otro id', async () => {

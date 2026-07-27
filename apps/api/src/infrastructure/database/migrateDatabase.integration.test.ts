@@ -235,10 +235,11 @@ describe('migrateDatabase', () => {
     await migrateDatabase(databaseUrl);
 
     const pool = new Pool({ connectionString: databaseUrl });
+    const sessionId = '00000000-0000-4000-8000-000000000010';
 
     try {
       await insertSession(pool, {
-        id: '00000000-0000-4000-8000-000000000010',
+        id: sessionId,
         requestsUsed: 0,
         requestsLimit: 3,
       });
@@ -251,7 +252,7 @@ describe('migrateDatabase', () => {
             )
             values ($1, $2, $3, 'otro', 'media', 'Administracion', 'Aviso sugerido', 'pendiente', now(), now())
           `,
-          ['00000000-0000-4000-8000-000000000010', 'incident-1', 'Descripcion valida'],
+          [sessionId, 'incident-1', 'Descripcion valida'],
         ),
       ).rejects.toMatchObject({ constraint: 'community_incidents_pending_without_resolution' });
       await expect(
@@ -262,7 +263,7 @@ describe('migrateDatabase', () => {
             )
             values ($1, $2, '', now(), '[""]')
           `,
-          ['00000000-0000-4000-8000-000000000010', 'agreement-1'],
+          [sessionId, 'agreement-1'],
         ),
       ).rejects.toMatchObject({ constraint: 'pending_agreements_description_length' });
       await expect(
@@ -271,14 +272,12 @@ describe('migrateDatabase', () => {
             insert into community_proposals (session_id, id, description, created_at)
             values ($1, $2, 'Corta', now())
           `,
-          ['00000000-0000-4000-8000-000000000010', 'proposal-1'],
+          [sessionId, 'proposal-1'],
         ),
       ).rejects.toMatchObject({ constraint: 'community_proposals_description_length' });
 
-      await insertCommunityState(pool, '00000000-0000-4000-8000-000000000010');
-      await pool.query('delete from demo_sessions where id = $1', [
-        '00000000-0000-4000-8000-000000000010',
-      ]);
+      await insertCommunityState(pool, sessionId);
+      await pool.query('delete from demo_sessions where id = $1', [sessionId]);
 
       await expect(countRows(pool, 'community_incidents')).resolves.toBe(0);
       await expect(countRows(pool, 'pending_agreements')).resolves.toBe(0);

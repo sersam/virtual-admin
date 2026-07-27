@@ -69,25 +69,25 @@ Cada operación IA registra en los logs del backend el modelo, versión de promp
 
 ### Estado demo con PostgreSQL
 
-La API usa persistencia en memoria cuando `DATABASE_URL` no esta definida o esta vacia. Para conservar sesiones demo, incidencias, acuerdos pendientes y propuestas durante reinicios, arranca la API con una base PostgreSQL migrada:
+La API usa persistencia en memoria cuando `DATABASE_URL` no está definida o está vacía. Para conservar sesiones demo, incidencias, acuerdos pendientes y propuestas durante reinicios, arranca la API con una base PostgreSQL migrada:
 
 ```bash
 DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run db:migrate
 COOKIE_SECRET=local-demo-cookie-secret DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run dev:api
 ```
 
-Las migraciones no se ejecutan automaticamente al arrancar la API. Si `DATABASE_URL` esta configurada pero la base no conecta o no tiene el esquema migrado, la API falla de forma explicita en lugar de volver silenciosamente al repositorio en memoria.
+Las migraciones no se ejecutan automáticamente al arrancar la API. Si `DATABASE_URL` está configurada pero la base no conecta o no tiene el esquema migrado, la API falla de forma explícita en lugar de volver silenciosamente al repositorio en memoria.
 
-Con PostgreSQL configurado, la API selecciona todos los repositorios persistentes a la vez y comparte un unico pool para sesiones, incidencias, acuerdos pendientes y propuestas. El estado queda aislado por sesion y se elimina en cascada cuando una sesion expirada se descarta. Los documentos subidos, juntas demo, borradores y comunicaciones siguen siendo locales a esta historia.
+Con PostgreSQL configurado, la API selecciona todos los repositorios persistentes a la vez y comparte un único pool para sesiones, incidencias, acuerdos pendientes y propuestas. El estado queda aislado por sesión y se elimina en cascada cuando una sesión expirada se descarta. Los documentos subidos, juntas demo, borradores y comunicaciones siguen siendo locales a esta historia.
 
-Para demostrar la recuperacion tras reinicio:
+Para demostrar la recuperación tras reinicio:
 
 ```bash
 DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run db:migrate
 COOKIE_SECRET=local-demo-cookie-secret DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run dev:api
 ```
 
-Registra una incidencia, una propuesta o un acta con tareas pendientes desde la interfaz, detén la API y vuelve a ejecutar el segundo comando. Con la misma cookie de navegador, los listados y el preparador de orden del dia recuperan el estado comunitario persistido.
+Registra una incidencia, una propuesta o genera un acta con tareas pendientes desde la interfaz. El acta no se persiste en esta historia, pero sus tareas se guardan como acuerdos pendientes. Detén la API y vuelve a ejecutar el segundo comando: con la misma cookie de navegador, los listados y el preparador de orden del día recuperan el estado comunitario persistido.
 
 Para verificar que el entorno está correctamente preparado, ejecuta:
 

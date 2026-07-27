@@ -33,6 +33,7 @@ export class PostgresPendingAgreementRepository implements PendingAgreementRepos
 
   async save(pendingAgreement: PendingAgreement): Promise<void> {
     const client = await this.pool.connect();
+    let rollbackFailed = false;
 
     try {
       await client.query('begin');
@@ -61,10 +62,14 @@ export class PostgresPendingAgreementRepository implements PendingAgreementRepos
 
       await client.query('commit');
     } catch (error) {
-      await client.query('rollback');
+      try {
+        await client.query('rollback');
+      } catch {
+        rollbackFailed = true;
+      }
       throw error;
     } finally {
-      client.release();
+      client.release(rollbackFailed);
     }
   }
 

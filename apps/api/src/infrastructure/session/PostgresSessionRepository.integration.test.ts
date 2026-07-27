@@ -2,7 +2,7 @@ import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import pg from 'pg';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { DemoSession } from '../../domain/session/DemoSession.js';
-import { migrateSessionsDatabase } from '../database/migrateSessionsDatabase.js';
+import { migrateDatabase } from '../database/migrateDatabase.js';
 import { PostgresSessionRepository } from './PostgresSessionRepository.js';
 
 const { Pool } = pg;
@@ -25,7 +25,7 @@ describe('PostgresSessionRepository', () => {
   beforeAll(async () => {
     container = await new PostgreSqlContainer('postgres:16-alpine').start();
     databaseUrl = container.getConnectionUri();
-    await migrateSessionsDatabase(databaseUrl);
+    await migrateDatabase(databaseUrl);
   }, 120_000);
 
   beforeEach(async () => {

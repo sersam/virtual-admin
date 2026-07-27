@@ -152,8 +152,18 @@ describe('createApiApp', () => {
           ].join('\n'),
         });
         cookie = readSetCookie(minutes.headers['set-cookie']);
+        expect(sessionId).toBeTypeOf('string');
+        expect(cookie).toBeDefined();
       } finally {
         await firstPersistence.close();
+      }
+
+      const authenticatedCookie = cookie;
+      const capturedSessionId = sessionId;
+      expect(authenticatedCookie).toBeDefined();
+      expect(capturedSessionId).toBeTypeOf('string');
+      if (!authenticatedCookie || !capturedSessionId) {
+        throw new Error('La prueba no capturó la cookie o la sesión PostgreSQL.');
       }
 
       const secondPersistence = await createApiPersistence({ databaseUrl });
@@ -171,13 +181,13 @@ describe('createApiApp', () => {
         });
         const incidents = await request(secondApp)
           .get('/api/incidents')
-          .set('Cookie', cookie ?? []);
+          .set('Cookie', authenticatedCookie);
         const proposals = await request(secondApp)
           .get('/api/proposals')
-          .set('Cookie', cookie ?? []);
+          .set('Cookie', authenticatedCookie);
         const agenda = await request(secondApp)
           .post('/api/meeting-agendas/draft')
-          .set('Cookie', cookie ?? [])
+          .set('Cookie', authenticatedCookie)
           .send({ meetingId: 'meeting-ordinary-2026-09-18' });
         const isolated = await request(secondApp).get('/api/incidents');
 
@@ -228,14 +238,14 @@ describe('createApiApp', () => {
         });
         const renewed = await request(expiredApp)
           .get('/api/incidents')
-          .set('Cookie', cookie ?? []);
+          .set('Cookie', authenticatedCookie);
 
         expect(renewed.body.incidents).not.toContainEqual(
           expect.objectContaining({
             description: 'Hay una fuga de agua urgente en el garaje.',
           }),
         );
-        await expect(countCommunityRows(databaseUrl, sessionId ?? '')).resolves.toBe(0);
+        await expect(countCommunityRows(databaseUrl, capturedSessionId)).resolves.toBe(0);
       } finally {
         await expiredPersistence.close();
       }
