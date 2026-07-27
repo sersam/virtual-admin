@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-27 · PR [#22](https://github.com/sersam/virtual-admin/pull/22)
+
+### Added
+
+- Añade persistencia PostgreSQL para documentos subidos de la sesión demo, incluyendo metadatos, texto extraído, binario PDF y recuperación tras reinicio.
+
 ## 2026-07-27 · PR [#21](https://github.com/sersam/virtual-admin/pull/21)
 
 ### Added
