@@ -5,6 +5,7 @@ import {
   communityProposals,
   demoSessions,
   pendingAgreements,
+  uploadedDocuments,
 } from './schema.js';
 
 describe('database schema', () => {
@@ -76,5 +77,31 @@ describe('database schema', () => {
       'insertedOrder',
     ]);
     expect(proposalColumns.insertedOrder.name).toBe('inserted_order');
+  });
+
+  it('define la tabla de documentos subidos', () => {
+    const columns = getTableColumns(uploadedDocuments);
+
+    expect(getTableName(uploadedDocuments)).toBe('uploaded_documents');
+    expect(Object.keys(columns)).toEqual([
+      'sessionId',
+      'id',
+      'title',
+      'filename',
+      'contentType',
+      'sizeBytes',
+      'uploadedAt',
+      'documentUrl',
+      'textContent',
+      'content',
+      'insertedOrder',
+    ]);
+    expect(columns.sessionId.name).toBe('session_id');
+    expect(columns.contentType.name).toBe('content_type');
+    expect(columns.sizeBytes.name).toBe('size_bytes');
+    expect(columns.uploadedAt.name).toBe('uploaded_at');
+    expect(columns.documentUrl.name).toBe('document_url');
+    expect(columns.textContent.name).toBe('text_content');
+    expect(columns.insertedOrder.name).toBe('inserted_order');
   });
 });

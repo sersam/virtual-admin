@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   check,
+  customType,
   integer,
   pgTable,
   primaryKey,
@@ -10,6 +11,12 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return 'bytea';
+  },
+});
 
 export const demoSessions = pgTable(
   'demo_sessions',
@@ -119,6 +126,39 @@ export const communityProposals = pgTable(
     check(
       'community_proposals_description_length',
       sql`char_length(${table.description}) between 10 and 1000`,
+    ),
+  ],
+);
+
+export const uploadedDocuments = pgTable(
+  'uploaded_documents',
+  {
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => demoSessions.id, { onDelete: 'cascade' }),
+    id: varchar('id', { length: 80 }).notNull(),
+    title: text('title').notNull(),
+    filename: text('filename').notNull(),
+    contentType: text('content_type').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    uploadedAt: timestamp('uploaded_at', { withTimezone: true }).notNull(),
+    documentUrl: text('document_url').notNull(),
+    textContent: text('text_content').notNull(),
+    content: bytea('content').notNull(),
+    insertedOrder: serial('inserted_order').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.sessionId, table.id], name: 'uploaded_documents_pkey' }),
+    check('uploaded_documents_title_length', sql`char_length(${table.title}) >= 1`),
+    check('uploaded_documents_filename_length', sql`char_length(${table.filename}) >= 1`),
+    check('uploaded_documents_content_type_pdf', sql`${table.contentType} = 'application/pdf'`),
+    check('uploaded_documents_size_bounds', sql`${table.sizeBytes} between 1 and 5242880`),
+    check('uploaded_documents_document_url_length', sql`char_length(${table.documentUrl}) >= 1`),
+    check('uploaded_documents_text_content_length', sql`char_length(${table.textContent}) >= 0`),
+    check('uploaded_documents_content_not_empty', sql`octet_length(${table.content}) >= 1`),
+    check(
+      'uploaded_documents_content_length_matches_size',
+      sql`octet_length(${table.content}) = ${table.sizeBytes}`,
     ),
   ],
 );
