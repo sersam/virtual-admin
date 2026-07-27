@@ -26,10 +26,13 @@
     "build:root": "tsc -p tsconfig.json",
     "changes:validate": "node scripts/validate-changes.mjs",
     "changes:consume": "node scripts/consume-changes.mjs",
+    "db:generate": "npm run db:generate --workspace @admin/api",
+    "db:migrate": "npm run db:migrate --workspace @admin/api",
     "quality": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run test:e2e && npm run changes:validate"
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",
+    "drizzle-orm": "^0.45.2",
     "eslint": "^9.28.0",
     "eslint-config-prettier": "^10.1.5",
     "globals": "^16.2.0",
