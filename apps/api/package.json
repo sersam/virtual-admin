@@ -7,7 +7,7 @@
     "dev": "set -a; [ -f ../../.env ] && . ../../.env; set +a; COOKIE_SECRET=${COOKIE_SECRET:-local-demo-cookie-secret} tsx watch src/main.ts",
     "build": "tsc -p tsconfig.json",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/infrastructure/database/runMigrations.ts",
+    "db:migrate": "set -a; [ -f ../../.env ] && . ../../.env; set +a; tsx src/infrastructure/database/runMigrations.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
   },
