@@ -1,4 +1,4 @@
-import pg from 'pg';
+import type pg from 'pg';
 import type { IncidentRepository } from '../../application/ports/IncidentRepository.js';
 import type { PendingAgreementRepository } from '../../application/ports/PendingAgreementRepository.js';
 import type { ProposalRepository } from '../../application/ports/ProposalRepository.js';
@@ -11,8 +11,8 @@ import { InMemoryProposalRepository } from '../proposal/InMemoryProposalReposito
 import { PostgresProposalRepository } from '../proposal/PostgresProposalRepository.js';
 import { InMemorySessionRepository } from '../session/InMemorySessionRepository.js';
 import { PostgresSessionRepository } from '../session/PostgresSessionRepository.js';
+import { createPostgresPool } from '../database/createPostgresPool.js';
 
-const { Pool } = pg;
 const defaultPostgresConnectionTimeoutMillis = 5_000;
 
 interface CreateApiPersistenceOptions {
@@ -41,14 +41,10 @@ export async function createApiPersistence(
     };
   }
 
-  const pool = new Pool({
+  const pool = createPostgresPool({
     connectionString: options.databaseUrl,
     connectionTimeoutMillis:
       options.connectionTimeoutMillis ?? defaultPostgresConnectionTimeoutMillis,
-  });
-
-  pool.on('error', (error) => {
-    console.error('Error en un cliente inactivo del pool PostgreSQL', error);
   });
 
   await validatePostgresApiSchema(pool);

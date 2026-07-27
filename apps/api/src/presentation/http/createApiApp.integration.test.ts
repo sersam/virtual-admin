@@ -1,5 +1,4 @@
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
-import pg from 'pg';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import type { DemoSession } from '../../domain/session/DemoSession.js';
@@ -15,12 +14,12 @@ import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemo
 import { InMemoryMeetingRepository } from '../../infrastructure/meeting/InMemoryMeetingRepository.js';
 import { InMemoryPendingAgreementRepository } from '../../infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
 import { InMemoryProposalRepository } from '../../infrastructure/proposal/InMemoryProposalRepository.js';
+import { createPostgresPool } from '../../infrastructure/database/createPostgresPool.js';
 import { migrateDatabase } from '../../infrastructure/database/migrateDatabase.js';
 import { createApiPersistence } from '../../infrastructure/persistence/createApiPersistence.js';
 import { AiProviderError } from '../../application/ports/AiProviderError.js';
 import { createApiApp } from './createApiApp.js';
 
-const { Pool } = pg;
 const documentRetriever = new LexicalDocumentRetriever(residencialSierraNevadaDocuments);
 const uploadedDocumentTextExtractor = {
   extractText: async () =>
@@ -1080,7 +1079,7 @@ function readSetCookie(header: string | string[] | undefined): string[] | undefi
 }
 
 async function countCommunityRows(databaseUrl: string, sessionId: string): Promise<number> {
-  const pool = new Pool({ connectionString: databaseUrl });
+  const pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
 
   try {
     const result = await pool.query<{ total: string }>(

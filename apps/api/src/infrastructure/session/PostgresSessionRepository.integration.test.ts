@@ -1,11 +1,10 @@
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
-import pg from 'pg';
+import type pg from 'pg';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { DemoSession } from '../../domain/session/DemoSession.js';
+import { createPostgresPool } from '../database/createPostgresPool.js';
 import { migrateDatabase } from '../database/migrateDatabase.js';
 import { PostgresSessionRepository } from './PostgresSessionRepository.js';
-
-const { Pool } = pg;
 
 const baseSession: DemoSession = {
   id: '00000000-0000-4000-8000-000000000001',
@@ -29,7 +28,7 @@ describe('PostgresSessionRepository', () => {
   }, 120_000);
 
   beforeEach(async () => {
-    pool = new Pool({ connectionString: databaseUrl });
+    pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
     repository = new PostgresSessionRepository(pool);
     await pool.query('truncate table demo_sessions cascade');
   });
@@ -46,7 +45,7 @@ describe('PostgresSessionRepository', () => {
     await repository.save(baseSession);
     await pool.end();
 
-    pool = new Pool({ connectionString: databaseUrl });
+    pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
     repository = new PostgresSessionRepository(pool);
 
     await expect(repository.findById(baseSession.id)).resolves.toEqual(baseSession);

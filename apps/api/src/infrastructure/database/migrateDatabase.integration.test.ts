@@ -1,9 +1,8 @@
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
-import pg from 'pg';
+import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createPostgresPool } from './createPostgresPool.js';
 import { getMigrationsFolder, migrateDatabase } from './migrateDatabase.js';
-
-const { Pool } = pg;
 
 describe('migrateDatabase', () => {
   let container: Awaited<ReturnType<InstanceType<typeof PostgreSqlContainer>['start']>>;
@@ -32,7 +31,7 @@ describe('migrateDatabase', () => {
     await migrateDatabase(databaseUrl);
     await migrateDatabase(databaseUrl);
 
-    const pool = new Pool({ connectionString: databaseUrl });
+    const pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
 
     try {
       const table = await pool.query<{ column_name: string; data_type: string }>(
@@ -77,7 +76,7 @@ describe('migrateDatabase', () => {
   it('aplica las restricciones de integridad de sesiones', async () => {
     await migrateDatabase(databaseUrl);
 
-    const pool = new Pool({ connectionString: databaseUrl });
+    const pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
 
     try {
       await expect(
@@ -117,7 +116,7 @@ describe('migrateDatabase', () => {
   it('crea las tablas del estado comunitario con claves compuestas y cascada', async () => {
     await migrateDatabase(databaseUrl);
 
-    const pool = new Pool({ connectionString: databaseUrl });
+    const pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
 
     try {
       const columns = await pool.query<{
@@ -234,7 +233,7 @@ describe('migrateDatabase', () => {
   it('aplica restricciones y cascada del estado comunitario', async () => {
     await migrateDatabase(databaseUrl);
 
-    const pool = new Pool({ connectionString: databaseUrl });
+    const pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
     const sessionId = '00000000-0000-4000-8000-000000000010';
 
     try {

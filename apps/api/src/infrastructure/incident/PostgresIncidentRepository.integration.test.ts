@@ -1,12 +1,12 @@
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
-import pg from 'pg';
+import type pg from 'pg';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { CommunityIncident } from '../../domain/incident/CommunityIncident.js';
 import type { DemoSession } from '../../domain/session/DemoSession.js';
+import { createPostgresPool } from '../database/createPostgresPool.js';
 import { migrateDatabase } from '../database/migrateDatabase.js';
 import { PostgresIncidentRepository } from './PostgresIncidentRepository.js';
 
-const { Pool } = pg;
 const sessionA = '00000000-0000-4000-8000-000000000101';
 const sessionB = '00000000-0000-4000-8000-000000000102';
 const createdAt = new Date('2026-06-27T10:00:00.000Z');
@@ -31,7 +31,7 @@ describe('PostgresIncidentRepository', () => {
   }, 120_000);
 
   beforeEach(async () => {
-    pool = new Pool({ connectionString: databaseUrl });
+    pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
     repository = new PostgresIncidentRepository(pool);
     await pool.query('truncate table demo_sessions cascade');
     await insertSession(pool, sessionA);
@@ -52,7 +52,7 @@ describe('PostgresIncidentRepository', () => {
     await repository.save(incident({ id: 'inc-001', sessionId: sessionB, type: 'agua' }));
     await pool.end();
 
-    pool = new Pool({ connectionString: databaseUrl });
+    pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
     repository = new PostgresIncidentRepository(pool);
 
     await expect(repository.listBySession(sessionA)).resolves.toEqual([

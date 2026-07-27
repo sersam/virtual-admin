@@ -1,6 +1,7 @@
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
-import pg from 'pg';
+import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createPostgresPool } from '../database/createPostgresPool.js';
 import { migrateDatabase } from '../database/migrateDatabase.js';
 import { InMemoryIncidentRepository } from '../incident/InMemoryIncidentRepository.js';
 import { PostgresIncidentRepository } from '../incident/PostgresIncidentRepository.js';
@@ -11,8 +12,6 @@ import { PostgresProposalRepository } from '../proposal/PostgresProposalReposito
 import { InMemorySessionRepository } from '../session/InMemorySessionRepository.js';
 import { PostgresSessionRepository } from '../session/PostgresSessionRepository.js';
 import { createApiPersistence } from './createApiPersistence.js';
-
-const { Pool } = pg;
 
 interface RepositoryWithPool {
   readonly pool: pg.Pool;
@@ -93,7 +92,7 @@ describe('createApiPersistence', () => {
 });
 
 async function createOnlySessionSchema(databaseUrl: string): Promise<void> {
-  const pool = new Pool({ connectionString: databaseUrl });
+  const pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
 
   try {
     await pool.query(`

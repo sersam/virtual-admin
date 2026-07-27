@@ -1,15 +1,15 @@
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
-import pg from 'pg';
+import type pg from 'pg';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   createPendingAgreementSignature,
   type PendingAgreement,
 } from '../../domain/meetingAgenda/PendingAgreement.js';
 import type { DemoSession } from '../../domain/session/DemoSession.js';
+import { createPostgresPool } from '../database/createPostgresPool.js';
 import { migrateDatabase } from '../database/migrateDatabase.js';
 import { PostgresPendingAgreementRepository } from './PostgresPendingAgreementRepository.js';
 
-const { Pool } = pg;
 const sessionA = '00000000-0000-4000-8000-000000000201';
 const sessionB = '00000000-0000-4000-8000-000000000202';
 const createdAt = new Date('2026-06-23T08:00:00.000Z');
@@ -27,7 +27,7 @@ describe('PostgresPendingAgreementRepository', () => {
   }, 120_000);
 
   beforeEach(async () => {
-    pool = new Pool({ connectionString: databaseUrl });
+    pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
     repository = new PostgresPendingAgreementRepository(pool);
     await pool.query('truncate table demo_sessions cascade');
     await insertSession(pool, sessionA);
@@ -50,7 +50,7 @@ describe('PostgresPendingAgreementRepository', () => {
     );
     await pool.end();
 
-    pool = new Pool({ connectionString: databaseUrl });
+    pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
     repository = new PostgresPendingAgreementRepository(pool);
 
     await expect(repository.listBySession(sessionA)).resolves.toEqual([

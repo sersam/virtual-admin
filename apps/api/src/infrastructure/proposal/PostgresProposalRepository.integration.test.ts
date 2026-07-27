@@ -1,12 +1,12 @@
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
-import pg from 'pg';
+import type pg from 'pg';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { CommunityProposal } from '../../domain/proposal/CommunityProposal.js';
 import type { DemoSession } from '../../domain/session/DemoSession.js';
+import { createPostgresPool } from '../database/createPostgresPool.js';
 import { migrateDatabase } from '../database/migrateDatabase.js';
 import { PostgresProposalRepository } from './PostgresProposalRepository.js';
 
-const { Pool } = pg;
 const sessionA = '00000000-0000-4000-8000-000000000301';
 const sessionB = '00000000-0000-4000-8000-000000000302';
 const createdAt = new Date('2026-07-26T10:00:00.000Z');
@@ -24,7 +24,7 @@ describe('PostgresProposalRepository', () => {
   }, 120_000);
 
   beforeEach(async () => {
-    pool = new Pool({ connectionString: databaseUrl });
+    pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
     repository = new PostgresProposalRepository(pool);
     await pool.query('truncate table demo_sessions cascade');
     await insertSession(pool, sessionA);
@@ -45,7 +45,7 @@ describe('PostgresProposalRepository', () => {
     await repository.save(proposal({ id: 'proposal-3' }));
     await pool.end();
 
-    pool = new Pool({ connectionString: databaseUrl });
+    pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
     repository = new PostgresProposalRepository(pool);
 
     await expect(repository.listBySession(sessionA)).resolves.toEqual([
