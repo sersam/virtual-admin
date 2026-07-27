@@ -18,7 +18,7 @@ const port = Number(process.env.PORT ?? 3000);
 const cookieSecret = readRequiredEnvironmentVariable('COOKIE_SECRET');
 const uploadedDocumentRepository = new InMemoryUploadedDocumentRepository();
 const aiProviders = createAiProviders({ openAiApiKey: process.env.OPENAI_API_KEY });
-const sessionPersistence = createSessionRepository({ databaseUrl: process.env.DATABASE_URL });
+const sessionPersistence = await createSessionRepository({ databaseUrl: process.env.DATABASE_URL });
 
 const app = createApiApp({
   clock: new SystemClock(),

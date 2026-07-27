@@ -1,7 +1,7 @@
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { migrateSessionsDatabase } from './migrateSessionsDatabase.js';
+import { getSessionsMigrationsFolder, migrateSessionsDatabase } from './migrateSessionsDatabase.js';
 
 const { Pool } = pg;
 
@@ -16,6 +16,16 @@ describe('migrateSessionsDatabase', () => {
 
   afterAll(async () => {
     await container?.stop();
+  });
+
+  it('expone la carpeta versionada de migraciones', () => {
+    expect(getSessionsMigrationsFolder()).toMatch(/apps\/api\/drizzle$/);
+  });
+
+  it('rechaza una DATABASE_URL vacia', async () => {
+    await expect(migrateSessionsDatabase('   ')).rejects.toThrow(
+      'DATABASE_URL es obligatoria para migrar la base de datos.',
+    );
   });
 
   it('crea la tabla de sesiones y permite ejecutar la migracion de nuevo', async () => {
@@ -63,4 +73,69 @@ describe('migrateSessionsDatabase', () => {
       await pool.end();
     }
   }, 120_000);
+
+  it('aplica las restricciones de integridad de sesiones', async () => {
+    await migrateSessionsDatabase(databaseUrl);
+
+    const pool = new Pool({ connectionString: databaseUrl });
+
+    try {
+      await expect(
+        insertSession(pool, {
+          id: '00000000-0000-4000-8000-000000000001',
+          requestsUsed: -1,
+          requestsLimit: 3,
+        }),
+      ).rejects.toMatchObject({ constraint: 'demo_sessions_requests_used_non_negative' });
+      await expect(
+        insertSession(pool, {
+          id: '00000000-0000-4000-8000-000000000002',
+          requestsUsed: 0,
+          requestsLimit: 0,
+        }),
+      ).rejects.toMatchObject({ constraint: 'demo_sessions_requests_limit_positive' });
+      await expect(
+        insertSession(pool, {
+          id: '00000000-0000-4000-8000-000000000003',
+          requestsUsed: 4,
+          requestsLimit: 3,
+        }),
+      ).rejects.toMatchObject({ constraint: 'demo_sessions_requests_used_not_above_limit' });
+      await expect(
+        insertSession(pool, {
+          expiresAt: new Date('2026-06-23T08:00:00.000Z'),
+          id: '00000000-0000-4000-8000-000000000004',
+          requestsUsed: 0,
+          requestsLimit: 3,
+        }),
+      ).rejects.toMatchObject({ constraint: 'demo_sessions_expires_after_created' });
+    } finally {
+      await pool.end();
+    }
+  }, 120_000);
 });
+
+async function insertSession(
+  pool: pg.Pool,
+  input: {
+    readonly expiresAt?: Date;
+    readonly id: string;
+    readonly requestsLimit: number;
+    readonly requestsUsed: number;
+  },
+): Promise<void> {
+  await pool.query(
+    `
+      insert into demo_sessions (id, created_at, last_seen_at, expires_at, requests_used, requests_limit)
+      values ($1, $2, $3, $4, $5, $6)
+    `,
+    [
+      input.id,
+      new Date('2026-06-23T08:00:00.000Z'),
+      new Date('2026-06-23T08:00:00.000Z'),
+      input.expiresAt ?? new Date('2026-06-23T08:01:00.000Z'),
+      input.requestsUsed,
+      input.requestsLimit,
+    ],
+  );
+}

@@ -1,33 +1,65 @@
-import { describe, expect, it } from 'vitest';
+import { PostgreSqlContainer } from '@testcontainers/postgresql';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { migrateSessionsDatabase } from '../database/migrateSessionsDatabase.js';
 import { InMemorySessionRepository } from './InMemorySessionRepository.js';
 import { PostgresSessionRepository } from './PostgresSessionRepository.js';
 import { createSessionRepository } from './createSessionRepository.js';
 
 describe('createSessionRepository', () => {
+  let migratedContainer: Awaited<ReturnType<InstanceType<typeof PostgreSqlContainer>['start']>>;
+  let unmigratedContainer: Awaited<ReturnType<InstanceType<typeof PostgreSqlContainer>['start']>>;
+  let migratedDatabaseUrl: string;
+  let unmigratedDatabaseUrl: string;
+
+  beforeAll(async () => {
+    migratedContainer = await new PostgreSqlContainer('postgres:16-alpine').start();
+    unmigratedContainer = await new PostgreSqlContainer('postgres:16-alpine').start();
+    migratedDatabaseUrl = migratedContainer.getConnectionUri();
+    unmigratedDatabaseUrl = unmigratedContainer.getConnectionUri();
+    await migrateSessionsDatabase(migratedDatabaseUrl);
+  }, 120_000);
+
+  afterAll(async () => {
+    await migratedContainer?.stop();
+    await unmigratedContainer?.stop();
+  });
+
   it('usa memoria cuando DATABASE_URL no existe', async () => {
-    const persistence = createSessionRepository({});
+    const persistence = await createSessionRepository({});
 
     expect(persistence.repository).toBeInstanceOf(InMemorySessionRepository);
     await expect(persistence.close()).resolves.toBeUndefined();
   });
 
   it('usa memoria cuando DATABASE_URL esta vacia', async () => {
-    const persistence = createSessionRepository({ databaseUrl: '   ' });
+    const persistence = await createSessionRepository({ databaseUrl: '   ' });
 
     expect(persistence.repository).toBeInstanceOf(InMemorySessionRepository);
     await expect(persistence.close()).resolves.toBeUndefined();
   });
 
-  it('usa PostgreSQL cuando DATABASE_URL esta configurada sin activar fallback silencioso', async () => {
-    const persistence = createSessionRepository({
+  it('rechaza una DATABASE_URL invalida antes de devolver el repositorio', async () => {
+    await expect(
+      createSessionRepository({
+        connectionTimeoutMillis: 50,
+        databaseUrl: 'postgres://test:test@127.0.0.1:1/test',
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('rechaza PostgreSQL sin migraciones antes de devolver el repositorio', async () => {
+    await expect(createSessionRepository({ databaseUrl: unmigratedDatabaseUrl })).rejects.toThrow(
+      'El esquema PostgreSQL de sesiones no esta migrado.',
+    );
+  }, 120_000);
+
+  it('usa PostgreSQL cuando DATABASE_URL esta configurada y migrada', async () => {
+    const persistence = await createSessionRepository({
       connectionTimeoutMillis: 50,
-      databaseUrl: 'postgres://test:test@127.0.0.1:1/test',
+      databaseUrl: migratedDatabaseUrl,
     });
 
     expect(persistence.repository).toBeInstanceOf(PostgresSessionRepository);
-    await expect(
-      persistence.repository.findById('00000000-0000-4000-8000-000000000001'),
-    ).rejects.toThrow();
     await persistence.close();
-  });
+  }, 120_000);
 });

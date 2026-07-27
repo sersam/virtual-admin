@@ -17,12 +17,12 @@ export interface SessionPersistence {
 
 export function createSessionRepository(
   options: CreateSessionRepositoryOptions,
-): SessionPersistence {
+): Promise<SessionPersistence> {
   if (!options.databaseUrl?.trim()) {
-    return {
+    return Promise.resolve({
       repository: new InMemorySessionRepository(),
       close: async () => undefined,
-    };
+    });
   }
 
   const pool = new Pool({
@@ -30,10 +30,37 @@ export function createSessionRepository(
     connectionTimeoutMillis: options.connectionTimeoutMillis,
   });
 
-  return {
+  return validatePostgresSessionSchema(pool).then(() => ({
     repository: new PostgresSessionRepository(pool),
     close: async () => {
       await pool.end();
     },
-  };
+  }));
+}
+
+async function validatePostgresSessionSchema(pool: pg.Pool): Promise<void> {
+  try {
+    await pool.query(
+      `
+        select id, created_at, last_seen_at, expires_at, requests_used, requests_limit
+        from demo_sessions
+        limit 0
+      `,
+    );
+  } catch (error) {
+    await pool.end();
+    if (isMissingSessionSchemaError(error)) {
+      throw new Error('El esquema PostgreSQL de sesiones no esta migrado.');
+    }
+    throw error;
+  }
+}
+
+function isMissingSessionSchemaError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error.code === '42P01' || error.code === '42703')
+  );
 }

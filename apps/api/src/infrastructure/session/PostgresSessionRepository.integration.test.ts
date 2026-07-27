@@ -90,12 +90,15 @@ describe('PostgresSessionRepository', () => {
     expect(consumed).toEqual({ ...baseSession, requestsUsed: 1 });
   });
 
-  it('elimina sesiones expiradas y crea una nueva', async () => {
+  it.each([
+    ['en el limite exacto de expiracion', baseSession.expiresAt],
+    ['despues de expirar', new Date('2026-06-23T08:01:01.000Z')],
+  ])('elimina sesiones expiradas %s y crea una nueva', async (_case, now) => {
     await repository.save(baseSession);
 
     const renewed = await repository.consumeRequest({
       createSessionId: () => '00000000-0000-4000-8000-000000000002',
-      now: new Date('2026-06-23T08:01:01.000Z'),
+      now,
       requestsLimit: 4,
       sessionId: baseSession.id,
       ttlMs: 120_000,

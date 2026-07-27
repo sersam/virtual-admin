@@ -1,4 +1,3 @@
-import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
@@ -21,5 +20,5 @@ export async function migrateSessionsDatabase(databaseUrl: string): Promise<void
 }
 
 export function getSessionsMigrationsFolder(): string {
-  return dirname(fileURLToPath(new URL('../../../drizzle/meta/_journal.json', import.meta.url)));
+  return migrationsFolder;
 }
