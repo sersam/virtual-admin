@@ -3,6 +3,9 @@ import type { IncidentRepository } from '../../application/ports/IncidentReposit
 import type { PendingAgreementRepository } from '../../application/ports/PendingAgreementRepository.js';
 import type { ProposalRepository } from '../../application/ports/ProposalRepository.js';
 import type { SessionRepository } from '../../application/ports/SessionRepository.js';
+import type { UploadedDocumentRepository } from '../../application/ports/UploadedDocumentRepository.js';
+import { InMemoryUploadedDocumentRepository } from '../document/InMemoryUploadedDocumentRepository.js';
+import { PostgresUploadedDocumentRepository } from '../document/PostgresUploadedDocumentRepository.js';
 import { InMemoryIncidentRepository } from '../incident/InMemoryIncidentRepository.js';
 import { PostgresIncidentRepository } from '../incident/PostgresIncidentRepository.js';
 import { InMemoryPendingAgreementRepository } from '../meetingAgenda/InMemoryPendingAgreementRepository.js';
@@ -25,6 +28,7 @@ export interface ApiPersistence {
   readonly pendingAgreementRepository: PendingAgreementRepository;
   readonly proposalRepository: ProposalRepository;
   readonly sessionRepository: SessionRepository;
+  readonly uploadedDocumentRepository: UploadedDocumentRepository;
   close(): Promise<void>;
 }
 
@@ -37,6 +41,7 @@ export async function createApiPersistence(
       pendingAgreementRepository: new InMemoryPendingAgreementRepository(),
       proposalRepository: new InMemoryProposalRepository(),
       sessionRepository: new InMemorySessionRepository(),
+      uploadedDocumentRepository: new InMemoryUploadedDocumentRepository(),
       close: async () => undefined,
     };
   }
@@ -54,6 +59,7 @@ export async function createApiPersistence(
     pendingAgreementRepository: new PostgresPendingAgreementRepository(pool),
     proposalRepository: new PostgresProposalRepository(pool),
     sessionRepository: new PostgresSessionRepository(pool),
+    uploadedDocumentRepository: new PostgresUploadedDocumentRepository(pool),
     close: async () => {
       if (!pool.ended) await pool.end();
     },
@@ -93,11 +99,23 @@ async function validatePostgresApiSchema(pool: pg.Pool): Promise<void> {
         proposals.id,
         proposals.description,
         proposals.created_at,
-        proposals.inserted_order
+        proposals.inserted_order,
+        documents.session_id,
+        documents.id,
+        documents.title,
+        documents.filename,
+        documents.content_type,
+        documents.size_bytes,
+        documents.uploaded_at,
+        documents.document_url,
+        documents.text_content,
+        documents.content,
+        documents.inserted_order
       from demo_sessions sessions
       left join community_incidents incidents on incidents.session_id = sessions.id
       left join pending_agreements agreements on agreements.session_id = sessions.id
       left join community_proposals proposals on proposals.session_id = sessions.id
+      left join uploaded_documents documents on documents.session_id = sessions.id
       limit 0
     `);
   } catch (error) {

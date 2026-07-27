@@ -3,6 +3,8 @@ import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createPostgresPool } from '../database/createPostgresPool.js';
 import { migrateDatabase } from '../database/migrateDatabase.js';
+import { InMemoryUploadedDocumentRepository } from '../document/InMemoryUploadedDocumentRepository.js';
+import { PostgresUploadedDocumentRepository } from '../document/PostgresUploadedDocumentRepository.js';
 import { InMemoryIncidentRepository } from '../incident/InMemoryIncidentRepository.js';
 import { PostgresIncidentRepository } from '../incident/PostgresIncidentRepository.js';
 import { InMemoryPendingAgreementRepository } from '../meetingAgenda/InMemoryPendingAgreementRepository.js';
@@ -47,7 +49,11 @@ describe('createApiPersistence', () => {
       InMemoryPendingAgreementRepository,
     );
     expect(withoutUrl.proposalRepository).toBeInstanceOf(InMemoryProposalRepository);
+    expect(withoutUrl.uploadedDocumentRepository).toBeInstanceOf(
+      InMemoryUploadedDocumentRepository,
+    );
     expect(blankUrl.sessionRepository).toBeInstanceOf(InMemorySessionRepository);
+    expect(blankUrl.uploadedDocumentRepository).toBeInstanceOf(InMemoryUploadedDocumentRepository);
     await expect(withoutUrl.close()).resolves.toBeUndefined();
     await expect(blankUrl.close()).resolves.toBeUndefined();
   });
@@ -62,6 +68,9 @@ describe('createApiPersistence', () => {
         PostgresPendingAgreementRepository,
       );
       expect(persistence.proposalRepository).toBeInstanceOf(PostgresProposalRepository);
+      expect(persistence.uploadedDocumentRepository).toBeInstanceOf(
+        PostgresUploadedDocumentRepository,
+      );
 
       const pool = (persistence.sessionRepository as unknown as RepositoryWithPool).pool;
       expect((persistence.incidentRepository as unknown as RepositoryWithPool).pool).toBe(pool);
@@ -69,6 +78,9 @@ describe('createApiPersistence', () => {
         pool,
       );
       expect((persistence.proposalRepository as unknown as RepositoryWithPool).pool).toBe(pool);
+      expect((persistence.uploadedDocumentRepository as unknown as RepositoryWithPool).pool).toBe(
+        pool,
+      );
 
       await expect(persistence.close()).resolves.toBeUndefined();
       await expect(persistence.close()).resolves.toBeUndefined();

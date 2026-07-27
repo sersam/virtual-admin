@@ -285,6 +285,142 @@ describe('migrateDatabase', () => {
       await pool.end();
     }
   }, 120_000);
+
+  it('crea la tabla de documentos subidos con clave compuesta y cascada', async () => {
+    await migrateDatabase(databaseUrl);
+
+    const pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
+
+    try {
+      const columns = await pool.query<{
+        column_name: string;
+        data_type: string;
+      }>(
+        `
+          select column_name, data_type
+          from information_schema.columns
+          where table_schema = 'public' and table_name = 'uploaded_documents'
+          order by ordinal_position
+        `,
+      );
+      const constraints = await pool.query<{
+        constraint_name: string;
+        constraint_type: string;
+        delete_rule: string | null;
+      }>(
+        `
+          select
+            tc.constraint_name,
+            tc.constraint_type,
+            rc.delete_rule
+          from information_schema.table_constraints tc
+          left join information_schema.referential_constraints rc
+            on rc.constraint_schema = tc.constraint_schema
+           and rc.constraint_name = tc.constraint_name
+          where tc.table_schema = 'public'
+            and tc.table_name = 'uploaded_documents'
+            and tc.constraint_type in ('PRIMARY KEY', 'FOREIGN KEY')
+          order by tc.constraint_type, tc.constraint_name
+        `,
+      );
+      const checks = await pool.query<{ constraint_name: string }>(
+        `
+          select constraint_name
+          from information_schema.table_constraints
+          where table_schema = 'public'
+            and table_name = 'uploaded_documents'
+            and constraint_type = 'CHECK'
+            and constraint_name like 'uploaded_documents_%'
+          order by constraint_name
+        `,
+      );
+
+      expect(columns.rows).toEqual([
+        { column_name: 'session_id', data_type: 'uuid' },
+        { column_name: 'id', data_type: 'character varying' },
+        { column_name: 'title', data_type: 'text' },
+        { column_name: 'filename', data_type: 'text' },
+        { column_name: 'content_type', data_type: 'text' },
+        { column_name: 'size_bytes', data_type: 'integer' },
+        { column_name: 'uploaded_at', data_type: 'timestamp with time zone' },
+        { column_name: 'document_url', data_type: 'text' },
+        { column_name: 'text_content', data_type: 'text' },
+        { column_name: 'content', data_type: 'bytea' },
+        { column_name: 'inserted_order', data_type: 'integer' },
+      ]);
+      expect(constraints.rows).toEqual([
+        {
+          constraint_name: 'uploaded_documents_session_id_demo_sessions_id_fk',
+          constraint_type: 'FOREIGN KEY',
+          delete_rule: 'CASCADE',
+        },
+        {
+          constraint_name: 'uploaded_documents_pkey',
+          constraint_type: 'PRIMARY KEY',
+          delete_rule: null,
+        },
+      ]);
+      expect(checks.rows.map(({ constraint_name }) => constraint_name)).toEqual([
+        'uploaded_documents_content_length_matches_size',
+        'uploaded_documents_content_not_empty',
+        'uploaded_documents_content_type_pdf',
+        'uploaded_documents_document_url_length',
+        'uploaded_documents_filename_length',
+        'uploaded_documents_size_bounds',
+        'uploaded_documents_title_length',
+      ]);
+    } finally {
+      await pool.end();
+    }
+  }, 120_000);
+
+  it('aplica restricciones y cascada de documentos subidos', async () => {
+    await migrateDatabase(databaseUrl);
+
+    const pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
+    const sessionId = '00000000-0000-4000-8000-000000000020';
+
+    try {
+      await insertSession(pool, {
+        id: sessionId,
+        requestsUsed: 0,
+        requestsLimit: 3,
+      });
+      await expect(
+        insertUploadedDocument(pool, sessionId, {
+          content: Buffer.from('%PDF-1.4'),
+          contentType: 'text/plain',
+          id: 'document-1',
+          sizeBytes: 8,
+        }),
+      ).rejects.toMatchObject({ constraint: 'uploaded_documents_content_type_pdf' });
+      await expect(
+        insertUploadedDocument(pool, sessionId, {
+          content: Buffer.alloc(5 * 1024 * 1024 + 1, '%'),
+          id: 'document-2',
+          sizeBytes: 5 * 1024 * 1024 + 1,
+        }),
+      ).rejects.toMatchObject({ constraint: 'uploaded_documents_size_bounds' });
+      await expect(
+        insertUploadedDocument(pool, sessionId, {
+          content: Buffer.from('%PDF-1.4'),
+          id: 'document-3',
+          sizeBytes: 4,
+        }),
+      ).rejects.toMatchObject({ constraint: 'uploaded_documents_content_length_matches_size' });
+
+      await insertUploadedDocument(pool, sessionId, {
+        content: Buffer.from('%PDF-1.4'),
+        id: 'document-4',
+        sizeBytes: 8,
+      });
+      await pool.query('delete from demo_sessions where id = $1', [sessionId]);
+
+      await expect(countRows(pool, 'uploaded_documents')).resolves.toBe(0);
+    } finally {
+      await pool.end();
+    }
+  }, 120_000);
 });
 
 function groupColumnsByTable(
@@ -358,4 +494,26 @@ async function insertCommunityState(pool: pg.Pool, sessionId: string): Promise<v
 async function countRows(pool: pg.Pool, tableName: string): Promise<number> {
   const result = await pool.query<{ count: string }>(`select count(*) from ${tableName}`);
   return Number(result.rows[0]?.count ?? 0);
+}
+
+async function insertUploadedDocument(
+  pool: pg.Pool,
+  sessionId: string,
+  input: {
+    readonly content: Buffer;
+    readonly contentType?: string;
+    readonly id: string;
+    readonly sizeBytes: number;
+  },
+): Promise<void> {
+  await pool.query(
+    `
+      insert into uploaded_documents (
+        session_id, id, title, filename, content_type, size_bytes,
+        uploaded_at, document_url, text_content, content
+      )
+      values ($1, $2, 'Acta subida', 'acta.pdf', $3, $4, now(), '/api/documents/uploaded/document-1', 'Texto extraido', $5)
+    `,
+    [sessionId, input.id, input.contentType ?? 'application/pdf', input.sizeBytes, input.content],
+  );
 }
