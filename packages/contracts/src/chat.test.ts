@@ -69,4 +69,16 @@ describe('chat contracts', () => {
       }),
     ).toThrow();
   });
+
+  it('rechaza proveedores no soportados o ausentes', () => {
+    const base = {
+      agent: 'documentos',
+      answer: 'Respuesta válida.',
+      mode: 'langgraph',
+      sources: [validSource],
+    };
+
+    expect(() => ChatMessageResponseSchema.parse(base)).toThrow();
+    expect(() => ChatMessageResponseSchema.parse({ ...base, provider: 'anthropic' })).toThrow();
+  });
 });

@@ -65,7 +65,7 @@ COOKIE_SECRET=local-demo-cookie-secret OPENAI_API_KEY=<TU_API_KEY> npm run dev:a
 
 El modelo fijado para texto es `gpt-5-nano`. La recuperación semántica documental usa `text-embedding-3-small` con 1536 dimensiones. Si `OPENAI_API_KEY` no está definida, la API usa los adaptadores demo deterministas y la recuperación documental léxica, sin llamadas externas. Si `OPENAI_API_KEY` está definida, el chat clasifica la ruta con OpenAI y las respuestas documentales se redactan con OpenAI sobre las evidencias recuperadas, aunque la recuperación siga siendo léxica por falta de PostgreSQL. Las pruebas y CI no necesitan API key ni ejecutan llamadas reales a OpenAI.
 
-Cada operación IA registra en los logs del backend el modelo, versión, tokens, coste estimado, latencia y resultado. La telemetría documental y de clasificación del chat no registra preguntas ni contenido de documentos.
+Cada operación OpenAI registra en los logs del backend el modelo, versión, tokens, coste estimado, latencia y resultado. Los adaptadores demo deterministas no emiten esa telemetría de modelo/tokens/coste. La telemetría documental y de clasificación del chat no registra preguntas ni contenido de documentos.
 
 ### Coordinador IA del chat
 

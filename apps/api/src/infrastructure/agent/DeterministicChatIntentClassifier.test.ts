@@ -30,4 +30,16 @@ describe('DeterministicChatIntentClassifier', () => {
       provider: 'deterministic-demo',
     });
   });
+
+  it.each(['', '   '] as const)(
+    'clasifica mensajes vacíos como general con trazabilidad demo',
+    async (message) => {
+      const classifier = new DeterministicChatIntentClassifier();
+
+      await expect(classifier.classify(message)).resolves.toEqual({
+        agent: 'general',
+        provider: 'deterministic-demo',
+      });
+    },
+  );
 });

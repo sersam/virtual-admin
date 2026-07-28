@@ -26,6 +26,7 @@ describe('useChatMessage', () => {
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(result.current.result?.agent).toBe('general');
+    expect(result.current.result?.provider).toBe('openai');
   });
 
   it('usa fallback local si la API no está disponible', async () => {

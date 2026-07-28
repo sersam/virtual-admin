@@ -64,6 +64,26 @@ describe('OpenAiChatIntentClassifier', () => {
       }),
     ]);
   });
+
+  it('registra fallo cuando el cliente de OpenAI rechaza la petición', async () => {
+    const telemetry = new RecordingTelemetryReporter();
+    const classifier = new OpenAiChatIntentClassifier({
+      nowMs: sequenceNow(1_000, 1_045),
+      responses: new RejectingResponsesClient(),
+      telemetry,
+    });
+
+    await expect(classifier.classify('Consulta los estatutos.')).rejects.toBeInstanceOf(
+      OpenAiProviderError,
+    );
+    expect(telemetry.events).toEqual([
+      expect.objectContaining({
+        operation: 'chat-intent-classification',
+        promptVersion: 'chat-intent.v1',
+        result: 'failure',
+      }),
+    ]);
+  });
 });
 
 interface RecordedStructuredRequest {
@@ -97,6 +117,15 @@ class RecordingResponsesClient implements OpenAiResponsesClient {
       output: this.output,
       usage: { cachedInputTokens: 12, inputTokens: 100, outputTokens: 4 },
     };
+  }
+}
+
+class RejectingResponsesClient implements OpenAiResponsesClient {
+  async createStructuredResponse(): Promise<{
+    readonly output: unknown;
+    readonly usage: OpenAiUsage;
+  }> {
+    throw new Error('provider unavailable');
   }
 }
 
