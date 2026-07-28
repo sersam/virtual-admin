@@ -68,13 +68,42 @@ function findChunkEnd(content: string, start: number): number {
   if (hardEnd === content.length) return hardEnd;
 
   const boundary = content.lastIndexOf(' ', hardEnd);
-  if (boundary <= start) return hardEnd;
+  if (boundary <= start) return safeChunkEnd(content, start, hardEnd);
   return boundary;
 }
 
 function findNextStart(content: string, previousEnd: number): number {
   const overlapStart = Math.max(0, previousEnd - DOCUMENT_CHUNK_OVERLAP_CHARACTERS);
   const boundary = content.indexOf(' ', overlapStart);
-  if (boundary < 0 || boundary >= previousEnd) return overlapStart;
+  if (boundary < 0 || boundary >= previousEnd)
+    return moveBeforeSplitSurrogatePair(content, overlapStart);
   return boundary + 1;
+}
+
+function safeChunkEnd(content: string, start: number, end: number): number {
+  const safeEnd = moveBeforeSplitSurrogatePair(content, end);
+  return safeEnd > start ? safeEnd : moveAfterSplitSurrogatePair(content, end);
+}
+
+function moveBeforeSplitSurrogatePair(content: string, index: number): number {
+  return splitsSurrogatePair(content, index) ? index - 1 : index;
+}
+
+function moveAfterSplitSurrogatePair(content: string, index: number): number {
+  return splitsSurrogatePair(content, index) ? index + 1 : index;
+}
+
+function splitsSurrogatePair(content: string, index: number): boolean {
+  if (index <= 0 || index >= content.length) return false;
+  return (
+    isHighSurrogate(content.charCodeAt(index - 1)) && isLowSurrogate(content.charCodeAt(index))
+  );
+}
+
+function isHighSurrogate(code: number): boolean {
+  return code >= 0xd800 && code <= 0xdbff;
+}
+
+function isLowSurrogate(code: number): boolean {
+  return code >= 0xdc00 && code <= 0xdfff;
 }

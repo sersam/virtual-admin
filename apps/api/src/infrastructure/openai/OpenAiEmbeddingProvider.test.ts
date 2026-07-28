@@ -61,14 +61,31 @@ describe('OpenAiEmbeddingProvider', () => {
     await expect(provider.embed(['uno', 'dos'])).rejects.toBeInstanceOf(OpenAiProviderError);
   });
 
-  it('rechaza vectores con dimension incorrecta o valores no finitos', async () => {
-    const invalidVector = [Number.NaN, ...Array.from({ length: 1535 }, () => 0)];
+  it.each([
+    { name: 'dimension incorrecta', embedding: [0.1, 0.2] },
+    {
+      name: 'valores no finitos',
+      embedding: [Number.NaN, ...Array.from({ length: 1535 }, () => 0)],
+    },
+  ])('rechaza vectores con $name', async ({ embedding }) => {
     const provider = new OpenAiEmbeddingProvider({
-      client: new RecordingEmbeddingsClient([{ index: 0, embedding: invalidVector }]),
+      client: new RecordingEmbeddingsClient([{ index: 0, embedding }]),
       telemetry: new RecordingTelemetryReporter(),
     });
 
     await expect(provider.embed(['texto'])).rejects.toBeInstanceOf(OpenAiProviderError);
+  });
+
+  it('rechaza indices duplicados aunque la cantidad de embeddings coincida', async () => {
+    const provider = new OpenAiEmbeddingProvider({
+      client: new RecordingEmbeddingsClient([
+        { index: 0, embedding: vector(0.1) },
+        { index: 0, embedding: vector(0.2) },
+      ]),
+      telemetry: new RecordingTelemetryReporter(),
+    });
+
+    await expect(provider.embed(['uno', 'dos'])).rejects.toBeInstanceOf(OpenAiProviderError);
   });
 
   it('mantiene el resultado funcional si falla la telemetria', async () => {

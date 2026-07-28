@@ -127,6 +127,32 @@ describe('SemanticDocumentRetriever', () => {
     expect(chunks.replacements).toEqual([]);
     expect(embeddings.inputs).toEqual(['horario piscina']);
   });
+
+  it('propaga fallos de embeddings sin buscar vecinos', async () => {
+    const chunks = new RecordingChunkRepository([]);
+    const retriever = new SemanticDocumentRetriever({
+      chunkRepository: chunks,
+      embeddingProvider: new RecordingEmbeddingProvider(new Error('embedding failure')),
+      documents: [baseDocuments[0]!],
+      uploadedDocumentRepository: new FakeUploadedDocumentRepository([]),
+    });
+
+    await expect(retriever.retrieve('horario piscina', 3)).rejects.toThrow('embedding failure');
+    expect(chunks.searchParams).toEqual([]);
+  });
+
+  it('propaga fallos de persistencia vectorial sin buscar vecinos', async () => {
+    const chunks = new RecordingChunkRepository([], [], new Error('replace failure'));
+    const retriever = new SemanticDocumentRetriever({
+      chunkRepository: chunks,
+      embeddingProvider: new RecordingEmbeddingProvider(),
+      documents: [baseDocuments[0]!],
+      uploadedDocumentRepository: new FakeUploadedDocumentRepository([]),
+    });
+
+    await expect(retriever.retrieve('horario piscina', 3)).rejects.toThrow('replace failure');
+    expect(chunks.searchParams).toEqual([]);
+  });
 });
 
 class RecordingEmbeddingProvider implements EmbeddingProvider {
@@ -134,10 +160,14 @@ class RecordingEmbeddingProvider implements EmbeddingProvider {
   readonly inputs: string[] = [];
   readonly model = 'test-embedding-model';
 
+  constructor(private readonly failure?: Error) {}
+
   async embed(texts: readonly string[]): Promise<{
     readonly inputTokens: number;
     readonly vectors: readonly (readonly number[])[];
   }> {
+    if (this.failure) throw this.failure;
+
     this.inputs.push(...texts);
     return {
       inputTokens: texts.length,
@@ -168,6 +198,7 @@ class RecordingChunkRepository implements DocumentChunkRepository {
   constructor(
     private readonly searchResults: readonly RetrievedDocumentChunk[],
     private readonly indexedDocuments: readonly IndexedDocumentVersion[] = [],
+    private readonly replaceFailure?: Error,
   ) {}
 
   async listIndexedDocuments(params: {
@@ -185,6 +216,8 @@ class RecordingChunkRepository implements DocumentChunkRepository {
     readonly embeddingModel: string;
     readonly sessionId?: string;
   }): Promise<void> {
+    if (this.replaceFailure) throw this.replaceFailure;
+
     this.replacements.push(params);
   }
 

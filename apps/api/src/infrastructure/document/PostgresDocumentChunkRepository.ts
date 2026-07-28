@@ -66,6 +66,9 @@ export class PostgresDocumentChunkRepository implements DocumentChunkRepository 
 
     try {
       await client.query('begin');
+      await client.query('select pg_advisory_xact_lock(hashtextextended($1, 0))', [
+        PostgresDocumentChunkRepository.toDocumentScopeLockKey(params),
+      ]);
       await client.query(
         `
           delete from document_chunks
@@ -82,32 +85,7 @@ export class PostgresDocumentChunkRepository implements DocumentChunkRepository 
         ],
       );
 
-      for (const chunk of params.chunks) {
-        await client.query(
-          `
-            insert into document_chunks (
-              id, session_id, document_id, document_fingerprint, chunk_index,
-              title, type, section, document_url, content, embedding_model, embedding
-            )
-            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::vector)
-            on conflict (id) do nothing
-          `,
-          [
-            chunk.id,
-            chunk.sessionId ?? null,
-            chunk.documentId,
-            chunk.documentFingerprint,
-            chunk.chunkIndex,
-            chunk.title,
-            chunk.type,
-            chunk.section,
-            chunk.documentUrl,
-            chunk.content,
-            chunk.embeddingModel,
-            PostgresDocumentChunkRepository.toSqlVector(chunk.embedding),
-          ],
-        );
-      }
+      await insertDocumentChunks(client, params.chunks);
 
       await client.query('commit');
     } catch (error) {
@@ -167,4 +145,54 @@ export class PostgresDocumentChunkRepository implements DocumentChunkRepository 
     }
     return `[${vector.join(',')}]`;
   }
+
+  static toDocumentScopeLockKey(params: {
+    readonly documentId: string;
+    readonly embeddingModel: string;
+    readonly sessionId?: string;
+  }): string {
+    return `document_chunks:${params.embeddingModel}:${params.sessionId ?? 'global'}:${params.documentId}`;
+  }
+}
+
+async function insertDocumentChunks(
+  client: pg.PoolClient,
+  chunks: readonly StoredDocumentChunk[],
+): Promise<void> {
+  if (chunks.length === 0) return;
+
+  await client.query(
+    `
+      insert into document_chunks (
+        id, session_id, document_id, document_fingerprint, chunk_index,
+        title, type, section, document_url, content, embedding_model, embedding
+      )
+      values ${chunks.map(toInsertRow).join(', ')}
+      on conflict (id) do nothing
+    `,
+    chunks.flatMap(toInsertParameters),
+  );
+}
+
+function toInsertRow(_: StoredDocumentChunk, rowIndex: number): string {
+  const firstParam = rowIndex * 12 + 1;
+  const placeholders = Array.from({ length: 11 }, (_, index) => `$${firstParam + index}`);
+  return `(${[...placeholders, `$${firstParam + 11}::vector`].join(', ')})`;
+}
+
+function toInsertParameters(chunk: StoredDocumentChunk): readonly unknown[] {
+  return [
+    chunk.id,
+    chunk.sessionId ?? null,
+    chunk.documentId,
+    chunk.documentFingerprint,
+    chunk.chunkIndex,
+    chunk.title,
+    chunk.type,
+    chunk.section,
+    chunk.documentUrl,
+    chunk.content,
+    chunk.embeddingModel,
+    PostgresDocumentChunkRepository.toSqlVector(chunk.embedding),
+  ];
 }

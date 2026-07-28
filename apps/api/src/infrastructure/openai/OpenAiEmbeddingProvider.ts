@@ -147,8 +147,8 @@ function orderAndValidateEmbeddings(
 
   return [...data]
     .sort((left, right) => left.index - right.index)
-    .map(({ embedding, index }) => {
-      if (index < 0 || index >= expectedCount) {
+    .map(({ embedding, index }, expectedIndex) => {
+      if (index !== expectedIndex) {
         throw new OpenAiProviderError('OpenAI devolvio un indice de embedding inesperado.');
       }
       if (

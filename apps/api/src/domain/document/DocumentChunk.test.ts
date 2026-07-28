@@ -3,6 +3,7 @@ import type { CommunityDocument } from './CommunityDocument.js';
 import {
   chunkCommunityDocument,
   DOCUMENT_CHUNKING_VERSION,
+  DOCUMENT_CHUNK_MAX_CHARACTERS,
   fingerprintCommunityDocument,
   normalizeDocumentContent,
 } from './DocumentChunk.js';
@@ -65,6 +66,19 @@ describe('DocumentChunk', () => {
     expect(chunk?.content).toContain('Clausula');
   });
 
+  it('no divide pares sustitutos Unicode al cortar por limite duro', () => {
+    const document = {
+      ...baseDocument,
+      content: `${'a'.repeat(DOCUMENT_CHUNK_MAX_CHARACTERS - 1)}😀 ${'b'.repeat(50)}`,
+    };
+
+    const chunks = chunkCommunityDocument(document);
+
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(chunks.some((chunk) => chunk.content.includes('😀'))).toBe(true);
+    expect(chunks.every((chunk) => !hasUnpairedSurrogate(chunk.content))).toBe(true);
+  });
+
   it('calcula fingerprints estables y sensibles al modelo, version y contenido', () => {
     const fingerprint = fingerprintCommunityDocument(baseDocument, {
       chunkingVersion: DOCUMENT_CHUNKING_VERSION,
@@ -89,9 +103,32 @@ describe('DocumentChunk', () => {
     ).not.toBe(fingerprint);
     expect(
       fingerprintCommunityDocument(baseDocument, {
+        chunkingVersion: 'document-chunking.v2',
+        embeddingModel: 'text-embedding-3-small',
+      }),
+    ).not.toBe(fingerprint);
+    expect(
+      fingerprintCommunityDocument(baseDocument, {
         chunkingVersion: DOCUMENT_CHUNKING_VERSION,
         embeddingModel: 'otro-modelo',
       }),
     ).not.toBe(fingerprint);
   });
 });
+
+function hasUnpairedSurrogate(content: string): boolean {
+  for (let index = 0; index < content.length; index += 1) {
+    const code = content.charCodeAt(index);
+    if (isHighSurrogate(code) && !isLowSurrogate(content.charCodeAt(index + 1))) return true;
+    if (isLowSurrogate(code) && !isHighSurrogate(content.charCodeAt(index - 1))) return true;
+  }
+  return false;
+}
+
+function isHighSurrogate(code: number): boolean {
+  return code >= 0xd800 && code <= 0xdbff;
+}
+
+function isLowSurrogate(code: number): boolean {
+  return code >= 0xdc00 && code <= 0xdfff;
+}
