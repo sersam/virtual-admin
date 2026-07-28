@@ -16,7 +16,7 @@ Será una demo pública sin autenticación, con datos precargados y un modo loca
 
 ## Estado del proyecto
 
-Actualmente están implementadas las historias de la **US-001** a la **US-018**. La aplicación incluye shell responsive, API Express con sesiones demo aisladas, estado persistente opcional en PostgreSQL, documentos PDF subidos por sesión, consulta documental RAG con respuestas generadas desde fuentes trazables y recuperación semántica con pgvector cuando el backend está configurado para ello.
+Actualmente están implementadas las historias de la **US-001** a la **US-019**. La aplicación incluye shell responsive, API Express con sesiones demo aisladas, estado persistente opcional en PostgreSQL, documentos PDF subidos por sesión, consulta documental RAG con respuestas generadas desde fuentes trazables, recuperación semántica con pgvector cuando el backend está configurado para ello y un coordinador IA que enruta el chat hacia agentes especializados con traza visible.
 
 - [Backlog del MVP](docs/backlog.md)
 - [Arquitectura detallada](docs/architecture.md)
@@ -57,15 +57,27 @@ La API quedará disponible en [http://localhost:3000](http://localhost:3000), co
 
 ### Configuración OpenAI
 
-La API puede generar comunicados, clasificar incidencias, redactar respuestas documentales RAG y generar embeddings documentales con OpenAI desde backend. Para activar los proveedores OpenAI en local, define `OPENAI_API_KEY` al arrancar la API:
+La API puede generar comunicados, clasificar incidencias, clasificar intenciones de chat, redactar respuestas documentales RAG y generar embeddings documentales con OpenAI desde backend. Para activar los proveedores OpenAI en local, define `OPENAI_API_KEY` al arrancar la API:
 
 ```bash
 COOKIE_SECRET=local-demo-cookie-secret OPENAI_API_KEY=<TU_API_KEY> npm run dev:api
 ```
 
-El modelo fijado para texto es `gpt-5-nano`. La recuperación semántica documental usa `text-embedding-3-small` con 1536 dimensiones. Si `OPENAI_API_KEY` no está definida, la API usa los adaptadores demo deterministas y la recuperación documental léxica, sin llamadas externas. Si `OPENAI_API_KEY` está definida, las respuestas documentales se redactan con OpenAI sobre las evidencias recuperadas, aunque la recuperación siga siendo léxica por falta de PostgreSQL. Las pruebas y CI no necesitan API key ni ejecutan llamadas reales a OpenAI.
+El modelo fijado para texto es `gpt-5-nano`. La recuperación semántica documental usa `text-embedding-3-small` con 1536 dimensiones. Si `OPENAI_API_KEY` no está definida, la API usa los adaptadores demo deterministas y la recuperación documental léxica, sin llamadas externas. Si `OPENAI_API_KEY` está definida, el chat clasifica la ruta con OpenAI y las respuestas documentales se redactan con OpenAI sobre las evidencias recuperadas, aunque la recuperación siga siendo léxica por falta de PostgreSQL. Las pruebas y CI no necesitan API key ni ejecutan llamadas reales a OpenAI.
 
-Cada operación IA registra en los logs del backend el modelo, versión, tokens, coste estimado, latencia y resultado. La telemetría documental no registra preguntas ni contenido de documentos.
+Cada operación IA registra en los logs del backend el modelo, versión, tokens, coste estimado, latencia y resultado. La telemetría documental y de clasificación del chat no registra preguntas ni contenido de documentos.
+
+### Coordinador IA del chat
+
+La pantalla `/chat` enruta cada mensaje hacia uno de seis agentes: documentos, comunicados, actas, incidencias, juntas o general. La respuesta expone una traza plana:
+
+- `agent`: agente seleccionado.
+- `mode`: orquestación usada, `langgraph` desde backend o `local-demo` en fallback de navegador.
+- `provider`: proveedor que eligió la ruta, `openai` o `deterministic-demo`.
+
+Sin `OPENAI_API_KEY`, el backend sigue usando LangGraph pero clasifica con reglas deterministas demo: `mode: langgraph` y `provider: deterministic-demo`. Con `OPENAI_API_KEY`, OpenAI devuelve una salida estructurada con el agente y el backend añade `provider: openai`.
+
+Si falla OpenAI durante la clasificación, la API responde `AI_PROVIDER_ERROR` y no ejecuta ningún agente especializado. El frontend solo usa el coordinador local cuando no puede conectar con la API; si la API responde con un error HTTP, el error se muestra en pantalla sin sustituirlo por una respuesta demo.
 
 ### Estado demo con PostgreSQL
 
