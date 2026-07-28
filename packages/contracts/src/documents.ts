@@ -29,7 +29,7 @@ export const DocumentSourceSchema = z.object({
   score: z.number().min(0).max(1),
 });
 
-export const DocumentAnswerModeSchema = z.enum(['lexical-demo', 'local-demo']);
+export const DocumentAnswerModeSchema = z.enum(['lexical-demo', 'local-demo', 'semantic-pgvector']);
 
 export const DocumentQueryResponseSchema = z.object({
   answer: z.string().min(1),

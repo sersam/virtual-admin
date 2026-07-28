@@ -81,7 +81,6 @@ import type { IncidentRepository } from '../../application/ports/IncidentReposit
 import type { MeetingRepository } from '../../application/ports/MeetingRepository.js';
 import type { PendingAgreementRepository } from '../../application/ports/PendingAgreementRepository.js';
 import type { ProposalRepository } from '../../application/ports/ProposalRepository.js';
-import type { SessionDocumentRetriever } from '../../application/ports/SessionDocumentRetriever.js';
 import { AiProviderError } from '../../application/ports/AiProviderError.js';
 import { presentIncident } from './incidentPresenter.js';
 import { presentProposal } from './proposalPresenter.js';
@@ -115,7 +114,6 @@ interface ApiAppOptions {
   readonly repository: SessionRepository;
   readonly requestsLimit?: number;
   readonly secureCookies?: boolean;
-  readonly sessionDocumentRetriever?: SessionDocumentRetriever;
   readonly ttlMs?: number;
   readonly uploadedDocumentRepository: UploadedDocumentRepository;
   readonly uploadedDocumentTextExtractor: UploadedDocumentTextExtractor;
@@ -126,7 +124,6 @@ export function createApiApp(options: ApiAppOptions) {
   const app = express();
   const answerDocumentQuestion = new AnswerDocumentQuestion({
     retriever: options.documentRetriever,
-    sessionRetriever: options.sessionDocumentRetriever,
   });
   const createIncident = new CreateIncident({
     classifier: options.incidentClassifier,

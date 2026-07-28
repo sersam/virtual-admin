@@ -25,7 +25,7 @@ const uploadedDocument: RetrievedDocument = {
 describe('AnswerDocumentQuestion', () => {
   it('responde siempre con fuentes recuperadas reales', async () => {
     const useCase = new AnswerDocumentQuestion({
-      retriever: { retrieve: async () => [poolDocument] },
+      retriever: { mode: 'lexical-demo', retrieve: async () => [poolDocument] },
     });
 
     const response = await useCase.execute('¿Cuál es el horario de piscina?');
@@ -39,10 +39,10 @@ describe('AnswerDocumentQuestion', () => {
 
   it('incluye PDFs subidos de la sesión cuando aportan evidencia', async () => {
     const useCase = new AnswerDocumentQuestion({
-      retriever: { retrieve: async () => [] },
-      sessionRetriever: {
-        retrieveForSession: async (sessionId) =>
-          sessionId === 'session-1' ? [uploadedDocument] : [],
+      retriever: {
+        mode: 'semantic-pgvector',
+        retrieve: async (_question, _maxSources, context) =>
+          context?.sessionId === 'session-1' ? [uploadedDocument] : [],
       },
     });
 
@@ -50,6 +50,7 @@ describe('AnswerDocumentQuestion', () => {
       sessionId: 'session-1',
     });
 
+    expect(response.mode).toBe('semantic-pgvector');
     expect(response.answer).toContain('contrato de mantenimiento');
     expect(response.sources).toEqual([
       expect.objectContaining({
@@ -62,10 +63,7 @@ describe('AnswerDocumentQuestion', () => {
 
   it('declara falta de evidencia cuando no recupera fuentes', async () => {
     const useCase = new AnswerDocumentQuestion({
-      retriever: { retrieve: async () => [] },
-      sessionRetriever: {
-        retrieveForSession: async () => [uploadedDocument],
-      },
+      retriever: { mode: 'lexical-demo', retrieve: async () => [] },
     });
 
     const response = await useCase.execute('¿Hay servicio de conserjería nocturna?');
@@ -78,6 +76,7 @@ describe('AnswerDocumentQuestion', () => {
     const retrieverError = new Error('vector index unavailable');
     const useCase = new AnswerDocumentQuestion({
       retriever: {
+        mode: 'semantic-pgvector',
         retrieve: async () => {
           throw retrieverError;
         },
