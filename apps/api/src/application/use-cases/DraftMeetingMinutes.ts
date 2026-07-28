@@ -3,12 +3,14 @@ import type { PendingAgreement } from '../../domain/meetingAgenda/PendingAgreeme
 import { createMeetingMinutesDraft } from '../../domain/meetingMinutes/MeetingMinutesDraft.js';
 import type { Clock } from '../ports/Clock.js';
 import type { IdGenerator } from '../ports/IdGenerator.js';
+import type { MeetingMinutesGenerator } from '../ports/MeetingMinutesGenerator.js';
 import type { PendingAgreementRepository } from '../ports/PendingAgreementRepository.js';
 
 interface DraftMeetingMinutesDependencies {
-  readonly clock: Clock;
-  readonly ids: IdGenerator;
-  readonly pendingAgreementRepository: PendingAgreementRepository;
+  readonly clock?: Clock;
+  readonly generator?: MeetingMinutesGenerator;
+  readonly ids?: IdGenerator;
+  readonly pendingAgreementRepository?: PendingAgreementRepository;
 }
 
 interface DraftMeetingMinutesOptions {
@@ -22,10 +24,15 @@ export class DraftMeetingMinutes {
     notes: string,
     options: DraftMeetingMinutesOptions = {},
   ): Promise<MeetingMinutesDraftResponse> {
-    const draft = createMeetingMinutesDraft(notes);
+    const result = await (this.dependencies?.generator ?? deterministicGenerator).draft(notes);
 
-    if (this.dependencies && options.sessionId) {
-      for (const task of draft.tasks) {
+    if (
+      this.dependencies?.clock &&
+      this.dependencies.ids &&
+      this.dependencies.pendingAgreementRepository &&
+      options.sessionId
+    ) {
+      for (const task of result.draft.tasks) {
         await this.dependencies.pendingAgreementRepository.save({
           id: this.dependencies.ids.randomId(),
           sessionId: options.sessionId,
@@ -38,13 +45,29 @@ export class DraftMeetingMinutes {
 
     return {
       draft: {
+        ...result.draft,
+        agreements: [...result.draft.agreements],
+        tasks: result.draft.tasks.map((task) => ({ ...task })),
+      },
+      mode: result.mode,
+    };
+  }
+}
+
+const deterministicGenerator: MeetingMinutesGenerator = {
+  async draft(notes: string): Promise<MeetingMinutesDraftResponse> {
+    const draft = createMeetingMinutesDraft(notes);
+
+    return {
+      draft: {
         ...draft,
+        agreements: [...draft.agreements],
         tasks: draft.tasks.map((task) => ({ ...task })),
       },
       mode: 'deterministic-demo',
     };
-  }
-}
+  },
+};
 
 function presentOptionalPendingAgreementDetails(
   task: Pick<PendingAgreement, 'assignee' | 'dueDate'>,

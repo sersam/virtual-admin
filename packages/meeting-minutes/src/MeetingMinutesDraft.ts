@@ -7,6 +7,7 @@ export interface MeetingMinutesTask {
 export interface MeetingMinutesDraftContent {
   readonly title: string;
   readonly body: string;
+  readonly agreements: readonly string[];
   readonly tasks: readonly MeetingMinutesTask[];
 }
 
@@ -34,6 +35,7 @@ export function createMeetingMinutesDraft(notes: string): MeetingMinutesDraftCon
   return {
     title: TITLE,
     body: buildBody({ agreements, noteLines, tasks }),
+    agreements,
     tasks,
   };
 }

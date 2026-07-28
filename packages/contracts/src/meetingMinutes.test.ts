@@ -19,18 +19,19 @@ describe('meeting minutes contracts', () => {
         draft: {
           title: 'Acta de reunión',
           body: 'Acta de reunión\n\nAcuerdos:\n- aprobar presupuesto.',
+          agreements: ['aprobar presupuesto.'],
           tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
         },
-        mode: 'deterministic-demo',
+        mode: 'openai',
       }),
-    ).toMatchObject({ draft: { title: 'Acta de reunión' } });
+    ).toMatchObject({ draft: { title: 'Acta de reunión' }, mode: 'openai' });
   });
 
   it('rechaza notas demasiado cortas y respuestas incompletas', () => {
     expect(() => MeetingMinutesDraftRequestSchema.parse({ notes: 'Acta' })).toThrow();
     expect(() =>
       MeetingMinutesDraftResponseSchema.parse({
-        draft: { title: '', body: 'Contenido', tasks: [] },
+        draft: { title: '', body: 'Contenido', agreements: [], tasks: [] },
         mode: 'deterministic-demo',
       }),
     ).toThrow();
@@ -46,7 +47,34 @@ describe('meeting minutes contracts', () => {
         draft: {
           title: 'Acta',
           body: 'Contenido válido',
+          agreements: [],
           tasks: [{ description: '' }],
+        },
+        mode: 'deterministic-demo',
+      }),
+    ).toThrow();
+  });
+
+  it('rechaza acuerdos vacios o fuera de limite', () => {
+    expect(() =>
+      MeetingMinutesDraftResponseSchema.parse({
+        draft: {
+          title: 'Acta',
+          body: 'Contenido valido',
+          agreements: [''],
+          tasks: [],
+        },
+        mode: 'deterministic-demo',
+      }),
+    ).toThrow();
+
+    expect(() =>
+      MeetingMinutesDraftResponseSchema.parse({
+        draft: {
+          title: 'Acta',
+          body: 'Contenido valido',
+          agreements: ['a'.repeat(241)],
+          tasks: [],
         },
         mode: 'deterministic-demo',
       }),
