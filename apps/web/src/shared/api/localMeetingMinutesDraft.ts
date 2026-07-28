@@ -12,6 +12,7 @@ export function createLocalMeetingMinutesDraft(notes: string): MeetingMinutesDra
   return {
     draft: {
       ...draft,
+      agreements: [...draft.agreements],
       tasks: draft.tasks.map((task) => ({ ...task })),
     },
     mode: 'deterministic-demo',

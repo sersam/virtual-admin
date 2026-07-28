@@ -17,9 +17,10 @@ describe('MeetingMinutesPanel', () => {
           draft: {
             title: 'Acta de reunión',
             body: 'Acta de reunión\n\nAcuerdos:\n- Aprobar presupuesto.',
+            agreements: ['Aprobar presupuesto.'],
             tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
           },
-          mode: 'deterministic-demo',
+          mode: 'openai',
         }),
         { status: 200 },
       ),
@@ -33,9 +34,11 @@ describe('MeetingMinutesPanel', () => {
 
     expect(await screen.findByText('Acta de reunión')).toBeInTheDocument();
     expect(await screen.findByDisplayValue(/Acuerdos:/)).toBeInTheDocument();
+    expect(screen.getByText('Acuerdos detectados')).toBeInTheDocument();
+    expect(screen.getByText('Aprobar presupuesto.')).toBeInTheDocument();
     expect(screen.getByText('Revisar contrato')).toBeInTheDocument();
     expect(screen.getByText('Ana')).toBeInTheDocument();
-    expect(screen.getByText('Demo determinista')).toBeInTheDocument();
+    expect(screen.getByText(/OpenAI/)).toBeInTheDocument();
   });
 
   it('permite editar el contenido del acta generada', async () => {
@@ -46,6 +49,7 @@ describe('MeetingMinutesPanel', () => {
           draft: {
             title: 'Acta de reunión',
             body: 'Acta de reunión\n\nAcuerdos:\n- Aprobar presupuesto.',
+            agreements: ['Aprobar presupuesto.'],
             tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
           },
           mode: 'deterministic-demo',
@@ -73,6 +77,7 @@ describe('MeetingMinutesPanel', () => {
           draft: {
             title: 'Acta de reunión',
             body: 'Acta de reunión\n\nAcuerdos:\n- Aprobar presupuesto.',
+            agreements: ['Aprobar presupuesto.'],
             tasks: [],
           },
           mode: 'deterministic-demo',

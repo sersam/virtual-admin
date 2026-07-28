@@ -1,5 +1,6 @@
 import type { MeetingMinutesDraftResponse } from '@admin/contracts';
 import { useRef, useState } from 'react';
+import { isApiTransportError } from '../../../shared/api/apiErrors';
 import { draftMeetingMinutes } from '../../../shared/api/draftMeetingMinutes';
 import { createLocalMeetingMinutesDraft } from '../../../shared/api/localMeetingMinutesDraft';
 
@@ -38,8 +39,17 @@ export function useMeetingMinutesDraft() {
       setState({ result, status: 'ready' });
     } catch (error) {
       if (requestId !== latestRequestId.current) return;
-      console.error('[useMeetingMinutesDraft] Se usa redacción local determinista.', error);
-      setState({ result: createLocalMeetingMinutesDraft(trimmedNotes), status: 'fallback' });
+      if (isApiTransportError(error)) {
+        console.error('[useMeetingMinutesDraft] Se usa redacción local determinista.', error);
+        setState({ result: createLocalMeetingMinutesDraft(trimmedNotes), status: 'fallback' });
+        return;
+      }
+
+      setState({
+        error:
+          'No se pudo generar el acta. Revisa la respuesta del proveedor e inténtalo de nuevo.',
+        status: 'error',
+      });
     }
   }
 

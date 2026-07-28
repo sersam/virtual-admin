@@ -14,6 +14,7 @@ describe('useMeetingMinutesDraft', () => {
           draft: {
             title: 'Acta de reunión',
             body: 'Acta de reunión\n\nAcuerdos:\n- Aprobar presupuesto.',
+            agreements: ['Aprobar presupuesto.'],
             tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
           },
           mode: 'deterministic-demo',
@@ -48,6 +49,18 @@ describe('useMeetingMinutesDraft', () => {
     expect(result.current.result?.draft.tasks).toEqual([
       { description: 'Revisar contrato', assignee: 'Ana' },
     ]);
+    expect(result.current.result?.draft.agreements).toEqual(['aprobar presupuesto.']);
+  });
+
+  it('muestra error y no usa fallback local ante errores HTTP', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 502 }));
+    const { result } = renderHook(() => useMeetingMinutesDraft());
+
+    await act(() => result.current.submit('Acuerdo: aprobar presupuesto.'));
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.result).toBeUndefined();
+    expect(result.current.error).toContain('No se pudo generar el acta');
   });
 
   it('valida notas demasiado cortas', async () => {
@@ -132,6 +145,7 @@ function createDraftResponse(title: string): Response {
       draft: {
         title,
         body: `${title}\n\nAcuerdos:\n- Aprobar presupuesto.`,
+        agreements: ['Aprobar presupuesto.'],
         tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
       },
       mode: 'deterministic-demo',
