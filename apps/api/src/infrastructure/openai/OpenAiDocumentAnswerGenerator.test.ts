@@ -112,6 +112,82 @@ describe('OpenAiDocumentAnswerGenerator', () => {
       }),
     ]);
   });
+
+  it('rechaza IDs duplicados y registra fallo observable', async () => {
+    const telemetry = new RecordingTelemetryReporter();
+    const generator = new OpenAiDocumentAnswerGenerator({
+      nowMs: sequenceNow(4_000, 4_070),
+      responses: {
+        createStructuredResponse: async () => ({
+          output: {
+            answer: 'Respuesta con fuente duplicada.',
+            sourceIds: ['normas-piscina', 'normas-piscina'],
+          },
+          usage: { inputTokens: 500, cachedInputTokens: 0, outputTokens: 80 },
+        }),
+      },
+      telemetry,
+    });
+
+    await expect(
+      generator.generate({
+        question: '¿Cuál es el horario de piscina?',
+        evidence,
+      }),
+    ).rejects.toBeInstanceOf(OpenAiProviderError);
+    expect(telemetry.events).toEqual([
+      expect.objectContaining({
+        operation: 'document-answer',
+        promptVersion: 'document-answer.v1',
+        result: 'failure',
+      }),
+    ]);
+  });
+
+  it('rechaza más de tres fuentes y registra fallo observable', async () => {
+    const telemetry = new RecordingTelemetryReporter();
+    const generator = new OpenAiDocumentAnswerGenerator({
+      nowMs: sequenceNow(5_000, 5_060),
+      responses: {
+        createStructuredResponse: async () => ({
+          output: {
+            answer: 'Respuesta con demasiadas fuentes.',
+            sourceIds: ['normas-piscina', 'acta-junio', 'contrato-jardines', 'normas-ruido'],
+          },
+          usage: { inputTokens: 500, cachedInputTokens: 0, outputTokens: 80 },
+        }),
+      },
+      telemetry,
+    });
+
+    await expect(
+      generator.generate({
+        question: '¿Cuál es el horario de piscina?',
+        evidence: [
+          ...evidence,
+          {
+            id: 'contrato-jardines',
+            title: 'Contrato de jardines',
+            section: 'Mantenimiento',
+            content: 'El contrato incluye poda mensual.',
+          },
+          {
+            id: 'normas-ruido',
+            title: 'Normas de ruido',
+            section: 'Descanso',
+            content: 'Las actividades ruidosas terminan a las 22:00.',
+          },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(OpenAiProviderError);
+    expect(telemetry.events).toEqual([
+      expect.objectContaining({
+        operation: 'document-answer',
+        promptVersion: 'document-answer.v1',
+        result: 'failure',
+      }),
+    ]);
+  });
 });
 
 class RecordingTelemetryReporter implements AiTelemetryReporter {

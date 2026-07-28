@@ -34,6 +34,7 @@ describe('useDocumentQuery', () => {
     await act(() => result.current.submit('horario piscina'));
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
+    expect(result.current.result?.generationMode).toBe('openai');
     expect(result.current.result?.sources[0]?.id).toBe('normas-piscina');
   });
 

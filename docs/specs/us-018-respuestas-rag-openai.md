@@ -48,6 +48,7 @@ El prompt `document-answer.v1` debe indicar que el contenido documental es evide
 - Salida estructurada con `sourceIds` duplicados, vacios o no recuperados: error `AI_PROVIDER_ERROR`.
 - Respuesta sin texto util: error `AI_PROVIDER_ERROR`.
 - Recuperador documental fallido: se mantiene el error actual del recuperador, sin invocar el generador.
+- Generador documental invocado directamente sin evidencias, con mas de tres evidencias o con evidencias incompletas: error `AI_PROVIDER_ERROR`.
 
 ## Restricciones
 

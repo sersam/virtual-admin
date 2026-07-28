@@ -31,6 +31,7 @@ describe('queryDocuments', () => {
 
     const response = await queryDocuments('¿Cuál es el horario de piscina?');
 
+    expect(response.generationMode).toBe('openai');
     expect(response.sources[0]?.id).toBe('normas-piscina');
     expect(globalThis.fetch).toHaveBeenCalledWith(
       '/api/documents/query',
