@@ -25,6 +25,8 @@ interface RetrievedDocumentChunkRow {
   readonly type: CommunityDocumentType;
 }
 
+const documentChunkInsertBatchSize = 5_000;
+
 export class PostgresDocumentChunkRepository implements DocumentChunkRepository {
   constructor(private readonly pool: pg.Pool) {}
 
@@ -159,8 +161,18 @@ async function insertDocumentChunks(
   client: pg.PoolClient,
   chunks: readonly StoredDocumentChunk[],
 ): Promise<void> {
-  if (chunks.length === 0) return;
+  for (let start = 0; start < chunks.length; start += documentChunkInsertBatchSize) {
+    await insertDocumentChunkBatch(
+      client,
+      chunks.slice(start, start + documentChunkInsertBatchSize),
+    );
+  }
+}
 
+async function insertDocumentChunkBatch(
+  client: pg.PoolClient,
+  chunks: readonly StoredDocumentChunk[],
+): Promise<void> {
   await client.query(
     `
       insert into document_chunks (
