@@ -145,8 +145,8 @@ function orderAndValidateEmbeddings(
     throw new OpenAiProviderError('OpenAI devolvio una cantidad inesperada de embeddings.');
   }
 
-  return data
-    .toSorted((left, right) => left.index - right.index)
+  return [...data]
+    .sort((left, right) => left.index - right.index)
     .map(({ embedding, index }) => {
       if (index < 0 || index >= expectedCount) {
         throw new OpenAiProviderError('OpenAI devolvio un indice de embedding inesperado.');
