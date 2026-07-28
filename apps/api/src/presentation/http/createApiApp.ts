@@ -75,6 +75,7 @@ import type { UploadedDocumentRepository } from '../../application/ports/Uploade
 import type { UploadedDocumentTextExtractor } from '../../application/ports/UploadedDocumentTextExtractor.js';
 import type { Clock } from '../../application/ports/Clock.js';
 import type { IdGenerator } from '../../application/ports/IdGenerator.js';
+import type { ChatIntentClassifier } from '../../application/ports/ChatIntentClassifier.js';
 import type { ChatWorkflow } from '../../application/ports/ChatWorkflow.js';
 import type { CommunityNoticeGenerator } from '../../application/ports/CommunityNoticeGenerator.js';
 import type { IncidentClassifier } from '../../application/ports/IncidentClassifier.js';
@@ -95,9 +96,11 @@ const uploadPdf = multer({
 });
 
 interface ApiAppOptions {
+  readonly chatIntentClassifier: ChatIntentClassifier;
   readonly clock: Clock;
   readonly chatWorkflowFactory: (dependencies: {
     readonly answerDocumentQuestion: AnswerDocumentQuestion;
+    readonly chatIntentClassifier: ChatIntentClassifier;
     readonly createIncident: CreateIncident;
     readonly draftCommunityNotice: DraftCommunityNotice;
     readonly draftMeetingAgenda: DraftMeetingAgenda;
@@ -163,6 +166,7 @@ export function createApiApp(options: ApiAppOptions) {
   const coordinateChatMessage = new CoordinateChatMessage({
     workflow: options.chatWorkflowFactory({
       answerDocumentQuestion,
+      chatIntentClassifier: options.chatIntentClassifier,
       createIncident,
       draftCommunityNotice,
       draftMeetingAgenda,

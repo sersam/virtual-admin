@@ -18,18 +18,21 @@ const app = createApiApp({
   clock: new SystemClock(),
   chatWorkflowFactory: ({
     answerDocumentQuestion,
+    chatIntentClassifier,
     createIncident,
     draftCommunityNotice,
     draftMeetingAgenda,
     draftMeetingMinutes,
   }) =>
     new LangGraphChatWorkflow({
+      chatIntentClassifier,
       communityNoticeDrafter: draftCommunityNotice,
       documentAnswerer: answerDocumentQuestion,
       incidentCreator: createIncident,
       meetingAgendaDrafter: draftMeetingAgenda,
       meetingMinutesDrafter: draftMeetingMinutes,
     }),
+  chatIntentClassifier: aiProviders.chatIntentClassifier,
   communityNoticeGenerator: aiProviders.communityNoticeGenerator,
   documentAnswerGenerator: aiProviders.documentAnswerGenerator,
   cookieSecret,

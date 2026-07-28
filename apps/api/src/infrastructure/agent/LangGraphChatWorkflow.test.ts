@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { DocumentSource } from '@admin/contracts';
+import type { ChatAgent, DocumentSource } from '@admin/contracts';
+import type { ChatIntentClassifier } from '../../application/ports/ChatIntentClassifier.js';
 import { LangGraphChatWorkflow } from './LangGraphChatWorkflow.js';
 
 const poolSource: DocumentSource = {
@@ -12,287 +13,270 @@ const poolSource: DocumentSource = {
   score: 0.9,
 };
 
-const unusedIncidentCreator = {
-  execute: async () => {
-    throw new Error('No debería registrar incidencias');
-  },
-};
-
-const unusedCommunityNoticeDrafter = {
-  execute: async () => {
-    throw new Error('No debería redactar comunicados');
-  },
-};
-
-const unusedMeetingMinutesDrafter = {
-  execute: async () => {
-    throw new Error('No debería redactar actas');
-  },
-};
-
-const unusedMeetingAgendaDrafter = {
-  execute: async () => {
-    throw new Error('No debería preparar juntas');
-  },
-};
-
 describe('LangGraphChatWorkflow', () => {
-  it('clasifica consultas documentales y reutiliza el RAG existente', async () => {
-    let receivedSessionId: string | undefined;
-    const workflow = new LangGraphChatWorkflow({
-      communityNoticeDrafter: unusedCommunityNoticeDrafter,
-      documentAnswerer: {
-        execute: async (_question, context) => {
-          receivedSessionId = context?.sessionId;
-
-          return {
-            answer: 'La piscina comunitaria abre de 10:00 a 21:00.',
-            generationMode: 'deterministic-demo',
-            mode: 'lexical-demo',
-            sources: [poolSource],
-          };
-        },
-      },
-      incidentCreator: unusedIncidentCreator,
-      meetingAgendaDrafter: unusedMeetingAgendaDrafter,
-      meetingMinutesDrafter: unusedMeetingMinutesDrafter,
-    });
-
-    await expect(
-      workflow.run('¿Qué dicen las normas de la piscina?', { sessionId: 'session-1' }),
-    ).resolves.toEqual({
+  it.each([
+    {
       agent: 'documentos',
-      answer: 'La piscina comunitaria abre de 10:00 a 21:00.',
-      mode: 'langgraph-demo',
-      sources: [poolSource],
-    });
-    expect(receivedSessionId).toBe('session-1');
-  });
-
-  it('redacta comunicados demo sin consultar fuentes documentales', async () => {
-    const workflow = new LangGraphChatWorkflow({
-      communityNoticeDrafter: {
-        execute: async () => ({
-          draft: {
-            subject: 'Limpieza del garaje',
-            body: 'Estimados vecinos:\n\nSe realizará la limpieza del garaje.',
-          },
-          mode: 'deterministic-demo',
-        }),
-      },
-      documentAnswerer: {
-        execute: async () => {
-          throw new Error('No debería consultar documentos');
-        },
-      },
-      incidentCreator: unusedIncidentCreator,
-      meetingAgendaDrafter: unusedMeetingAgendaDrafter,
-      meetingMinutesDrafter: unusedMeetingMinutesDrafter,
-    });
-
-    const response = await workflow.run('Redacta un comunicado sobre la limpieza del garaje.');
-
-    expect(response.agent).toBe('comunicados');
-    expect(response.answer).toContain('Asunto: Limpieza del garaje');
-    expect(response.answer).toContain('Estimados vecinos:');
-    expect(response.answer).toContain('limpieza del garaje');
-    expect(response.sources).toEqual([]);
-  });
-
-  it('genera actas demo usando el caso de uso real y la sesión activa', async () => {
-    let receivedNotes: string | undefined;
-    let receivedSessionId: string | undefined;
-    const workflow = new LangGraphChatWorkflow({
-      communityNoticeDrafter: unusedCommunityNoticeDrafter,
-      documentAnswerer: {
-        execute: async () => {
-          throw new Error('No debería consultar documentos');
-        },
-      },
-      incidentCreator: unusedIncidentCreator,
-      meetingAgendaDrafter: unusedMeetingAgendaDrafter,
-      meetingMinutesDrafter: {
-        execute: async (notes, options) => {
-          receivedNotes = notes;
-          receivedSessionId = options?.sessionId;
-
-          return {
-            draft: {
-              title: 'Acta de reunión',
-              body: 'Acta de reunión\n\nTareas:\n- Revisar contrato.',
-              tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
-            },
-            mode: 'deterministic-demo',
-          };
-        },
-      },
-    });
-
-    const notes = [
-      'Junta ordinaria del 12 de junio.',
-      'Acuerdo: aprobar presupuesto.',
-      'Tarea: Revisar contrato; Responsable: Ana',
-    ].join('\n');
-    const response = await workflow.run(notes, { sessionId: 'session-1' });
-
-    expect(receivedNotes).toBe(notes);
-    expect(receivedSessionId).toBe('session-1');
-    expect(response.agent).toBe('actas');
-    expect(response.answer).toContain('Acta de reunión');
-    expect(response.answer).toContain('Revisar contrato');
-    expect(response.sources).toEqual([]);
-  });
-
-  it('registra y clasifica incidencias en la sesión desde el chat', async () => {
-    let receivedSessionId: string | undefined;
-    let receivedDescription: string | undefined;
-    const workflow = new LangGraphChatWorkflow({
-      communityNoticeDrafter: unusedCommunityNoticeDrafter,
-      documentAnswerer: {
-        execute: async () => {
-          throw new Error('No debería consultar documentos');
-        },
-      },
-      incidentCreator: {
-        execute: async ({ description, sessionId }) => {
-          receivedDescription = description;
-          receivedSessionId = sessionId;
-
-          return {
-            incident: {
-              id: 'incident-1',
-              sessionId,
-              description,
-              type: 'agua',
-              priority: 'urgente',
-              suggestedResponsible: 'Fontanería',
-              suggestedNotice: [
-                'Estimados vecinos:',
-                '',
-                `Se ha registrado la siguiente incidencia: ${description}`,
-                '',
-                'La administración comunicará cualquier novedad relevante.',
-              ].join('\n'),
-              createdAt: new Date('2026-07-23T10:00:00.000Z'),
-              status: 'pendiente',
-              resolvedAt: null,
-            },
-            mode: 'openai',
-          };
-        },
-      },
-      meetingAgendaDrafter: unusedMeetingAgendaDrafter,
-      meetingMinutesDrafter: unusedMeetingMinutesDrafter,
-    });
-
-    const response = await workflow.run('Hay una fuga de agua urgente en el garaje.', {
-      sessionId: 'session-1',
-    });
-
-    expect(receivedDescription).toBe('Hay una fuga de agua urgente en el garaje.');
-    expect(receivedSessionId).toBe('session-1');
-    expect(response).toEqual({
+      expectedAnswer: 'La piscina comunitaria abre de 10:00 a 21:00.',
+      expectedSources: [poolSource],
+      expectedCalls: { documentos: 1 },
+      message: '¿Qué dicen las normas de la piscina?',
+    },
+    {
+      agent: 'comunicados',
+      expectedAnswer: 'Asunto: Limpieza del garaje\n\nEstimados vecinos:\n\nSe limpiará el garaje.',
+      expectedSources: [],
+      expectedCalls: { comunicados: 1 },
+      message: 'Redacta un comunicado sobre la limpieza del garaje.',
+    },
+    {
+      agent: 'actas',
+      expectedAnswer: 'Acta de reunión\n\nTareas:\n- Revisar contrato.',
+      expectedSources: [],
+      expectedCalls: { actas: 1 },
+      message: 'Convierte estas notas en acta formal.',
+    },
+    {
       agent: 'incidencias',
-      answer:
+      expectedAnswer:
         'Incidencia registrada.\nCategoría: Agua\nPrioridad: Urgente\nResponsable sugerido: Fontanería',
-      mode: 'langgraph-demo',
-      sources: [],
-    });
-  });
+      expectedSources: [],
+      expectedCalls: { incidencias: 1 },
+      message: 'Hay una fuga urgente en el garaje.',
+    },
+    {
+      agent: 'juntas',
+      expectedAnswer: 'Orden del día\n\n1. [Alta] Revisar contrato de limpieza.',
+      expectedSources: [],
+      expectedCalls: { juntas: 1 },
+      message: 'Prepara el orden del día de la próxima junta.',
+    },
+    {
+      agent: 'general',
+      expectedAnswer:
+        'Soy el coordinador de la demo. Puedo derivar peticiones sobre documentos, comunicados, actas, incidencias y preparación de juntas.',
+      expectedSources: [],
+      expectedCalls: {},
+      message: 'Hola, ¿qué puedes hacer?',
+    },
+  ] satisfies ReadonlyArray<{
+    readonly agent: ChatAgent;
+    readonly expectedAnswer: string;
+    readonly expectedCalls: Partial<Record<ChatAgent, number>>;
+    readonly expectedSources: DocumentSource[];
+    readonly message: string;
+  }>)(
+    'enruta $agent por su nodo especializado y conserva la traza',
+    async ({ agent, expectedAnswer, expectedCalls, expectedSources, message }) => {
+      const calls = createCallCounters();
+      const workflow = new LangGraphChatWorkflow({
+        chatIntentClassifier: classifierReturning(agent, 'openai'),
+        ...createWorkflowDependencies(calls),
+      });
 
-  it('no intenta registrar una incidencia cuando falta la sesión', async () => {
-    const workflow = new LangGraphChatWorkflow({
-      communityNoticeDrafter: unusedCommunityNoticeDrafter,
-      documentAnswerer: {
-        execute: async () => {
-          throw new Error('No debería consultar documentos');
-        },
-      },
-      incidentCreator: unusedIncidentCreator,
-      meetingAgendaDrafter: unusedMeetingAgendaDrafter,
-      meetingMinutesDrafter: unusedMeetingMinutesDrafter,
-    });
+      await expect(workflow.run(message, { sessionId: 'session-1' })).resolves.toEqual({
+        agent,
+        answer: expectedAnswer,
+        mode: 'langgraph',
+        provider: 'openai',
+        sources: expectedSources,
+      });
+      expect(calls).toEqual({
+        actas: expectedCalls.actas ?? 0,
+        comunicados: expectedCalls.comunicados ?? 0,
+        documentos: expectedCalls.documentos ?? 0,
+        incidencias: expectedCalls.incidencias ?? 0,
+        juntas: expectedCalls.juntas ?? 0,
+      });
+    },
+  );
 
-    const response = await workflow.run('Hay una fuga de agua urgente en el garaje.');
-
-    expect(response.answer).toBe(
-      'No se pudo registrar la incidencia porque no hay una sesión activa.',
-    );
-  });
-
-  it('prepara juntas usando el caso de uso real de orden del día', async () => {
+  it('propaga la sesión al nodo seleccionado', async () => {
     let receivedSessionId: string | undefined;
+    const calls = createCallCounters();
     const workflow = new LangGraphChatWorkflow({
-      communityNoticeDrafter: unusedCommunityNoticeDrafter,
-      documentAnswerer: {
-        execute: async () => {
-          throw new Error('No debería consultar documentos');
-        },
-      },
-      incidentCreator: unusedIncidentCreator,
-      meetingAgendaDrafter: {
-        execute: async ({ sessionId }) => {
-          receivedSessionId = sessionId;
+      chatIntentClassifier: classifierReturning('documentos'),
+      ...createWorkflowDependencies(calls, {
+        documentAnswerer: {
+          execute: async (_question, context) => {
+            receivedSessionId = context?.sessionId;
 
-          return {
-            draft: {
-              title: 'Orden del día',
-              body: 'Orden del día\n\n1. [Alta] Revisar contrato de limpieza.',
-              items: [
-                {
-                  description: 'Revisar contrato de limpieza',
-                  priority: 'alta',
-                  sourceType: 'pending-agreement',
-                  sourceId: 'pending-1',
-                },
-              ],
-            },
-            meeting: {
-              id: 'meeting-ordinary-2026-09-18',
-              kind: 'ordinaria',
-              title: 'Junta ordinaria',
-              scheduledAt: '2026-09-18T17:00:00.000Z',
-            },
-            mode: 'deterministic-demo',
-          };
+            return {
+              answer: 'Respuesta documental.',
+              generationMode: 'deterministic-demo',
+              mode: 'lexical-demo',
+              sources: [],
+            };
+          },
         },
-      },
-      meetingMinutesDrafter: unusedMeetingMinutesDrafter,
+      }),
     });
 
-    const response = await workflow.run('Prepara el orden del día de la próxima junta.', {
-      sessionId: 'session-1',
-    });
+    await workflow.run('Consulta documentos.', { sessionId: 'session-1' });
 
     expect(receivedSessionId).toBe('session-1');
-    expect(response).toEqual({
-      agent: 'juntas',
-      answer: 'Orden del día\n\n1. [Alta] Revisar contrato de limpieza.',
-      mode: 'langgraph-demo',
-      sources: [],
+  });
+
+  it('no ejecuta nodos especializados si falla el clasificador', async () => {
+    const calls = createCallCounters();
+    const workflow = new LangGraphChatWorkflow({
+      chatIntentClassifier: {
+        classify: async () => {
+          throw new Error('classifier failure');
+        },
+      },
+      ...createWorkflowDependencies(calls),
+    });
+
+    await expect(workflow.run('Hay una fuga urgente.', { sessionId: 'session-1' })).rejects.toThrow(
+      'classifier failure',
+    );
+    expect(calls).toEqual({
+      actas: 0,
+      comunicados: 0,
+      documentos: 0,
+      incidencias: 0,
+      juntas: 0,
     });
   });
 
-  it('no intenta preparar juntas cuando falta la sesión', async () => {
-    const workflow = new LangGraphChatWorkflow({
-      communityNoticeDrafter: unusedCommunityNoticeDrafter,
-      documentAnswerer: {
-        execute: async () => {
-          throw new Error('No debería consultar documentos');
-        },
-      },
-      incidentCreator: unusedIncidentCreator,
-      meetingAgendaDrafter: unusedMeetingAgendaDrafter,
-      meetingMinutesDrafter: unusedMeetingMinutesDrafter,
+  it('no registra incidencias ni prepara juntas cuando falta la sesión', async () => {
+    const incidentCalls = createCallCounters();
+    const incidentWorkflow = new LangGraphChatWorkflow({
+      chatIntentClassifier: classifierReturning('incidencias'),
+      ...createWorkflowDependencies(incidentCalls),
+    });
+    const agendaCalls = createCallCounters();
+    const agendaWorkflow = new LangGraphChatWorkflow({
+      chatIntentClassifier: classifierReturning('juntas'),
+      ...createWorkflowDependencies(agendaCalls),
     });
 
-    const response = await workflow.run('Prepara el orden del día de la próxima junta.');
-
-    expect(response).toEqual({
+    await expect(incidentWorkflow.run('Hay una fuga urgente.')).resolves.toMatchObject({
+      agent: 'incidencias',
+      answer: 'No se pudo registrar la incidencia porque no hay una sesión activa.',
+      mode: 'langgraph',
+      provider: 'deterministic-demo',
+      sources: [],
+    });
+    await expect(agendaWorkflow.run('Prepara la junta.')).resolves.toMatchObject({
       agent: 'juntas',
       answer: 'No se pudo preparar el orden del día porque no hay una sesión activa.',
-      mode: 'langgraph-demo',
+      mode: 'langgraph',
+      provider: 'deterministic-demo',
       sources: [],
     });
+    expect(incidentCalls.incidencias).toBe(0);
+    expect(agendaCalls.juntas).toBe(0);
   });
 });
+
+type CallCounters = Record<
+  'actas' | 'comunicados' | 'documentos' | 'incidencias' | 'juntas',
+  number
+>;
+
+function createCallCounters(): CallCounters {
+  return { actas: 0, comunicados: 0, documentos: 0, incidencias: 0, juntas: 0 };
+}
+
+function classifierReturning(
+  agent: ChatAgent,
+  provider: 'openai' | 'deterministic-demo' = 'deterministic-demo',
+): ChatIntentClassifier {
+  return {
+    classify: async () => ({ agent, provider }),
+  };
+}
+
+function createWorkflowDependencies(calls: CallCounters, overrides = {}) {
+  return {
+    communityNoticeDrafter: {
+      execute: async () => {
+        calls.comunicados += 1;
+
+        return {
+          draft: {
+            subject: 'Limpieza del garaje',
+            body: 'Estimados vecinos:\n\nSe limpiará el garaje.',
+          },
+          mode: 'deterministic-demo',
+        };
+      },
+    },
+    documentAnswerer: {
+      execute: async () => {
+        calls.documentos += 1;
+
+        return {
+          answer: 'La piscina comunitaria abre de 10:00 a 21:00.',
+          generationMode: 'deterministic-demo',
+          mode: 'lexical-demo',
+          sources: [poolSource],
+        };
+      },
+    },
+    incidentCreator: {
+      execute: async ({
+        description,
+        sessionId,
+      }: {
+        readonly description: string;
+        readonly sessionId: string;
+      }) => {
+        calls.incidencias += 1;
+
+        return {
+          incident: {
+            id: 'incident-1',
+            sessionId,
+            description,
+            type: 'agua',
+            priority: 'urgente',
+            suggestedResponsible: 'Fontanería',
+            suggestedNotice: '',
+            createdAt: new Date('2026-07-23T10:00:00.000Z'),
+            status: 'pendiente',
+            resolvedAt: null,
+          },
+          mode: 'deterministic-demo',
+        };
+      },
+    },
+    meetingAgendaDrafter: {
+      execute: async () => {
+        calls.juntas += 1;
+
+        return {
+          draft: {
+            title: 'Orden del día',
+            body: 'Orden del día\n\n1. [Alta] Revisar contrato de limpieza.',
+            items: [],
+          },
+          meeting: {
+            id: 'meeting-ordinary-2026-09-18',
+            kind: 'ordinaria',
+            title: 'Junta ordinaria',
+            scheduledAt: '2026-09-18T17:00:00.000Z',
+          },
+          mode: 'deterministic-demo',
+        };
+      },
+    },
+    meetingMinutesDrafter: {
+      execute: async () => {
+        calls.actas += 1;
+
+        return {
+          draft: {
+            title: 'Acta de reunión',
+            body: 'Acta de reunión\n\nTareas:\n- Revisar contrato.',
+            tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
+          },
+          mode: 'deterministic-demo',
+        };
+      },
+    },
+    ...overrides,
+  };
+}

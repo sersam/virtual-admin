@@ -7,6 +7,7 @@ import { residencialSierraNevadaDocuments } from '../../infrastructure/document/
 import { InMemoryUploadedDocumentRepository } from '../../infrastructure/document/InMemoryUploadedDocumentRepository.js';
 import { InMemorySessionRepository } from '../../infrastructure/session/InMemorySessionRepository.js';
 import { LangGraphChatWorkflow } from '../../infrastructure/agent/LangGraphChatWorkflow.js';
+import { DeterministicChatIntentClassifier } from '../../infrastructure/agent/DeterministicChatIntentClassifier.js';
 import { DeterministicCommunityNoticeGenerator } from '../../infrastructure/communication/DeterministicCommunityNoticeGenerator.js';
 import { DeterministicDocumentAnswerGenerator } from '../../infrastructure/document/DeterministicDocumentAnswerGenerator.js';
 import { DeterministicIncidentClassifier } from '../../infrastructure/incident/DeterministicIncidentClassifier.js';
@@ -54,18 +55,21 @@ function buildAppOptions(
     clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
     chatWorkflowFactory: ({
       answerDocumentQuestion,
+      chatIntentClassifier,
       createIncident,
       draftCommunityNotice,
       draftMeetingAgenda,
       draftMeetingMinutes,
     }) =>
       new LangGraphChatWorkflow({
+        chatIntentClassifier,
         communityNoticeDrafter: draftCommunityNotice,
         documentAnswerer: answerDocumentQuestion,
         incidentCreator: createIncident,
         meetingAgendaDrafter: draftMeetingAgenda,
         meetingMinutesDrafter: draftMeetingMinutes,
       }),
+    chatIntentClassifier: new DeterministicChatIntentClassifier(),
     communityNoticeGenerator: new DeterministicCommunityNoticeGenerator(),
     cookieSecret: 'test-secret',
     documentAnswerGenerator: new DeterministicDocumentAnswerGenerator(),
@@ -430,7 +434,8 @@ describe('createApiApp', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.agent).toBe('documentos');
-    expect(response.body.mode).toBe('langgraph-demo');
+    expect(response.body.mode).toBe('langgraph');
+    expect(response.body.provider).toBe('deterministic-demo');
     expect(response.body.answer).toContain('piscina comunitaria');
     expect(response.body.sources[0]).toMatchObject({
       id: 'normas-piscina',
@@ -446,7 +451,8 @@ describe('createApiApp', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.agent).toBe('comunicados');
-    expect(response.body.mode).toBe('langgraph-demo');
+    expect(response.body.mode).toBe('langgraph');
+    expect(response.body.provider).toBe('deterministic-demo');
     expect(response.body.answer).toContain('Asunto: Limpieza del garaje');
     expect(response.body.answer).toContain('Estimados vecinos:');
     expect(response.body.sources).toEqual([]);
@@ -470,7 +476,8 @@ describe('createApiApp', () => {
     expect(agendaResponse.body).toMatchObject({
       agent: 'juntas',
       answer: expect.stringContaining('Revisar contrato de limpieza'),
-      mode: 'langgraph-demo',
+      mode: 'langgraph',
+      provider: 'deterministic-demo',
       sources: [],
     });
     expect(agendaResponse.body.answer).toContain('Responsable: Ana');
@@ -777,6 +784,32 @@ describe('createApiApp', () => {
     expect(response.body.error.code).toBe('AI_PROVIDER_ERROR');
   });
 
+  it('devuelve error controlado y no ejecuta agentes cuando falla el clasificador del chat', async () => {
+    const agent = request.agent(
+      buildApp(5, {
+        chatIntentClassifier: {
+          classify: async () => {
+            throw new AiProviderError();
+          },
+        },
+      }),
+    );
+
+    const response = await agent.post('/api/chat/messages').send({
+      message: 'Hay una fuga de agua urgente en el garaje.',
+    });
+    const incidents = await agent.get('/api/incidents');
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.code).toBe('AI_PROVIDER_ERROR');
+    expect(incidents.body.incidents).toHaveLength(4);
+    expect(incidents.body.incidents).not.toContainEqual(
+      expect.objectContaining({
+        description: 'Hay una fuga de agua urgente en el garaje.',
+      }),
+    );
+  });
+
   it('marca una incidencia como resuelta y conserva la resolución al repetir la operación', async () => {
     const agent = request.agent(buildApp(6));
     const created = await agent.post('/api/incidents').send({
@@ -823,7 +856,8 @@ describe('createApiApp', () => {
     expect(chatResponse.body).toMatchObject({
       agent: 'incidencias',
       answer: expect.stringContaining('Responsable sugerido: Fontanería'),
-      mode: 'langgraph-demo',
+      mode: 'langgraph',
+      provider: 'deterministic-demo',
       sources: [],
     });
     expect(listResponse.status).toBe(200);
