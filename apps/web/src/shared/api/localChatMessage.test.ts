@@ -7,6 +7,7 @@ describe('createLocalChatMessage', () => {
 
     expect(response.agent).toBe('documentos');
     expect(response.mode).toBe('local-demo');
+    expect(response.provider).toBe('deterministic-demo');
     expect(response.sources[0]?.id).toBe('normas-piscina');
   });
 
@@ -65,6 +66,7 @@ describe('createLocalChatMessage', () => {
         'No se ha registrado porque la API de sesión no está disponible.',
       ].join('\n'),
       mode: 'local-demo',
+      provider: 'deterministic-demo',
       sources: [],
     });
   });
@@ -77,6 +79,7 @@ describe('createLocalChatMessage', () => {
       answer:
         'Puedo clasificar la petición de juntas, pero necesito la API de sesión para preparar un orden del día con incidencias y acuerdos pendientes reales.',
       mode: 'local-demo',
+      provider: 'deterministic-demo',
       sources: [],
     });
   });

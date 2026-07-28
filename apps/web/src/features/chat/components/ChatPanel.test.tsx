@@ -16,7 +16,8 @@ describe('ChatPanel', () => {
         JSON.stringify({
           agent: 'documentos',
           answer: 'La piscina abre de 10:00 a 21:00.',
-          mode: 'langgraph-demo',
+          mode: 'langgraph',
+          provider: 'openai',
           sources: [
             {
               id: 'normas-piscina',
@@ -38,9 +39,10 @@ describe('ChatPanel', () => {
     await user.type(screen.getByLabelText('Mensaje'), '¿Qué dicen las normas de la piscina?');
     await user.click(screen.getByRole('button', { name: 'Enviar mensaje' }));
 
-    await waitFor(() => expect(screen.getByText('LangGraph demo')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('LangGraph')).toBeInTheDocument());
     const answerRegion = screen.getByRole('region', { name: 'Respuesta del coordinador' });
     expect(within(answerRegion).getByText('Agente de documentos')).toBeInTheDocument();
+    expect(within(answerRegion).getByText('Enrutado por OpenAI')).toBeInTheDocument();
     expect(within(answerRegion).getByText('Normas de uso de zonas comunes')).toBeInTheDocument();
   });
 
@@ -51,7 +53,8 @@ describe('ChatPanel', () => {
         JSON.stringify({
           agent: 'incidencias',
           answer: 'Soy el agente de incidencias.',
-          mode: 'langgraph-demo',
+          mode: 'langgraph',
+          provider: 'deterministic-demo',
           sources: [],
         }),
         { status: 200 },
@@ -109,7 +112,8 @@ describe('ChatPanel', () => {
         JSON.stringify({
           agent: 'comunicados',
           answer: 'Asunto: Corte de agua del jueves\n\nEstimados vecinos...',
-          mode: 'langgraph-demo',
+          mode: 'langgraph',
+          provider: 'openai',
           sources: [],
         }),
         { status: 200 },
