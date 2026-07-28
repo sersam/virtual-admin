@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DeterministicCommunityNoticeGenerator } from '../communication/DeterministicCommunityNoticeGenerator.js';
+import { DeterministicDocumentAnswerGenerator } from '../document/DeterministicDocumentAnswerGenerator.js';
 import { DeterministicIncidentClassifier } from '../incident/DeterministicIncidentClassifier.js';
 import { OpenAiCommunityNoticeGenerator } from './OpenAiCommunityNoticeGenerator.js';
 import { OpenAiEmbeddingProvider } from './OpenAiEmbeddingProvider.js';
@@ -15,6 +16,7 @@ describe('createAiProviders', () => {
     );
     expect(providers.embeddingProvider).toBeUndefined();
     expect(providers.incidentClassifier).toBeInstanceOf(DeterministicIncidentClassifier);
+    expect(providers.documentAnswerGenerator).toBeInstanceOf(DeterministicDocumentAnswerGenerator);
   });
 
   it('usa proveedores demo cuando OPENAI_API_KEY solo contiene espacios', () => {
@@ -25,6 +27,7 @@ describe('createAiProviders', () => {
     );
     expect(providers.embeddingProvider).toBeUndefined();
     expect(providers.incidentClassifier).toBeInstanceOf(DeterministicIncidentClassifier);
+    expect(providers.documentAnswerGenerator).toBeInstanceOf(DeterministicDocumentAnswerGenerator);
   });
 
   it('usa proveedores OpenAI cuando existe OPENAI_API_KEY', () => {

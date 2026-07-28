@@ -1,8 +1,10 @@
 import type { AiTelemetryReporter } from '../../application/ports/AiTelemetryReporter.js';
 import type { CommunityNoticeGenerator } from '../../application/ports/CommunityNoticeGenerator.js';
+import type { DocumentAnswerGenerator } from '../../application/ports/DocumentAnswerGenerator.js';
 import type { EmbeddingProvider } from '../../application/ports/EmbeddingProvider.js';
 import type { IncidentClassifier } from '../../application/ports/IncidentClassifier.js';
 import { DeterministicCommunityNoticeGenerator } from '../communication/DeterministicCommunityNoticeGenerator.js';
+import { DeterministicDocumentAnswerGenerator } from '../document/DeterministicDocumentAnswerGenerator.js';
 import { DeterministicIncidentClassifier } from '../incident/DeterministicIncidentClassifier.js';
 import { ConsoleAiTelemetryReporter } from './ConsoleAiTelemetryReporter.js';
 import { OpenAiCommunityNoticeGenerator } from './OpenAiCommunityNoticeGenerator.js';
@@ -15,6 +17,7 @@ import { OfficialOpenAiResponsesClient } from './OpenAiResponsesClient.js';
 
 export interface AiProviders {
   readonly communityNoticeGenerator: CommunityNoticeGenerator;
+  readonly documentAnswerGenerator: DocumentAnswerGenerator;
   readonly embeddingProvider?: EmbeddingProvider;
   readonly incidentClassifier: IncidentClassifier;
 }
@@ -30,6 +33,7 @@ export function createAiProviders(options: CreateAiProvidersOptions): AiProvider
   if (!openAiApiKey) {
     return {
       communityNoticeGenerator: new DeterministicCommunityNoticeGenerator(),
+      documentAnswerGenerator: new DeterministicDocumentAnswerGenerator(),
       incidentClassifier: new DeterministicIncidentClassifier(),
     };
   }
@@ -39,6 +43,7 @@ export function createAiProviders(options: CreateAiProvidersOptions): AiProvider
 
   return {
     communityNoticeGenerator: new OpenAiCommunityNoticeGenerator({ responses, telemetry }),
+    documentAnswerGenerator: new DeterministicDocumentAnswerGenerator(),
     embeddingProvider: new OpenAiEmbeddingProvider({
       client: new OfficialOpenAiEmbeddingsClient(openAiApiKey),
       telemetry,
