@@ -21,7 +21,7 @@ describe('PostgresPendingAgreementRepository', () => {
   let repository: PostgresPendingAgreementRepository;
 
   beforeAll(async () => {
-    container = await new PostgreSqlContainer('postgres:16-alpine').start();
+    container = await new PostgreSqlContainer('pgvector/pgvector:pg16').start();
     databaseUrl = container.getConnectionUri();
     await migrateDatabase(databaseUrl);
   }, 120_000);

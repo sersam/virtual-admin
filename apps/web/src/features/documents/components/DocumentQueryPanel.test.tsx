@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DocumentQueryPanel } from './DocumentQueryPanel';
@@ -36,7 +36,7 @@ describe('DocumentQueryPanel', () => {
     render(<DocumentQueryPanel />);
     await user.click(screen.getByRole('button', { name: 'Consultar documentación' }));
 
-    await waitFor(() => expect(screen.getByText('API RAG léxica')).toBeInTheDocument());
+    expect(await screen.findByText('API RAG léxica')).toBeInTheDocument();
     const answerRegion = screen.getByRole('region', { name: 'Fuentes recuperadas' });
     expect(within(answerRegion).getByText('Normas de uso de zonas comunes')).toBeInTheDocument();
     expect(within(answerRegion).getByRole('link', { name: 'Abrir PDF completo' })).toHaveAttribute(
@@ -67,8 +67,29 @@ describe('DocumentQueryPanel', () => {
     render(<DocumentQueryPanel />);
     await user.click(screen.getByRole('button', { name: 'Consultar documentación' }));
 
-    await waitFor(() => expect(screen.getByText('Modo demo local')).toBeInTheDocument());
+    expect(await screen.findByText('Modo demo local')).toBeInTheDocument();
     const answerRegion = screen.getByRole('region', { name: 'Fuentes recuperadas' });
     expect(within(answerRegion).getByText('Normas de uso de zonas comunes')).toBeInTheDocument();
+  });
+
+  it('muestra el modo semantico cuando la API usa pgvector', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ documents: [] }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            answer: 'La piscina abre de 10:00 a 21:00.',
+            mode: 'semantic-pgvector',
+            sources: [],
+          }),
+          { status: 200 },
+        ),
+      );
+
+    render(<DocumentQueryPanel />);
+    await user.click(screen.getByRole('button', { name: 'Consultar documentación' }));
+
+    expect(await screen.findByText('API RAG semántica')).toBeInTheDocument();
   });
 });

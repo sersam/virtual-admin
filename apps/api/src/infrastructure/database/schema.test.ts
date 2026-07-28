@@ -4,6 +4,7 @@ import {
   communityIncidents,
   communityProposals,
   demoSessions,
+  documentChunks,
   pendingAgreements,
   uploadedDocuments,
 } from './schema.js';
@@ -103,5 +104,31 @@ describe('database schema', () => {
     expect(columns.documentUrl.name).toBe('document_url');
     expect(columns.textContent.name).toBe('text_content');
     expect(columns.insertedOrder.name).toBe('inserted_order');
+  });
+
+  it('define la tabla de chunks documentales vectoriales', () => {
+    const columns = getTableColumns(documentChunks);
+
+    expect(getTableName(documentChunks)).toBe('document_chunks');
+    expect(Object.keys(columns)).toEqual([
+      'id',
+      'sessionId',
+      'documentId',
+      'documentFingerprint',
+      'chunkIndex',
+      'title',
+      'type',
+      'section',
+      'documentUrl',
+      'content',
+      'embeddingModel',
+      'embedding',
+    ]);
+    expect(columns.sessionId.name).toBe('session_id');
+    expect(columns.documentId.name).toBe('document_id');
+    expect(columns.documentFingerprint.name).toBe('document_fingerprint');
+    expect(columns.chunkIndex.name).toBe('chunk_index');
+    expect(columns.documentUrl.name).toBe('document_url');
+    expect(columns.embeddingModel.name).toBe('embedding_model');
   });
 });

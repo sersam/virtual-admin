@@ -4,11 +4,9 @@ import {
   type RetrievedDocument,
 } from '../../domain/document/CommunityDocument.js';
 import type { DocumentRetriever } from '../ports/DocumentRetriever.js';
-import type { SessionDocumentRetriever } from '../ports/SessionDocumentRetriever.js';
 
 interface AnswerDocumentQuestionDependencies {
   readonly retriever: DocumentRetriever;
-  readonly sessionRetriever?: SessionDocumentRetriever;
 }
 
 interface AnswerDocumentQuestionContext {
@@ -27,7 +25,7 @@ export class AnswerDocumentQuestion {
 
     return {
       answer: buildAnswer(question, documents),
-      mode: 'lexical-demo',
+      mode: this.dependencies.retriever.mode,
       sources,
     };
   }
@@ -36,16 +34,7 @@ export class AnswerDocumentQuestion {
     question: string,
     sessionId: string | undefined,
   ): Promise<RetrievedDocument[]> {
-    const [baseDocuments, sessionDocuments] = await Promise.all([
-      this.dependencies.retriever.retrieve(question, 3),
-      sessionId && this.dependencies.sessionRetriever
-        ? this.dependencies.sessionRetriever.retrieveForSession(sessionId, question, 3)
-        : Promise.resolve([]),
-    ]);
-
-    return [...sessionDocuments, ...baseDocuments]
-      .sort((left, right) => right.score - left.score)
-      .slice(0, 3);
+    return this.dependencies.retriever.retrieve(question, 3, { sessionId });
   }
 }
 

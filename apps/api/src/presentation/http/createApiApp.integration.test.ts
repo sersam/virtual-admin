@@ -6,7 +6,6 @@ import { LexicalDocumentRetriever } from '../../infrastructure/document/LexicalD
 import { residencialSierraNevadaDocuments } from '../../infrastructure/document/residencialSierraNevadaDocuments.js';
 import { InMemoryUploadedDocumentRepository } from '../../infrastructure/document/InMemoryUploadedDocumentRepository.js';
 import { InMemorySessionRepository } from '../../infrastructure/session/InMemorySessionRepository.js';
-import { UploadedSessionDocumentRetriever } from '../../infrastructure/document/UploadedSessionDocumentRetriever.js';
 import { LangGraphChatWorkflow } from '../../infrastructure/agent/LangGraphChatWorkflow.js';
 import { DeterministicCommunityNoticeGenerator } from '../../infrastructure/communication/DeterministicCommunityNoticeGenerator.js';
 import { DeterministicIncidentClassifier } from '../../infrastructure/incident/DeterministicIncidentClassifier.js';
@@ -20,7 +19,6 @@ import { createApiPersistence } from '../../infrastructure/persistence/createApi
 import { AiProviderError } from '../../application/ports/AiProviderError.js';
 import { createApiApp } from './createApiApp.js';
 
-const documentRetriever = new LexicalDocumentRetriever(residencialSierraNevadaDocuments);
 const uploadedDocumentTextExtractor = {
   extractText: async () =>
     'El contrato de mantenimiento del ascensor del portal B vence el 30 de septiembre.',
@@ -47,6 +45,9 @@ function buildAppOptions(
   let idSequence = 0;
   const uploadedDocumentRepository =
     overrides.uploadedDocumentRepository ?? new InMemoryUploadedDocumentRepository();
+  const documentRetriever =
+    overrides.documentRetriever ??
+    new LexicalDocumentRetriever(residencialSierraNevadaDocuments, uploadedDocumentRepository);
 
   return {
     clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
@@ -75,7 +76,6 @@ function buildAppOptions(
     proposalRepository: new InMemoryProposalRepository(),
     repository: new InMemorySessionRepository(),
     requestsLimit,
-    sessionDocumentRetriever: new UploadedSessionDocumentRetriever(uploadedDocumentRepository),
     ttlMs: 60_000,
     uploadedDocumentRepository,
     uploadedDocumentTextExtractor,
@@ -119,7 +119,7 @@ describe('createApiApp', () => {
   });
 
   it('recupera estado comunitario PostgreSQL tras reiniciar la persistencia', async () => {
-    const container = await new PostgreSqlContainer('postgres:16-alpine').start();
+    const container = await new PostgreSqlContainer('pgvector/pgvector:pg16').start();
     const databaseUrl = container.getConnectionUri();
     await migrateDatabase(databaseUrl);
     let cookie: string[] | undefined;
@@ -254,7 +254,7 @@ describe('createApiApp', () => {
   }, 120_000);
 
   it('recupera PDFs subidos desde PostgreSQL tras reiniciar la persistencia', async () => {
-    const container = await new PostgreSqlContainer('postgres:16-alpine').start();
+    const container = await new PostgreSqlContainer('pgvector/pgvector:pg16').start();
     const databaseUrl = container.getConnectionUri();
     await migrateDatabase(databaseUrl);
     const pdfContent = Buffer.from('%PDF-1.4 contrato ascensor');
@@ -385,6 +385,36 @@ describe('createApiApp', () => {
       id: 'normas-piscina',
       section: 'Piscina',
       documentUrl: '/documents/normas-zonas-comunes.pdf',
+    });
+  });
+
+  it('responde consultas documentales con modo semantico cuando el recuperador lo usa', async () => {
+    const response = await request(
+      buildApp(3, {
+        documentRetriever: {
+          mode: 'semantic-pgvector',
+          retrieve: async () => [
+            {
+              content: 'La piscina comunitaria abre de 10:00 a 21:00.',
+              documentUrl: '/documents/normas-zonas-comunes.pdf',
+              id: 'normas-piscina',
+              score: 0.93,
+              section: 'Piscina',
+              title: 'Normas de zonas comunes',
+              type: 'normas',
+            },
+          ],
+        },
+      }),
+    )
+      .post('/api/documents/query')
+      .send({ question: '¿Cuál es el horario de la piscina?' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.mode).toBe('semantic-pgvector');
+    expect(response.body.sources[0]).toMatchObject({
+      documentUrl: '/documents/normas-zonas-comunes.pdf',
+      id: 'normas-piscina',
     });
   });
 
@@ -1123,6 +1153,7 @@ describe('createApiApp', () => {
   it('trata fallos del contrato de respuesta como errores internos', async () => {
     const app = buildApp(3, {
       documentRetriever: {
+        mode: 'lexical-demo',
         retrieve: async () => [
           {
             id: 'documento-invalido',

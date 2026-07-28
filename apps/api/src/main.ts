@@ -1,10 +1,9 @@
 import { createApiApp } from './presentation/http/createApiApp.js';
 import { SystemClock } from './infrastructure/runtime/SystemClock.js';
 import { UuidGenerator } from './infrastructure/runtime/UuidGenerator.js';
-import { LexicalDocumentRetriever } from './infrastructure/document/LexicalDocumentRetriever.js';
+import { createDocumentRetriever } from './infrastructure/document/createDocumentRetriever.js';
 import { residencialSierraNevadaDocuments } from './infrastructure/document/residencialSierraNevadaDocuments.js';
 import { PdfParseUploadedDocumentTextExtractor } from './infrastructure/document/PdfParseUploadedDocumentTextExtractor.js';
-import { UploadedSessionDocumentRetriever } from './infrastructure/document/UploadedSessionDocumentRetriever.js';
 import { LangGraphChatWorkflow } from './infrastructure/agent/LangGraphChatWorkflow.js';
 import { InMemoryMeetingRepository } from './infrastructure/meeting/InMemoryMeetingRepository.js';
 import { createAiProviders } from './infrastructure/openai/createAiProviders.js';
@@ -33,7 +32,12 @@ const app = createApiApp({
     }),
   communityNoticeGenerator: aiProviders.communityNoticeGenerator,
   cookieSecret,
-  documentRetriever: new LexicalDocumentRetriever(residencialSierraNevadaDocuments),
+  documentRetriever: createDocumentRetriever({
+    documentChunkRepository: persistence.documentChunkRepository,
+    documents: residencialSierraNevadaDocuments,
+    embeddingProvider: aiProviders.embeddingProvider,
+    uploadedDocumentRepository: persistence.uploadedDocumentRepository,
+  }),
   ids: new UuidGenerator(),
   incidentClassifier: aiProviders.incidentClassifier,
   incidentRepository: persistence.incidentRepository,
@@ -43,9 +47,6 @@ const app = createApiApp({
   repository: persistence.sessionRepository,
   secureCookies: process.env.NODE_ENV === 'production',
   version: '0.1.0',
-  sessionDocumentRetriever: new UploadedSessionDocumentRetriever(
-    persistence.uploadedDocumentRepository,
-  ),
   uploadedDocumentRepository: persistence.uploadedDocumentRepository,
   uploadedDocumentTextExtractor: new PdfParseUploadedDocumentTextExtractor(),
 });

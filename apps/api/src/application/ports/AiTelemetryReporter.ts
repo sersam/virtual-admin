@@ -1,4 +1,4 @@
-export type AiOperation = 'community-notice' | 'incident-classification';
+export type AiOperation = 'community-notice' | 'document-embedding' | 'incident-classification';
 export type AiTelemetryResult = 'success' | 'failure';
 
 export interface AiTelemetryEvent {

@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createPostgresPool } from '../database/createPostgresPool.js';
 import { migrateDatabase } from '../database/migrateDatabase.js';
 import { InMemoryUploadedDocumentRepository } from '../document/InMemoryUploadedDocumentRepository.js';
+import { PostgresDocumentChunkRepository } from '../document/PostgresDocumentChunkRepository.js';
 import { PostgresUploadedDocumentRepository } from '../document/PostgresUploadedDocumentRepository.js';
 import { InMemoryIncidentRepository } from '../incident/InMemoryIncidentRepository.js';
 import { PostgresIncidentRepository } from '../incident/PostgresIncidentRepository.js';
@@ -26,8 +27,8 @@ describe('createApiPersistence', () => {
   let incompleteDatabaseUrl: string;
 
   beforeAll(async () => {
-    migratedContainer = await new PostgreSqlContainer('postgres:16-alpine').start();
-    incompleteContainer = await new PostgreSqlContainer('postgres:16-alpine').start();
+    migratedContainer = await new PostgreSqlContainer('pgvector/pgvector:pg16').start();
+    incompleteContainer = await new PostgreSqlContainer('pgvector/pgvector:pg16').start();
     migratedDatabaseUrl = migratedContainer.getConnectionUri();
     incompleteDatabaseUrl = incompleteContainer.getConnectionUri();
     await migrateDatabase(migratedDatabaseUrl);
@@ -52,8 +53,10 @@ describe('createApiPersistence', () => {
     expect(withoutUrl.uploadedDocumentRepository).toBeInstanceOf(
       InMemoryUploadedDocumentRepository,
     );
+    expect(withoutUrl.documentChunkRepository).toBeUndefined();
     expect(blankUrl.sessionRepository).toBeInstanceOf(InMemorySessionRepository);
     expect(blankUrl.uploadedDocumentRepository).toBeInstanceOf(InMemoryUploadedDocumentRepository);
+    expect(blankUrl.documentChunkRepository).toBeUndefined();
     await expect(withoutUrl.close()).resolves.toBeUndefined();
     await expect(blankUrl.close()).resolves.toBeUndefined();
   });
@@ -71,6 +74,7 @@ describe('createApiPersistence', () => {
       expect(persistence.uploadedDocumentRepository).toBeInstanceOf(
         PostgresUploadedDocumentRepository,
       );
+      expect(persistence.documentChunkRepository).toBeInstanceOf(PostgresDocumentChunkRepository);
 
       const pool = (persistence.sessionRepository as unknown as RepositoryWithPool).pool;
       expect((persistence.incidentRepository as unknown as RepositoryWithPool).pool).toBe(pool);
@@ -79,6 +83,9 @@ describe('createApiPersistence', () => {
       );
       expect((persistence.proposalRepository as unknown as RepositoryWithPool).pool).toBe(pool);
       expect((persistence.uploadedDocumentRepository as unknown as RepositoryWithPool).pool).toBe(
+        pool,
+      );
+      expect((persistence.documentChunkRepository as unknown as RepositoryWithPool).pool).toBe(
         pool,
       );
 

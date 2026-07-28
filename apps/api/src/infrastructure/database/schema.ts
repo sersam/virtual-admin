@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   check,
   customType,
+  index,
   integer,
   pgTable,
   primaryKey,
@@ -10,6 +11,7 @@ import {
   timestamp,
   uuid,
   varchar,
+  vector,
 } from 'drizzle-orm/pg-core';
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
@@ -158,6 +160,47 @@ export const uploadedDocuments = pgTable(
     check(
       'uploaded_documents_content_length_matches_size',
       sql`octet_length(${table.content}) = ${table.sizeBytes}`,
+    ),
+  ],
+);
+
+export const documentChunks = pgTable(
+  'document_chunks',
+  {
+    id: varchar('id', { length: 96 }).primaryKey(),
+    sessionId: uuid('session_id').references(() => demoSessions.id, { onDelete: 'cascade' }),
+    documentId: varchar('document_id', { length: 80 }).notNull(),
+    documentFingerprint: text('document_fingerprint').notNull(),
+    chunkIndex: integer('chunk_index').notNull(),
+    title: text('title').notNull(),
+    type: text('type').notNull(),
+    section: text('section').notNull(),
+    documentUrl: text('document_url').notNull(),
+    content: text('content').notNull(),
+    embeddingModel: text('embedding_model').notNull(),
+    embedding: vector('embedding', { dimensions: 1536 }).notNull(),
+  },
+  (table) => [
+    check('document_chunks_document_id_length', sql`char_length(${table.documentId}) >= 1`),
+    check(
+      'document_chunks_document_fingerprint_length',
+      sql`char_length(${table.documentFingerprint}) >= 1`,
+    ),
+    check('document_chunks_chunk_index_non_negative', sql`${table.chunkIndex} >= 0`),
+    check('document_chunks_title_length', sql`char_length(${table.title}) >= 1`),
+    check('document_chunks_type_length', sql`char_length(${table.type}) >= 1`),
+    check('document_chunks_section_length', sql`char_length(${table.section}) >= 1`),
+    check('document_chunks_document_url_length', sql`char_length(${table.documentUrl}) >= 1`),
+    check('document_chunks_content_length', sql`char_length(${table.content}) >= 1`),
+    check('document_chunks_embedding_model_length', sql`char_length(${table.embeddingModel}) >= 1`),
+    index('document_chunks_scope_document_idx').on(
+      table.sessionId,
+      table.documentId,
+      table.documentFingerprint,
+    ),
+    index('document_chunks_embedding_hnsw_idx').using(
+      'hnsw',
+      table.embedding.op('vector_cosine_ops'),
     ),
   ],
 );

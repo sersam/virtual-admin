@@ -9,7 +9,7 @@ describe('migrateDatabase', () => {
   let databaseUrl: string;
 
   beforeAll(async () => {
-    container = await new PostgreSqlContainer('postgres:16-alpine').start();
+    container = await new PostgreSqlContainer('pgvector/pgvector:pg16').start();
     databaseUrl = container.getConnectionUri();
   }, 120_000);
 
@@ -421,6 +421,85 @@ describe('migrateDatabase', () => {
       await pool.end();
     }
   }, 120_000);
+
+  it('crea chunks documentales vectoriales con pgvector e indice HNSW', async () => {
+    await migrateDatabase(databaseUrl);
+
+    const pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
+    const sessionId = '00000000-0000-4000-8000-000000000030';
+
+    try {
+      const extension = await pool.query<{ extname: string }>(
+        "select extname from pg_extension where extname = 'vector'",
+      );
+      const columns = await pool.query<{
+        column_name: string;
+        data_type: string;
+        udt_name: string;
+      }>(
+        `
+          select column_name, data_type, udt_name
+          from information_schema.columns
+          where table_schema = 'public' and table_name = 'document_chunks'
+          order by ordinal_position
+        `,
+      );
+      const vectorType = await pool.query<{ format_type: string }>(
+        `
+          select format_type(a.atttypid, a.atttypmod) as format_type
+          from pg_attribute a
+          join pg_class c on c.oid = a.attrelid
+          where c.relname = 'document_chunks'
+            and a.attname = 'embedding'
+            and not a.attisdropped
+        `,
+      );
+      const indexes = await pool.query<{ indexdef: string; indexname: string }>(
+        `
+          select indexname, indexdef
+          from pg_indexes
+          where schemaname = 'public' and tablename = 'document_chunks'
+          order by indexname
+        `,
+      );
+
+      expect(extension.rows).toEqual([{ extname: 'vector' }]);
+      expect(columns.rows).toEqual([
+        { column_name: 'id', data_type: 'character varying', udt_name: 'varchar' },
+        { column_name: 'session_id', data_type: 'uuid', udt_name: 'uuid' },
+        { column_name: 'document_id', data_type: 'character varying', udt_name: 'varchar' },
+        { column_name: 'document_fingerprint', data_type: 'text', udt_name: 'text' },
+        { column_name: 'chunk_index', data_type: 'integer', udt_name: 'int4' },
+        { column_name: 'title', data_type: 'text', udt_name: 'text' },
+        { column_name: 'type', data_type: 'text', udt_name: 'text' },
+        { column_name: 'section', data_type: 'text', udt_name: 'text' },
+        { column_name: 'document_url', data_type: 'text', udt_name: 'text' },
+        { column_name: 'content', data_type: 'text', udt_name: 'text' },
+        { column_name: 'embedding_model', data_type: 'text', udt_name: 'text' },
+        { column_name: 'embedding', data_type: 'USER-DEFINED', udt_name: 'vector' },
+      ]);
+      expect(vectorType.rows).toEqual([{ format_type: 'vector(1536)' }]);
+      expect(indexes.rows).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            indexdef: expect.stringContaining('USING hnsw (embedding vector_cosine_ops)'),
+            indexname: 'document_chunks_embedding_hnsw_idx',
+          }),
+          expect.objectContaining({
+            indexname: 'document_chunks_scope_document_idx',
+          }),
+        ]),
+      );
+
+      await insertSession(pool, { id: sessionId, requestsLimit: 3, requestsUsed: 0 });
+      await insertDocumentChunk(pool, sessionId);
+      await pool.query('delete from demo_sessions where id = $1', [sessionId]);
+
+      await expect(countRows(pool, 'document_chunks')).resolves.toBe(0);
+    } finally {
+      await pool.end();
+    }
+  }, 120_000);
 });
 
 function groupColumnsByTable(
@@ -515,5 +594,22 @@ async function insertUploadedDocument(
       values ($1, $2, 'Acta subida', 'acta.pdf', $3, $4, now(), '/api/documents/uploaded/document-1', 'Texto extraido', $5)
     `,
     [sessionId, input.id, input.contentType ?? 'application/pdf', input.sizeBytes, input.content],
+  );
+}
+
+async function insertDocumentChunk(pool: pg.Pool, sessionId: string): Promise<void> {
+  await pool.query(
+    `
+      insert into document_chunks (
+        id, session_id, document_id, document_fingerprint, chunk_index,
+        title, type, section, document_url, content, embedding_model, embedding
+      )
+      values (
+        'chunk-1', $1, 'document-1', 'fingerprint-1', 0,
+        'Documento', 'normas', 'Seccion', '/documents/documento.pdf',
+        'Contenido', 'text-embedding-3-small', $2::vector
+      )
+    `,
+    [sessionId, `[${Array.from({ length: 1536 }, () => 0).join(',')}]`],
   );
 }

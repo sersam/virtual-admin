@@ -60,15 +60,27 @@ export class PostgresIncidentRepository implements IncidentRepository {
   ): Promise<CommunityIncident | undefined> {
     const result = await this.pool.query<IncidentRow>(
       `
-        with updated as (
-          update community_incidents
-          set status = 'resuelta', resolved_at = $3
+        with locked as (
+          select
+            id, session_id, description, type, priority, suggested_responsible,
+            suggested_notice, status, resolved_at, created_at
+          from community_incidents
           where session_id = $1
             and id = $2
-            and status = 'pendiente'
+          for update
+        ),
+        updated as (
+          update community_incidents incidents
+          set status = 'resuelta', resolved_at = $3
+          from locked
+          where incidents.session_id = locked.session_id
+            and incidents.id = locked.id
+            and locked.status = 'pendiente'
           returning
-            id, session_id::text as session_id, description, type, priority, suggested_responsible,
-            suggested_notice, status, resolved_at, created_at
+            incidents.id, incidents.session_id::text as session_id, incidents.description,
+            incidents.type, incidents.priority, incidents.suggested_responsible,
+            incidents.suggested_notice, incidents.status, incidents.resolved_at,
+            incidents.created_at
         )
         select *
         from updated
@@ -76,10 +88,8 @@ export class PostgresIncidentRepository implements IncidentRepository {
         select
           id, session_id::text as session_id, description, type, priority, suggested_responsible,
           suggested_notice, status, resolved_at, created_at
-        from community_incidents
-        where session_id = $1
-          and id = $2
-          and not exists (select 1 from updated)
+        from locked
+        where not exists (select 1 from updated)
         limit 1
       `,
       [sessionId, incidentId, resolvedAt],

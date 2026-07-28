@@ -34,6 +34,26 @@ describe('document contracts', () => {
     ).toMatchObject({ sources: [{ id: 'normas-piscina' }] });
   });
 
+  it('acepta el modo RAG semantico con pgvector', () => {
+    expect(
+      DocumentQueryResponseSchema.parse({
+        answer: 'La piscina abre de 10:00 a 21:00.',
+        mode: 'semantic-pgvector',
+        sources: [
+          {
+            documentUrl: '/documents/normas-zonas-comunes.pdf',
+            excerpt: 'La piscina comunitaria abre de 10:00 a 21:00.',
+            id: 'normas-piscina',
+            score: 0.94,
+            section: 'Piscina',
+            title: 'Normas de uso de piscina',
+            type: 'normas',
+          },
+        ],
+      }),
+    ).toMatchObject({ mode: 'semantic-pgvector' });
+  });
+
   it('rechaza preguntas vacías y puntuaciones fuera de rango', () => {
     expect(() => DocumentQueryRequestSchema.parse({ question: '  ' })).toThrow();
     expect(() =>
