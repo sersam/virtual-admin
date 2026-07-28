@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-28 · PR [#25](https://github.com/sersam/virtual-admin/pull/25)
+
+### Added
+
+- Coordinador IA de chat con enrutado OpenAI o demo determinista y traza visible de agente, modo y proveedor.
+
 ## 2026-07-28 · PR [#24](https://github.com/sersam/virtual-admin/pull/24)
 
 ### Added
