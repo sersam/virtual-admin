@@ -3,7 +3,8 @@ export type AiOperation =
   | 'community-notice'
   | 'document-answer'
   | 'document-embedding'
-  | 'incident-classification';
+  | 'incident-classification'
+  | 'meeting-minutes';
 export type AiTelemetryResult = 'success' | 'failure';
 
 export interface AiTelemetryEvent {
