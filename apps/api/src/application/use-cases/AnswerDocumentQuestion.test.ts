@@ -52,6 +52,7 @@ describe('AnswerDocumentQuestion', () => {
     const response = await useCase.execute('¿Cuál es el horario de piscina?');
 
     expect(response.mode).toBe('lexical-demo');
+    expect(response.generationMode).toBe('deterministic-demo');
     expect(response.answer).toBe('La piscina abre de 10:00 a 21:00.');
     expect(response.sources).toEqual([
       expect.objectContaining({ id: 'normas-piscina', section: 'Piscina' }),
@@ -110,6 +111,7 @@ describe('AnswerDocumentQuestion', () => {
     });
 
     expect(response.mode).toBe('semantic-pgvector');
+    expect(response.generationMode).toBe('deterministic-demo');
     expect(response.answer).toContain('30 de septiembre');
     expect(response.sources).toEqual([
       expect.objectContaining({
@@ -139,6 +141,7 @@ describe('AnswerDocumentQuestion', () => {
     const response = await useCase.execute('¿Hay servicio de conserjería nocturna?');
 
     expect(response.sources).toEqual([]);
+    expect(response.generationMode).toBe('deterministic-demo');
     expect(response.answer).toContain('No he encontrado fuentes suficientes');
     expect(generatorCalls).toBe(0);
   });

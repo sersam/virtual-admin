@@ -16,6 +16,7 @@ describe('DocumentQueryPanel', () => {
         new Response(
           JSON.stringify({
             answer: 'La piscina abre de 10:00 a 21:00.',
+            generationMode: 'openai',
             mode: 'lexical-demo',
             sources: [
               {
@@ -36,7 +37,7 @@ describe('DocumentQueryPanel', () => {
     render(<DocumentQueryPanel />);
     await user.click(screen.getByRole('button', { name: 'Consultar documentación' }));
 
-    expect(await screen.findByText('API RAG léxica')).toBeInTheDocument();
+    expect(await screen.findByText('OpenAI · API RAG léxica')).toBeInTheDocument();
     const answerRegion = screen.getByRole('region', { name: 'Fuentes recuperadas' });
     expect(within(answerRegion).getByText('Normas de uso de zonas comunes')).toBeInTheDocument();
     expect(within(answerRegion).getByRole('link', { name: 'Abrir PDF completo' })).toHaveAttribute(
@@ -67,7 +68,7 @@ describe('DocumentQueryPanel', () => {
     render(<DocumentQueryPanel />);
     await user.click(screen.getByRole('button', { name: 'Consultar documentación' }));
 
-    expect(await screen.findByText('Modo demo local')).toBeInTheDocument();
+    expect(await screen.findByText('Demo determinista · Modo demo local')).toBeInTheDocument();
     const answerRegion = screen.getByRole('region', { name: 'Fuentes recuperadas' });
     expect(within(answerRegion).getByText('Normas de uso de zonas comunes')).toBeInTheDocument();
   });
@@ -80,6 +81,7 @@ describe('DocumentQueryPanel', () => {
         new Response(
           JSON.stringify({
             answer: 'La piscina abre de 10:00 a 21:00.',
+            generationMode: 'deterministic-demo',
             mode: 'semantic-pgvector',
             sources: [],
           }),
@@ -90,6 +92,6 @@ describe('DocumentQueryPanel', () => {
     render(<DocumentQueryPanel />);
     await user.click(screen.getByRole('button', { name: 'Consultar documentación' }));
 
-    expect(await screen.findByText('API RAG semántica')).toBeInTheDocument();
+    expect(await screen.findByText('Demo determinista · API RAG semántica')).toBeInTheDocument();
   });
 });

@@ -30,6 +30,7 @@ export class AnswerDocumentQuestion {
     if (documents.length === 0) {
       return {
         answer: buildInsufficientEvidenceAnswer(question),
+        generationMode: 'deterministic-demo',
         mode: this.dependencies.retriever.mode,
         sources: [],
       };
@@ -43,6 +44,7 @@ export class AnswerDocumentQuestion {
 
     return {
       answer: generation.answer,
+      generationMode: generation.mode,
       mode: this.dependencies.retriever.mode,
       sources: citedDocuments.map(toSource),
     };

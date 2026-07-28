@@ -24,6 +24,7 @@ export function createLocalDocumentAnswer(question: string): DocumentQueryRespon
     return {
       answer:
         'No he encontrado fuentes suficientes en la documentación local de demostración. Prueba con piscina, ascensor o ruidos.',
+      generationMode: 'deterministic-demo',
       mode: 'local-demo',
       sources: [],
     };
@@ -31,6 +32,7 @@ export function createLocalDocumentAnswer(question: string): DocumentQueryRespon
 
   return {
     answer: `Según la documentación local, ${sources[0]!.excerpt}`,
+    generationMode: 'deterministic-demo',
     mode: 'local-demo',
     sources: sources.slice(0, 3),
   };

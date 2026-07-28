@@ -382,6 +382,7 @@ describe('createApiApp', () => {
       .send({ question: '¿Cuál es el horario de la piscina?' });
 
     expect(response.status).toBe(200);
+    expect(response.body.generationMode).toBe('deterministic-demo');
     expect(response.body.answer).toContain('piscina comunitaria');
     expect(response.body.sources[0]).toMatchObject({
       id: 'normas-piscina',
@@ -413,6 +414,7 @@ describe('createApiApp', () => {
       .send({ question: '¿Cuál es el horario de la piscina?' });
 
     expect(response.status).toBe(200);
+    expect(response.body.generationMode).toBe('deterministic-demo');
     expect(response.body.mode).toBe('semantic-pgvector');
     expect(response.body.sources[0]).toMatchObject({
       documentUrl: '/documents/normas-zonas-comunes.pdf',

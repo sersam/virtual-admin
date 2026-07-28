@@ -18,6 +18,7 @@ describe('document contracts', () => {
     expect(
       DocumentQueryResponseSchema.parse({
         answer: 'La piscina abre de 10:00 a 21:00.',
+        generationMode: 'openai',
         mode: 'lexical-demo',
         sources: [
           {
@@ -31,13 +32,17 @@ describe('document contracts', () => {
           },
         ],
       }),
-    ).toMatchObject({ sources: [{ id: 'normas-piscina' }] });
+    ).toMatchObject({
+      generationMode: 'openai',
+      sources: [{ id: 'normas-piscina' }],
+    });
   });
 
   it('acepta el modo RAG semantico con pgvector', () => {
     expect(
       DocumentQueryResponseSchema.parse({
         answer: 'La piscina abre de 10:00 a 21:00.',
+        generationMode: 'deterministic-demo',
         mode: 'semantic-pgvector',
         sources: [
           {
@@ -59,6 +64,7 @@ describe('document contracts', () => {
     expect(() =>
       DocumentQueryResponseSchema.parse({
         answer: 'Respuesta',
+        generationMode: 'deterministic-demo',
         mode: 'lexical-demo',
         sources: [
           {
@@ -87,6 +93,7 @@ describe('document contracts', () => {
   it('rechaza enums y enlaces de fuente inválidos', () => {
     const validResponse = {
       answer: 'Respuesta',
+      generationMode: 'deterministic-demo',
       mode: 'lexical-demo',
       sources: [
         {
@@ -103,6 +110,12 @@ describe('document contracts', () => {
 
     expect(() =>
       DocumentQueryResponseSchema.parse({ ...validResponse, mode: 'demo-desconocido' }),
+    ).toThrow();
+    expect(() =>
+      DocumentQueryResponseSchema.parse({
+        ...validResponse,
+        generationMode: 'generador-desconocido',
+      }),
     ).toThrow();
     expect(() =>
       DocumentQueryResponseSchema.parse({

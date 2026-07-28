@@ -88,7 +88,7 @@ test('chat coordinador permite probar todas las áreas del MVP', async ({ page }
   await expect(answerRegion.getByText('Agente de actas', { exact: true })).toBeVisible();
   await expect(answerRegion.getByText(/Acta de reunión/)).toBeVisible();
   await expect(answerRegion.getByText(/Acuerdos:/)).toBeVisible();
-  await expect(answerRegion.getByText('Modo demo local')).toBeVisible();
+  await expect(answerRegion.getByText('Demo determinista · Modo demo local')).toBeVisible();
 });
 
 test('redacta comunicados para vecinos', async ({ page }, testInfo) => {
