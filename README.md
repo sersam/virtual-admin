@@ -16,7 +16,7 @@ Será una demo pública sin autenticación, con datos precargados y un modo loca
 
 ## Estado del proyecto
 
-Actualmente están implementadas la **US-001**, que incorpora el shell responsive de la aplicación, la **US-002**, que añade la API base Express con sesiones demo aisladas, y la **US-003**, que habilita la consulta documental RAG determinista con fuentes trazables.
+Actualmente están implementadas las historias de la **US-001** a la **US-017**. La aplicación incluye shell responsive, API Express con sesiones demo aisladas, estado persistente opcional en PostgreSQL, documentos PDF subidos por sesión, consulta documental determinista con fuentes trazables y recuperación semántica con pgvector cuando el backend está configurado para ello.
 
 - [Backlog del MVP](docs/backlog.md)
 - [Arquitectura detallada](docs/architecture.md)
@@ -57,19 +57,19 @@ La API quedará disponible en [http://localhost:3000](http://localhost:3000), co
 
 ### Configuración OpenAI
 
-La API puede generar comunicados y clasificar incidencias con OpenAI desde backend. Para activarlo en local, define `OPENAI_API_KEY` al arrancar la API:
+La API puede generar comunicados, clasificar incidencias y generar embeddings documentales con OpenAI desde backend. Para activar los proveedores OpenAI en local, define `OPENAI_API_KEY` al arrancar la API:
 
 ```bash
 COOKIE_SECRET=local-demo-cookie-secret OPENAI_API_KEY=<TU_API_KEY> npm run dev:api
 ```
 
-El modelo fijado para la US-009 es `gpt-5-nano`. Si `OPENAI_API_KEY` no está definida, la API usa los adaptadores demo deterministas y no hace llamadas externas. Las pruebas y CI no necesitan API key ni ejecutan llamadas reales a OpenAI.
+El modelo fijado para texto es `gpt-5-nano`. La recuperación semántica documental usa `text-embedding-3-small` con 1536 dimensiones. Si `OPENAI_API_KEY` no está definida, la API usa los adaptadores demo deterministas y la recuperación documental léxica, sin llamadas externas. Las pruebas y CI no necesitan API key ni ejecutan llamadas reales a OpenAI.
 
-Cada operación IA registra en los logs del backend el modelo, versión de prompt, tokens de entrada/salida, tokens cacheados, coste estimado, latencia y resultado.
+Cada operación IA registra en los logs del backend el modelo, versión, tokens, coste estimado, latencia y resultado. La telemetría documental no registra preguntas ni contenido de documentos.
 
 ### Estado demo con PostgreSQL
 
-La API usa persistencia en memoria cuando `DATABASE_URL` no está definida o está vacía. Para conservar sesiones demo, incidencias, acuerdos pendientes, propuestas y documentos subidos durante reinicios, arranca la API con una base PostgreSQL migrada:
+La API usa persistencia en memoria cuando `DATABASE_URL` no está definida o está vacía. Para conservar sesiones demo, incidencias, acuerdos pendientes, propuestas, documentos subidos y chunks semánticos durante reinicios, arranca la API con una base PostgreSQL migrada que tenga disponible la extensión pgvector:
 
 ```bash
 DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run db:migrate
@@ -78,9 +78,24 @@ COOKIE_SECRET=local-demo-cookie-secret DATABASE_URL=postgres://usuario:password@
 
 Las migraciones no se ejecutan automáticamente al arrancar la API. Si `DATABASE_URL` está configurada pero la base no conecta o no tiene el esquema migrado, la API falla de forma explícita en lugar de volver silenciosamente al repositorio en memoria.
 
-Con PostgreSQL configurado, la API selecciona todos los repositorios persistentes a la vez y comparte un único pool para sesiones, incidencias, acuerdos pendientes, propuestas y documentos subidos. El estado queda aislado por sesión y se elimina en cascada cuando una sesión expirada se descarta. Las juntas demo, borradores y comunicaciones siguen siendo locales a esta historia.
+Con PostgreSQL configurado, la API selecciona todos los repositorios persistentes a la vez y comparte un único pool para sesiones, incidencias, acuerdos pendientes, propuestas, documentos subidos y chunks vectoriales. El estado queda aislado por sesión y se elimina en cascada cuando una sesión expirada se descarta. Las juntas demo, borradores y comunicaciones siguen siendo locales a esta historia.
 
 Los documentos subidos persisten sus metadatos, texto extraído y binario PDF. La subida conserva las validaciones actuales de formato PDF y límite de 5 MB; el listado, la descarga y la recuperación documental usan el mismo repositorio, por lo que las fuentes mostradas tras un reinicio son documentos reales de la sesión.
+
+### RAG semántico con pgvector
+
+La recuperación semántica se activa únicamente cuando existen `DATABASE_URL` y `OPENAI_API_KEY`. En ese modo, la primera consulta reconcilia de forma lazy el corpus demo y los PDFs subidos en la sesión: calcula chunks deterministas, genera embeddings para la pregunta y los chunks pendientes en una sola llamada, persiste los vectores en `document_chunks` y busca los vecinos más próximos con similitud coseno. La respuesta sigue siendo determinista y muestra hasta tres documentos distintos con fuentes reales.
+
+Si falta `DATABASE_URL` o `OPENAI_API_KEY`, el backend conserva la recuperación léxica anterior. Si ambas variables existen y falla OpenAI, PostgreSQL o el índice vectorial en ejecución, la API devuelve un error explícito; no vuelve silenciosamente al modo léxico.
+
+Para probarlo en local:
+
+```bash
+DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run db:migrate
+COOKIE_SECRET=local-demo-cookie-secret DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual OPENAI_API_KEY=<TU_API_KEY> npm run dev:api
+```
+
+Abre `/documentos`, realiza una pregunta documental y comprueba que la etiqueta de la respuesta sea `API RAG semántica`. Puedes subir un PDF y preguntar de nuevo: si contiene texto relevante, aparecerá como fuente real con enlace de descarga.
 
 Para demostrar la recuperación tras reinicio:
 
@@ -156,7 +171,7 @@ La API se encuentra en `apps/api` y separa las capas en:
 - `infrastructure`: reloj del sistema, generador UUID y repositorio en memoria.
 - `presentation/http`: Express, cookies firmadas, controladores y presentadores.
 
-La US-003 añade el caso de uso `AnswerDocumentQuestion`, el puerto `DocumentRetriever` y un recuperador léxico en memoria. Este adaptador mantiene la demo determinista y prepara la sustitución futura por embeddings y pgvector sin cambiar la capa de aplicación.
+La consulta documental usa `AnswerDocumentQuestion` y el puerto `DocumentRetriever`. En modo local o sin configuración completa se emplea recuperación léxica determinista; con PostgreSQL migrado y `OPENAI_API_KEY`, la infraestructura usa embeddings OpenAI y pgvector sin cambiar los endpoints ni la forma del contrato HTTP.
 
 ### Paquetes compartidos
 

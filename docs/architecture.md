@@ -9,6 +9,8 @@
 
 Las dependencias apuntan hacia el dominio. Express, OpenAI y PostgreSQL son detalles reemplazables.
 
+La consulta documental se mantiene en la capa de aplicacion mediante `DocumentRetriever` y `EmbeddingProvider`. El dominio conserva documentos y chunking determinista como reglas puras; la infraestructura decide entre recuperacion lexica local o recuperacion semantica con OpenAI y pgvector segun la configuracion disponible.
+
 ## Frontend
 
 - `app`: arranque, rutas y proveedores.
