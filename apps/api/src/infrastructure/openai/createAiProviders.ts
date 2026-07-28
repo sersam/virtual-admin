@@ -8,6 +8,7 @@ import { DeterministicDocumentAnswerGenerator } from '../document/DeterministicD
 import { DeterministicIncidentClassifier } from '../incident/DeterministicIncidentClassifier.js';
 import { ConsoleAiTelemetryReporter } from './ConsoleAiTelemetryReporter.js';
 import { OpenAiCommunityNoticeGenerator } from './OpenAiCommunityNoticeGenerator.js';
+import { OpenAiDocumentAnswerGenerator } from './OpenAiDocumentAnswerGenerator.js';
 import {
   OfficialOpenAiEmbeddingsClient,
   OpenAiEmbeddingProvider,
@@ -43,7 +44,7 @@ export function createAiProviders(options: CreateAiProvidersOptions): AiProvider
 
   return {
     communityNoticeGenerator: new OpenAiCommunityNoticeGenerator({ responses, telemetry }),
-    documentAnswerGenerator: new DeterministicDocumentAnswerGenerator(),
+    documentAnswerGenerator: new OpenAiDocumentAnswerGenerator({ responses, telemetry }),
     embeddingProvider: new OpenAiEmbeddingProvider({
       client: new OfficialOpenAiEmbeddingsClient(openAiApiKey),
       telemetry,

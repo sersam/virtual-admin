@@ -758,6 +758,23 @@ describe('createApiApp', () => {
     expect(response.body.error.code).toBe('AI_PROVIDER_ERROR');
   });
 
+  it('devuelve un error controlado cuando falla el generador documental IA', async () => {
+    const response = await request(
+      buildApp(3, {
+        documentAnswerGenerator: {
+          generate: async () => {
+            throw new AiProviderError();
+          },
+        },
+      }),
+    )
+      .post('/api/documents/query')
+      .send({ question: '¿Cuál es el horario de la piscina?' });
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.code).toBe('AI_PROVIDER_ERROR');
+  });
+
   it('marca una incidencia como resuelta y conserva la resolución al repetir la operación', async () => {
     const agent = request.agent(buildApp(6));
     const created = await agent.post('/api/incidents').send({
