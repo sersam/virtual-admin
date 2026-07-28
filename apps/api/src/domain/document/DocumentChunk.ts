@@ -5,6 +5,9 @@ export const DOCUMENT_CHUNKING_VERSION = 'document-chunking.v1';
 export const DOCUMENT_CHUNK_MAX_CHARACTERS = 1_200;
 export const DOCUMENT_CHUNK_OVERLAP_CHARACTERS = 200;
 
+const highSurrogatePattern = /[\uD800-\uDBFF]/u;
+const lowSurrogatePattern = /[\uDC00-\uDFFF]/u;
+
 export interface DocumentChunk {
   readonly content: string;
   readonly document: CommunityDocument;
@@ -95,15 +98,13 @@ function moveAfterSplitSurrogatePair(content: string, index: number): number {
 
 function splitsSurrogatePair(content: string, index: number): boolean {
   if (index <= 0 || index >= content.length) return false;
-  return (
-    isHighSurrogate(content.charCodeAt(index - 1)) && isLowSurrogate(content.charCodeAt(index))
-  );
+  return isHighSurrogate(content[index - 1]) && isLowSurrogate(content[index]);
 }
 
-function isHighSurrogate(code: number): boolean {
-  return code >= 0xd800 && code <= 0xdbff;
+function isHighSurrogate(value: string | undefined): boolean {
+  return value !== undefined && highSurrogatePattern.test(value);
 }
 
-function isLowSurrogate(code: number): boolean {
-  return code >= 0xdc00 && code <= 0xdfff;
+function isLowSurrogate(value: string | undefined): boolean {
+  return value !== undefined && lowSurrogatePattern.test(value);
 }

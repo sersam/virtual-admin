@@ -167,7 +167,7 @@ async function insertDocumentChunks(
         id, session_id, document_id, document_fingerprint, chunk_index,
         title, type, section, document_url, content, embedding_model, embedding
       )
-      values ${chunks.map(toInsertRow).join(', ')}
+      values ${chunks.map((chunk, rowIndex) => toInsertRow(chunk, rowIndex)).join(', ')}
       on conflict (id) do nothing
     `,
     chunks.flatMap(toInsertParameters),
@@ -177,7 +177,8 @@ async function insertDocumentChunks(
 function toInsertRow(_: StoredDocumentChunk, rowIndex: number): string {
   const firstParam = rowIndex * 12 + 1;
   const placeholders = Array.from({ length: 11 }, (_, index) => `$${firstParam + index}`);
-  return `(${[...placeholders, `$${firstParam + 11}::vector`].join(', ')})`;
+  const vectorPlaceholder = `$${firstParam + 11}::vector`;
+  return `(${[...placeholders, vectorPlaceholder].join(', ')})`;
 }
 
 function toInsertParameters(chunk: StoredDocumentChunk): readonly unknown[] {
