@@ -119,7 +119,7 @@ describe('createApiApp', () => {
   });
 
   it('recupera estado comunitario PostgreSQL tras reiniciar la persistencia', async () => {
-    const container = await new PostgreSqlContainer('postgres:16-alpine').start();
+    const container = await new PostgreSqlContainer('pgvector/pgvector:pg16').start();
     const databaseUrl = container.getConnectionUri();
     await migrateDatabase(databaseUrl);
     let cookie: string[] | undefined;
@@ -254,7 +254,7 @@ describe('createApiApp', () => {
   }, 120_000);
 
   it('recupera PDFs subidos desde PostgreSQL tras reiniciar la persistencia', async () => {
-    const container = await new PostgreSqlContainer('postgres:16-alpine').start();
+    const container = await new PostgreSqlContainer('pgvector/pgvector:pg16').start();
     const databaseUrl = container.getConnectionUri();
     await migrateDatabase(databaseUrl);
     const pdfContent = Buffer.from('%PDF-1.4 contrato ascensor');

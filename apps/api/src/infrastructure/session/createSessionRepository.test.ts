@@ -20,8 +20,8 @@ describe('createSessionRepository', () => {
   let unmigratedDatabaseUrl: string;
 
   beforeAll(async () => {
-    migratedContainer = await new PostgreSqlContainer('postgres:16-alpine').start();
-    unmigratedContainer = await new PostgreSqlContainer('postgres:16-alpine').start();
+    migratedContainer = await new PostgreSqlContainer('pgvector/pgvector:pg16').start();
+    unmigratedContainer = await new PostgreSqlContainer('pgvector/pgvector:pg16').start();
     migratedDatabaseUrl = migratedContainer.getConnectionUri();
     unmigratedDatabaseUrl = unmigratedContainer.getConnectionUri();
     await migrateDatabase(migratedDatabaseUrl);

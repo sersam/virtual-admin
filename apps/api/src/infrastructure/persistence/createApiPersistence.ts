@@ -1,10 +1,12 @@
 import type pg from 'pg';
+import type { DocumentChunkRepository } from '../../application/ports/DocumentChunkRepository.js';
 import type { IncidentRepository } from '../../application/ports/IncidentRepository.js';
 import type { PendingAgreementRepository } from '../../application/ports/PendingAgreementRepository.js';
 import type { ProposalRepository } from '../../application/ports/ProposalRepository.js';
 import type { SessionRepository } from '../../application/ports/SessionRepository.js';
 import type { UploadedDocumentRepository } from '../../application/ports/UploadedDocumentRepository.js';
 import { InMemoryUploadedDocumentRepository } from '../document/InMemoryUploadedDocumentRepository.js';
+import { PostgresDocumentChunkRepository } from '../document/PostgresDocumentChunkRepository.js';
 import { PostgresUploadedDocumentRepository } from '../document/PostgresUploadedDocumentRepository.js';
 import { InMemoryIncidentRepository } from '../incident/InMemoryIncidentRepository.js';
 import { PostgresIncidentRepository } from '../incident/PostgresIncidentRepository.js';
@@ -24,6 +26,7 @@ interface CreateApiPersistenceOptions {
 }
 
 export interface ApiPersistence {
+  readonly documentChunkRepository?: DocumentChunkRepository;
   readonly incidentRepository: IncidentRepository;
   readonly pendingAgreementRepository: PendingAgreementRepository;
   readonly proposalRepository: ProposalRepository;
@@ -37,6 +40,7 @@ export async function createApiPersistence(
 ): Promise<ApiPersistence> {
   if (!options.databaseUrl?.trim()) {
     return {
+      documentChunkRepository: undefined,
       incidentRepository: new InMemoryIncidentRepository(),
       pendingAgreementRepository: new InMemoryPendingAgreementRepository(),
       proposalRepository: new InMemoryProposalRepository(),
@@ -55,6 +59,7 @@ export async function createApiPersistence(
   await validatePostgresApiSchema(pool);
 
   return {
+    documentChunkRepository: new PostgresDocumentChunkRepository(pool),
     incidentRepository: new PostgresIncidentRepository(pool),
     pendingAgreementRepository: new PostgresPendingAgreementRepository(pool),
     proposalRepository: new PostgresProposalRepository(pool),
@@ -110,16 +115,49 @@ async function validatePostgresApiSchema(pool: pg.Pool): Promise<void> {
         documents.document_url,
         documents.text_content,
         documents.content,
-        documents.inserted_order
+        documents.inserted_order,
+        chunks.id,
+        chunks.session_id,
+        chunks.document_id,
+        chunks.document_fingerprint,
+        chunks.chunk_index,
+        chunks.title,
+        chunks.type,
+        chunks.section,
+        chunks.document_url,
+        chunks.content,
+        chunks.embedding_model,
+        chunks.embedding
       from demo_sessions sessions
       left join community_incidents incidents on incidents.session_id = sessions.id
       left join pending_agreements agreements on agreements.session_id = sessions.id
       left join community_proposals proposals on proposals.session_id = sessions.id
       left join uploaded_documents documents on documents.session_id = sessions.id
+      left join document_chunks chunks on chunks.session_id = sessions.id
       limit 0
     `);
+    const extension = await pool.query<{ extname: string }>(`
+      select extname
+      from pg_extension
+      where extname = 'vector'
+    `);
+    const indexes = await pool.query<{ indexname: string }>(`
+      select indexname
+      from pg_indexes
+      where schemaname = 'public'
+        and tablename = 'document_chunks'
+        and indexname in ('document_chunks_embedding_hnsw_idx', 'document_chunks_scope_document_idx')
+      order by indexname
+    `);
+
+    if (extension.rowCount !== 1 || indexes.rowCount !== 2) {
+      throw new Error('El esquema PostgreSQL de la API no esta migrado.');
+    }
   } catch (error) {
     await pool.end().catch(() => undefined);
+    if (error instanceof Error && error.message.includes('no esta migrado')) {
+      throw error;
+    }
     if (isMissingApiSchemaError(error)) {
       throw new Error('El esquema PostgreSQL de la API no esta migrado.');
     }
@@ -132,6 +170,6 @@ function isMissingApiSchemaError(error: unknown): boolean {
     typeof error === 'object' &&
     error !== null &&
     'code' in error &&
-    (error.code === '42P01' || error.code === '42703')
+    (error.code === '42P01' || error.code === '42703' || error.code === '42704')
   );
 }
