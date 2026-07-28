@@ -1,6 +1,6 @@
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import type pg from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createPostgresPool } from '../database/createPostgresPool.js';
 import { migrateDatabase } from '../database/migrateDatabase.js';
 import { PostgresDocumentChunkRepository } from './PostgresDocumentChunkRepository.js';
@@ -24,15 +24,19 @@ describe('PostgresDocumentChunkRepository', () => {
     await container?.stop();
   });
 
+  beforeEach(async () => {
+    await pool.query('delete from document_chunks');
+  });
+
   it('persiste chunks globales de forma idempotente y reemplaza versiones cambiadas', async () => {
     await repository.replaceDocumentChunks({
       chunks: [
-        chunk({ id: 'global-doc:0', content: 'Piscina abierta', embedding: [1, 0, 0] }),
+        chunk({ id: 'global-doc:0', content: 'Piscina abierta', embedding: vector(1, 0) }),
         chunk({
           id: 'global-doc:1',
           chunkIndex: 1,
           content: 'Garaje cerrado',
-          embedding: [0, 1, 0],
+          embedding: vector(0, 1),
         }),
       ],
       documentFingerprint: 'fingerprint-v1',
@@ -40,7 +44,14 @@ describe('PostgresDocumentChunkRepository', () => {
       embeddingModel: 'test-model',
     });
     await repository.replaceDocumentChunks({
-      chunks: [chunk({ id: 'global-doc:0', content: 'Piscina abierta', embedding: [1, 0, 0] })],
+      chunks: [
+        chunk({
+          content: 'Piscina abierta',
+          documentFingerprint: 'fingerprint-v2',
+          embedding: vector(1, 0),
+          id: 'global-doc:0',
+        }),
+      ],
       documentFingerprint: 'fingerprint-v2',
       documentId: 'global-doc',
       embeddingModel: 'test-model',
@@ -65,6 +76,7 @@ describe('PostgresDocumentChunkRepository', () => {
       chunks: [
         chunk({
           documentId: 'upload-doc',
+          documentFingerprint: 'upload-fingerprint',
           id: 'upload-doc:0',
           sessionId,
           title: 'Contrato subido',
@@ -89,7 +101,7 @@ describe('PostgresDocumentChunkRepository', () => {
 
     await pool.query('delete from demo_sessions where id = $1', [sessionId]);
 
-    await expect(countRows(pool, 'document_chunks')).resolves.toBe(1);
+    await expect(countRows(pool, 'document_chunks')).resolves.toBe(0);
   });
 
   it('busca vecinos por coseno, alcance global o sesion y score normalizado', async () => {
@@ -97,7 +109,12 @@ describe('PostgresDocumentChunkRepository', () => {
     await insertSession(pool, sessionId);
     await repository.replaceDocumentChunks({
       chunks: [
-        chunk({ id: 'semantic-global:0', documentId: 'semantic-global', embedding: [1, 0, 0] }),
+        chunk({
+          id: 'semantic-global:0',
+          documentId: 'semantic-global',
+          documentFingerprint: 'semantic-global-v1',
+          embedding: vector(1, 0),
+        }),
       ],
       documentFingerprint: 'semantic-global-v1',
       documentId: 'semantic-global',
@@ -107,11 +124,12 @@ describe('PostgresDocumentChunkRepository', () => {
       chunks: [
         chunk({
           documentId: 'semantic-session',
+          documentFingerprint: 'semantic-session-v1',
           id: 'semantic-session:0',
           sessionId,
           title: 'Factura subido',
           type: 'adjunto',
-          embedding: [0.99, 0.01, 0],
+          embedding: vector(0.99, 0.01),
         }),
       ],
       documentFingerprint: 'semantic-session-v1',
@@ -122,7 +140,7 @@ describe('PostgresDocumentChunkRepository', () => {
 
     await expect(
       repository.searchNearest({
-        embedding: [1, 0, 0],
+        embedding: vector(1, 0),
         embeddingModel: 'test-model',
         limit: 5,
         sessionId,
@@ -145,7 +163,7 @@ function chunk(
     documentFingerprint: overrides.documentFingerprint ?? 'fingerprint-v1',
     documentId: overrides.documentId ?? 'global-doc',
     documentUrl: '/documents/documento.pdf',
-    embedding: overrides.embedding ?? [1, 0, 0],
+    embedding: overrides.embedding ?? vector(1, 0),
     embeddingModel: 'test-model',
     id: overrides.id ?? 'global-doc:0',
     section: 'Seccion',
@@ -168,4 +186,8 @@ async function insertSession(pool: pg.Pool, sessionId: string): Promise<void> {
 async function countRows(pool: pg.Pool, tableName: string): Promise<number> {
   const result = await pool.query<{ count: string }>(`select count(*) from ${tableName}`);
   return Number(result.rows[0]?.count ?? 0);
+}
+
+function vector(first: number, second: number): readonly number[] {
+  return [first, second, ...Array.from({ length: 1534 }, () => 0)];
 }
