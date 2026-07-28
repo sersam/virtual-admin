@@ -4,6 +4,7 @@ import {
   ChatMessageRequestSchema,
   ChatMessageResponseSchema,
   ChatModeSchema,
+  ChatProviderSchema,
 } from './chat';
 
 const validSource = {
@@ -26,7 +27,7 @@ describe('chat contracts', () => {
     expect(() => ChatMessageRequestSchema.parse({ message: 'a'.repeat(501) })).toThrow();
   });
 
-  it('define todos los agentes del MVP y modos esperados', () => {
+  it('define todos los agentes del MVP, modos y proveedores esperados', () => {
     expect(ChatAgentSchema.options).toEqual([
       'documentos',
       'comunicados',
@@ -35,7 +36,8 @@ describe('chat contracts', () => {
       'juntas',
       'general',
     ]);
-    expect(ChatModeSchema.options).toEqual(['langgraph-demo', 'local-demo']);
+    expect(ChatModeSchema.options).toEqual(['langgraph', 'local-demo']);
+    expect(ChatProviderSchema.options).toEqual(['openai', 'deterministic-demo']);
   });
 
   it('valida respuestas del coordinador con fuentes reales cuando existen', () => {
@@ -43,13 +45,15 @@ describe('chat contracts', () => {
       ChatMessageResponseSchema.parse({
         agent: 'documentos',
         answer: 'Según la documentación recuperada, la piscina abre de 10:00 a 21:00.',
-        mode: 'langgraph-demo',
+        mode: 'langgraph',
+        provider: 'openai',
         sources: [validSource],
       }),
     ).toEqual({
       agent: 'documentos',
       answer: 'Según la documentación recuperada, la piscina abre de 10:00 a 21:00.',
-      mode: 'langgraph-demo',
+      mode: 'langgraph',
+      provider: 'openai',
       sources: [validSource],
     });
   });
@@ -59,9 +63,22 @@ describe('chat contracts', () => {
       ChatMessageResponseSchema.parse({
         agent: 'documentos',
         answer: 'Respuesta sin fuente válida.',
-        mode: 'langgraph-demo',
+        mode: 'langgraph',
+        provider: 'deterministic-demo',
         sources: [{ ...validSource, documentUrl: '/documents/fuente.txt' }],
       }),
     ).toThrow();
+  });
+
+  it('rechaza proveedores no soportados o ausentes', () => {
+    const base = {
+      agent: 'documentos',
+      answer: 'Respuesta válida.',
+      mode: 'langgraph',
+      sources: [validSource],
+    };
+
+    expect(() => ChatMessageResponseSchema.parse(base)).toThrow();
+    expect(() => ChatMessageResponseSchema.parse({ ...base, provider: 'anthropic' })).toThrow();
   });
 });

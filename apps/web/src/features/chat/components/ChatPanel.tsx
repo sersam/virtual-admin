@@ -1,4 +1,4 @@
-import type { ChatAgent, ChatMode } from '@admin/contracts';
+import type { ChatAgent, ChatMode, ChatProvider } from '@admin/contracts';
 import type { FormEvent } from 'react';
 import { Bot, ExternalLink, SendHorizontal } from 'lucide-react';
 import { useState } from 'react';
@@ -16,8 +16,13 @@ const agentLabels: Record<ChatAgent, string> = {
 };
 
 const modeLabels: Record<ChatMode, string> = {
-  'langgraph-demo': 'LangGraph demo',
+  langgraph: 'LangGraph',
   'local-demo': 'Modo demo local',
+};
+
+const providerLabels: Record<ChatProvider, string> = {
+  'deterministic-demo': 'Enrutado por demo determinista',
+  openai: 'Enrutado por OpenAI',
 };
 
 const mvpAreaExamples = [
@@ -141,6 +146,9 @@ export function ChatPanel() {
                 </span>
                 <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-sky-100">
                   {modeLabels[result.mode]}
+                </span>
+                <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-sky-100">
+                  {providerLabels[result.provider]}
                 </span>
               </div>
               <p className="mt-4 whitespace-pre-line text-sm leading-6 text-sky-50">

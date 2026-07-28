@@ -51,6 +51,7 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
       agent,
       answer: answer.answer,
       mode: 'local-demo',
+      provider: 'deterministic-demo',
       sources: answer.sources,
     };
   }
@@ -62,6 +63,7 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
       agent,
       answer: [`Asunto: ${response.draft.subject}`, '', response.draft.body].join('\n'),
       mode: 'local-demo',
+      provider: 'deterministic-demo',
       sources: [],
     };
   }
@@ -71,6 +73,7 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
         agent,
         answer: 'Necesito unas notas de al menos 10 caracteres para generar un borrador de acta.',
         mode: 'local-demo',
+        provider: 'deterministic-demo',
         sources: [],
       };
     }
@@ -79,6 +82,7 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
       agent,
       answer: createLocalMeetingMinutesDraft(message).draft.body,
       mode: 'local-demo',
+      provider: 'deterministic-demo',
       sources: [],
     };
   }
@@ -94,6 +98,7 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
         'No se ha registrado porque la API de sesión no está disponible.',
       ].join('\n'),
       mode: 'local-demo',
+      provider: 'deterministic-demo',
       sources: [],
     };
   }
@@ -102,6 +107,7 @@ export function createLocalChatMessage(message: string): ChatMessageResponse {
     agent,
     answer: localAgentAnswers[agent],
     mode: 'local-demo',
+    provider: 'deterministic-demo',
     sources: [],
   };
 }

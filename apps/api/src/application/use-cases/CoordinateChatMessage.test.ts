@@ -12,7 +12,8 @@ describe('CoordinateChatMessage', () => {
           return {
             agent: 'general',
             answer: `Coordinado: ${message}`,
-            mode: 'langgraph-demo',
+            mode: 'langgraph',
+            provider: 'deterministic-demo',
             sources: [],
           };
         },
@@ -24,7 +25,8 @@ describe('CoordinateChatMessage', () => {
     ).resolves.toEqual({
       agent: 'general',
       answer: 'Coordinado: Hola, ¿qué puedes hacer?',
-      mode: 'langgraph-demo',
+      mode: 'langgraph',
+      provider: 'deterministic-demo',
       sources: [],
     });
     expect(receivedSessionId).toBe('session-1');

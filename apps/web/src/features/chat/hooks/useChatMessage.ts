@@ -1,7 +1,7 @@
 import type { ChatMessageResponse } from '@admin/contracts';
 import { useState } from 'react';
 import { createLocalChatMessage } from '../../../shared/api/localChatMessage';
-import { sendChatMessage } from '../../../shared/api/sendChatMessage';
+import { isChatApiTransportError, sendChatMessage } from '../../../shared/api/sendChatMessage';
 
 export type ChatMessageStatus = 'idle' | 'loading' | 'ready' | 'fallback' | 'error';
 
@@ -33,8 +33,16 @@ export function useChatMessage() {
       const result = await sendChatMessage(trimmedMessage);
       setState({ result, status: 'ready' });
     } catch (error) {
-      console.error('[useChatMessage] Se usa coordinador local determinista.', error);
-      setState({ result: createLocalChatMessage(trimmedMessage), status: 'fallback' });
+      if (isChatApiTransportError(error)) {
+        console.error('[useChatMessage] Se usa coordinador local determinista.', error);
+        setState({ result: createLocalChatMessage(trimmedMessage), status: 'fallback' });
+        return;
+      }
+
+      setState({
+        error: error instanceof Error ? error.message : 'No se pudo coordinar el mensaje.',
+        status: 'error',
+      });
     }
   }
 

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { sendChatMessage } from './sendChatMessage';
+import { ChatApiHttpError, sendChatMessage } from './sendChatMessage';
 
 describe('sendChatMessage', () => {
   afterEach(() => {
@@ -12,7 +12,8 @@ describe('sendChatMessage', () => {
         JSON.stringify({
           agent: 'documentos',
           answer: 'La piscina abre de 10:00 a 21:00.',
-          mode: 'langgraph-demo',
+          mode: 'langgraph',
+          provider: 'openai',
           sources: [
             {
               id: 'normas-piscina',
@@ -49,6 +50,9 @@ describe('sendChatMessage', () => {
   it('incluye el estado HTTP cuando la API falla', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 503 }));
 
+    await expect(sendChatMessage('Prepara una junta extraordinaria')).rejects.toBeInstanceOf(
+      ChatApiHttpError,
+    );
     await expect(sendChatMessage('Prepara una junta extraordinaria')).rejects.toThrow('HTTP 503');
   });
 });

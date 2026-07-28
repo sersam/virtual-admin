@@ -1,6 +1,7 @@
 import type {
   ChatAgent,
   ChatMessageResponse,
+  ChatProvider,
   DocumentQueryResponse,
   DocumentSource,
   MeetingAgendaDraftResponse,
@@ -8,10 +9,10 @@ import type {
 } from '@admin/contracts';
 import { ChatMessageResponseSchema } from '@admin/contracts';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
+import type { ChatIntentClassifier } from '../../application/ports/ChatIntentClassifier.js';
 import type { ChatWorkflow, ChatWorkflowContext } from '../../application/ports/ChatWorkflow.js';
 import type { CommunityNoticeDraftResult } from '../../application/ports/CommunityNoticeGenerator.js';
 import type { CreateIncidentResult } from '../../application/use-cases/CreateIncident.js';
-import { classifyIntent } from '../../domain/agent/IntentClassifier.js';
 import {
   buildCommunityNoticeInputFromText,
   type CommunityNoticeDraftInput,
@@ -45,8 +46,9 @@ interface MeetingAgendaDrafter {
 }
 
 interface LangGraphChatWorkflowDependencies {
-  readonly documentAnswerer: DocumentAnswerer;
+  readonly chatIntentClassifier: ChatIntentClassifier;
   readonly communityNoticeDrafter: CommunityNoticeDrafter;
+  readonly documentAnswerer: DocumentAnswerer;
   readonly incidentCreator: IncidentCreator;
   readonly meetingAgendaDrafter: MeetingAgendaDrafter;
   readonly meetingMinutesDrafter: MeetingMinutesDrafter;
@@ -56,6 +58,7 @@ interface ChatGraph {
   invoke(input: { readonly message: string; readonly sessionId?: string }): Promise<{
     readonly agent?: ChatAgent;
     readonly answer?: string;
+    readonly provider?: ChatProvider;
     readonly sources?: DocumentSource[];
   }>;
 }
@@ -64,6 +67,7 @@ const ChatState = Annotation.Root({
   agent: Annotation<ChatAgent | undefined>(),
   answer: Annotation<string | undefined>(),
   message: Annotation<string>(),
+  provider: Annotation<ChatProvider | undefined>(),
   sessionId: Annotation<string | undefined>(),
   sources: Annotation<DocumentSource[]>({
     reducer: (_current, next) => next,
@@ -76,15 +80,30 @@ export class LangGraphChatWorkflow implements ChatWorkflow {
 
   constructor(private readonly dependencies: LangGraphChatWorkflowDependencies) {
     this.graph = new StateGraph(ChatState)
-      .addNode('classify', async (state) => ({
-        agent: classifyIntent(state.message),
-      }))
-      .addNode('respond', async (state) =>
-        this.answer(state.message, state.agent ?? 'general', state.sessionId),
+      .addNode('classify', async (state) =>
+        this.dependencies.chatIntentClassifier.classify(state.message),
       )
+      .addNode('documentos', async (state) => this.answerDocuments(state.message, state.sessionId))
+      .addNode('comunicados', async (state) => this.answerCommunityNotice(state.message))
+      .addNode('actas', async (state) => this.answerMeetingMinutes(state.message, state.sessionId))
+      .addNode('incidencias', async (state) => this.answerIncident(state.message, state.sessionId))
+      .addNode('juntas', async (state) => this.answerMeetingAgenda(state.sessionId))
+      .addNode('general', async () => this.answerGeneral())
       .addEdge(START, 'classify')
-      .addEdge('classify', 'respond')
-      .addEdge('respond', END)
+      .addConditionalEdges('classify', (state) => state.agent ?? 'general', {
+        actas: 'actas',
+        comunicados: 'comunicados',
+        documentos: 'documentos',
+        general: 'general',
+        incidencias: 'incidencias',
+        juntas: 'juntas',
+      })
+      .addEdge('documentos', END)
+      .addEdge('comunicados', END)
+      .addEdge('actas', END)
+      .addEdge('incidencias', END)
+      .addEdge('juntas', END)
+      .addEdge('general', END)
       .compile() as ChatGraph;
   }
 
@@ -94,58 +113,74 @@ export class LangGraphChatWorkflow implements ChatWorkflow {
     return ChatMessageResponseSchema.parse({
       agent: state.agent ?? 'general',
       answer: state.answer,
-      mode: 'langgraph-demo',
+      mode: 'langgraph',
+      provider: state.provider ?? 'deterministic-demo',
       sources: state.sources ?? [],
     });
   }
 
-  private async answer(
+  private async answerDocuments(
     message: string,
-    agent: ChatAgent,
     sessionId: string | undefined,
   ): Promise<Pick<ChatMessageResponse, 'answer' | 'sources'>> {
-    if (agent === 'documentos') {
-      const response = await this.dependencies.documentAnswerer.execute(message, { sessionId });
-      return { answer: response.answer, sources: response.sources };
-    }
-    if (agent === 'comunicados') {
-      const response = await this.dependencies.communityNoticeDrafter.execute(
-        buildCommunityNoticeInputFromText(message),
-      );
-      return { answer: formatCommunityNoticeAnswer(response), sources: [] };
-    }
-    if (agent === 'actas') {
-      const response = await this.dependencies.meetingMinutesDrafter.execute(message, {
-        sessionId,
-      });
-      return { answer: response.draft.body, sources: [] };
-    }
-    if (agent === 'incidencias') {
-      if (!sessionId) {
-        return {
-          answer: 'No se pudo registrar la incidencia porque no hay una sesión activa.',
-          sources: [],
-        };
-      }
-      const response = await this.dependencies.incidentCreator.execute({
-        description: message,
-        sessionId,
-      });
-      return { answer: formatIncidentAnswer(response.incident), sources: [] };
-    }
-    if (agent === 'juntas') {
-      if (!sessionId) {
-        return {
-          answer: 'No se pudo preparar el orden del día porque no hay una sesión activa.',
-          sources: [],
-        };
-      }
-      const response = await this.dependencies.meetingAgendaDrafter.execute({ sessionId });
-      return { answer: response.draft.body, sources: [] };
+    const response = await this.dependencies.documentAnswerer.execute(message, { sessionId });
+    return { answer: response.answer, sources: response.sources };
+  }
+
+  private async answerCommunityNotice(
+    message: string,
+  ): Promise<Pick<ChatMessageResponse, 'answer' | 'sources'>> {
+    const response = await this.dependencies.communityNoticeDrafter.execute(
+      buildCommunityNoticeInputFromText(message),
+    );
+    return { answer: formatCommunityNoticeAnswer(response), sources: [] };
+  }
+
+  private async answerMeetingMinutes(
+    message: string,
+    sessionId: string | undefined,
+  ): Promise<Pick<ChatMessageResponse, 'answer' | 'sources'>> {
+    const response = await this.dependencies.meetingMinutesDrafter.execute(message, {
+      sessionId,
+    });
+    return { answer: response.draft.body, sources: [] };
+  }
+
+  private async answerIncident(
+    message: string,
+    sessionId: string | undefined,
+  ): Promise<Pick<ChatMessageResponse, 'answer' | 'sources'>> {
+    if (!sessionId) {
+      return {
+        answer: 'No se pudo registrar la incidencia porque no hay una sesión activa.',
+        sources: [],
+      };
     }
 
+    const response = await this.dependencies.incidentCreator.execute({
+      description: message,
+      sessionId,
+    });
+    return { answer: formatIncidentAnswer(response.incident), sources: [] };
+  }
+
+  private async answerMeetingAgenda(
+    sessionId: string | undefined,
+  ): Promise<Pick<ChatMessageResponse, 'answer' | 'sources'>> {
+    if (!sessionId) {
+      return {
+        answer: 'No se pudo preparar el orden del día porque no hay una sesión activa.',
+        sources: [],
+      };
+    }
+
+    const response = await this.dependencies.meetingAgendaDrafter.execute({ sessionId });
+    return { answer: response.draft.body, sources: [] };
+  }
+
+  private answerGeneral(): Pick<ChatMessageResponse, 'answer' | 'sources'> {
     return {
-      answer: futureAgentAnswer[agent],
+      answer: futureAgentAnswer.general,
       sources: [],
     };
   }

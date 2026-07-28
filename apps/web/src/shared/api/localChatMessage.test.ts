@@ -7,6 +7,7 @@ describe('createLocalChatMessage', () => {
 
     expect(response.agent).toBe('documentos');
     expect(response.mode).toBe('local-demo');
+    expect(response.provider).toBe('deterministic-demo');
     expect(response.sources[0]?.id).toBe('normas-piscina');
   });
 
@@ -16,6 +17,7 @@ describe('createLocalChatMessage', () => {
     expect(response.agent).toBe('comunicados');
     expect(response.answer).toContain('Asunto: Corte de agua');
     expect(response.answer).toContain('Estimados vecinos:');
+    expect(response.provider).toBe('deterministic-demo');
     expect(response.sources).toEqual([]);
   });
 
@@ -32,6 +34,7 @@ describe('createLocalChatMessage', () => {
     expect(response.answer).toContain('Acta de reunión');
     expect(response.answer).toContain('Acuerdos:');
     expect(response.answer).toContain('Revisar contrato');
+    expect(response.provider).toBe('deterministic-demo');
     expect(response.sources).toEqual([]);
   });
 
@@ -49,6 +52,16 @@ describe('createLocalChatMessage', () => {
 
     expect(response.agent).toBe('actas');
     expect(response.answer).toContain('Necesito unas notas');
+    expect(response.provider).toBe('deterministic-demo');
+    expect(response.sources).toEqual([]);
+  });
+
+  it('usa trazabilidad demo en respuestas generales locales', () => {
+    const response = createLocalChatMessage('Hola, ¿qué puedes hacer?');
+
+    expect(response.agent).toBe('general');
+    expect(response.mode).toBe('local-demo');
+    expect(response.provider).toBe('deterministic-demo');
     expect(response.sources).toEqual([]);
   });
 
@@ -65,6 +78,7 @@ describe('createLocalChatMessage', () => {
         'No se ha registrado porque la API de sesión no está disponible.',
       ].join('\n'),
       mode: 'local-demo',
+      provider: 'deterministic-demo',
       sources: [],
     });
   });
@@ -77,6 +91,7 @@ describe('createLocalChatMessage', () => {
       answer:
         'Puedo clasificar la petición de juntas, pero necesito la API de sesión para preparar un orden del día con incidencias y acuerdos pendientes reales.',
       mode: 'local-demo',
+      provider: 'deterministic-demo',
       sources: [],
     });
   });
