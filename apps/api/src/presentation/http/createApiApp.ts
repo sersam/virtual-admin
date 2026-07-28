@@ -81,6 +81,7 @@ import type { CommunityNoticeGenerator } from '../../application/ports/Community
 import type { IncidentClassifier } from '../../application/ports/IncidentClassifier.js';
 import type { IncidentRepository } from '../../application/ports/IncidentRepository.js';
 import type { MeetingRepository } from '../../application/ports/MeetingRepository.js';
+import type { MeetingMinutesGenerator } from '../../application/ports/MeetingMinutesGenerator.js';
 import type { PendingAgreementRepository } from '../../application/ports/PendingAgreementRepository.js';
 import type { ProposalRepository } from '../../application/ports/ProposalRepository.js';
 import { AiProviderError } from '../../application/ports/AiProviderError.js';
@@ -113,6 +114,7 @@ interface ApiAppOptions {
   readonly ids: IdGenerator;
   readonly incidentClassifier: IncidentClassifier;
   readonly incidentRepository: IncidentRepository;
+  readonly meetingMinutesGenerator: MeetingMinutesGenerator;
   readonly meetingRepository: MeetingRepository;
   readonly pendingAgreementRepository: PendingAgreementRepository;
   readonly proposalRepository: ProposalRepository;
@@ -156,6 +158,7 @@ export function createApiApp(options: ApiAppOptions) {
   });
   const draftMeetingMinutes = new DraftMeetingMinutes({
     clock: options.clock,
+    generator: options.meetingMinutesGenerator,
     ids: options.ids,
     pendingAgreementRepository: options.pendingAgreementRepository,
   });
