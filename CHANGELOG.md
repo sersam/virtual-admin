@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-28 · PR [#23](https://github.com/sersam/virtual-admin/pull/23)
+
+### Added
+
+- US-017 añade recuperacion semantica documental con embeddings OpenAI y pgvector cuando la API esta configurada con PostgreSQL y `OPENAI_API_KEY`, manteniendo el fallback lexico demo sin base de datos o sin API key.
+
 ## 2026-07-27 · PR [#22](https://github.com/sersam/virtual-admin/pull/22)
 
 ### Added
