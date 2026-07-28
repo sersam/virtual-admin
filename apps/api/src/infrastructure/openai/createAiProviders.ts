@@ -10,6 +10,7 @@ import { DeterministicChatIntentClassifier } from '../agent/DeterministicChatInt
 import { DeterministicIncidentClassifier } from '../incident/DeterministicIncidentClassifier.js';
 import { ConsoleAiTelemetryReporter } from './ConsoleAiTelemetryReporter.js';
 import { OpenAiCommunityNoticeGenerator } from './OpenAiCommunityNoticeGenerator.js';
+import { OpenAiChatIntentClassifier } from './OpenAiChatIntentClassifier.js';
 import { OpenAiDocumentAnswerGenerator } from './OpenAiDocumentAnswerGenerator.js';
 import {
   OfficialOpenAiEmbeddingsClient,
@@ -47,7 +48,7 @@ export function createAiProviders(options: CreateAiProvidersOptions): AiProvider
   const telemetry = options.telemetry ?? new ConsoleAiTelemetryReporter();
 
   return {
-    chatIntentClassifier: new DeterministicChatIntentClassifier(),
+    chatIntentClassifier: new OpenAiChatIntentClassifier({ responses, telemetry }),
     communityNoticeGenerator: new OpenAiCommunityNoticeGenerator({ responses, telemetry }),
     documentAnswerGenerator: new OpenAiDocumentAnswerGenerator({ responses, telemetry }),
     embeddingProvider: new OpenAiEmbeddingProvider({

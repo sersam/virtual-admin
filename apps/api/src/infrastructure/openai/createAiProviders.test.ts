@@ -4,6 +4,7 @@ import { DeterministicDocumentAnswerGenerator } from '../document/DeterministicD
 import { DeterministicChatIntentClassifier } from '../agent/DeterministicChatIntentClassifier.js';
 import { DeterministicIncidentClassifier } from '../incident/DeterministicIncidentClassifier.js';
 import { OpenAiCommunityNoticeGenerator } from './OpenAiCommunityNoticeGenerator.js';
+import { OpenAiChatIntentClassifier } from './OpenAiChatIntentClassifier.js';
 import { OpenAiDocumentAnswerGenerator } from './OpenAiDocumentAnswerGenerator.js';
 import { OpenAiEmbeddingProvider } from './OpenAiEmbeddingProvider.js';
 import { OpenAiIncidentClassifier } from './OpenAiIncidentClassifier.js';
@@ -38,6 +39,7 @@ describe('createAiProviders', () => {
     const providers = createAiProviders({ openAiApiKey: 'sk-test' });
 
     expect(providers.communityNoticeGenerator).toBeInstanceOf(OpenAiCommunityNoticeGenerator);
+    expect(providers.chatIntentClassifier).toBeInstanceOf(OpenAiChatIntentClassifier);
     expect(providers.documentAnswerGenerator).toBeInstanceOf(OpenAiDocumentAnswerGenerator);
     expect(providers.embeddingProvider).toBeInstanceOf(OpenAiEmbeddingProvider);
     expect(providers.incidentClassifier).toBeInstanceOf(OpenAiIncidentClassifier);

@@ -1,4 +1,5 @@
 export type AiOperation =
+  | 'chat-intent-classification'
   | 'community-notice'
   | 'document-answer'
   | 'document-embedding'
