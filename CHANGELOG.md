@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-28 · PR [#24](https://github.com/sersam/virtual-admin/pull/24)
+
+### Added
+
+- US-018 añade respuestas RAG redactadas con OpenAI en backend, fuentes validadas contra documentos recuperados, modo demo determinista y telemetria.
+
 ## 2026-07-28 · PR [#23](https://github.com/sersam/virtual-admin/pull/23)
 
 ### Added
