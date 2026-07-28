@@ -11,6 +11,7 @@ describe('queryDocuments', () => {
       new Response(
         JSON.stringify({
           answer: 'La piscina abre de 10:00 a 21:00.',
+          generationMode: 'openai',
           mode: 'lexical-demo',
           sources: [
             {
@@ -30,6 +31,7 @@ describe('queryDocuments', () => {
 
     const response = await queryDocuments('¿Cuál es el horario de piscina?');
 
+    expect(response.generationMode).toBe('openai');
     expect(response.sources[0]?.id).toBe('normas-piscina');
     expect(globalThis.fetch).toHaveBeenCalledWith(
       '/api/documents/query',
@@ -53,7 +55,14 @@ describe('queryDocuments', () => {
 
   it('rechaza respuestas 200 que no cumplen el contrato', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ answer: 'ok', mode: 'lexical-demo' }), { status: 200 }),
+      new Response(
+        JSON.stringify({
+          answer: 'ok',
+          generationMode: 'deterministic-demo',
+          mode: 'lexical-demo',
+        }),
+        { status: 200 },
+      ),
     );
 
     await expect(queryDocuments('horario piscina')).rejects.toThrow();

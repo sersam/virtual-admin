@@ -47,6 +47,7 @@ describe('LangGraphChatWorkflow', () => {
 
           return {
             answer: 'La piscina comunitaria abre de 10:00 a 21:00.',
+            generationMode: 'deterministic-demo',
             mode: 'lexical-demo',
             sources: [poolSource],
           };

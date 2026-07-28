@@ -17,6 +17,11 @@ const documentModeLabels = {
   'semantic-pgvector': 'API RAG semántica',
 } as const;
 
+const generationModeLabels = {
+  'deterministic-demo': 'Demo determinista',
+  openai: 'OpenAI',
+} as const;
+
 export function DocumentQueryPanel() {
   const [question, setQuestion] = useState(suggestedQuestions[0]!);
   const { error, result, status, submit } = useDocumentQuery();
@@ -103,7 +108,7 @@ export function DocumentQueryPanel() {
             <div className="mt-6 space-y-5">
               <div className="rounded-2xl bg-navy-950 p-5 text-white">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-sky-200">
-                  {documentModeLabels[result.mode]}
+                  {generationModeLabels[result.generationMode]} · {documentModeLabels[result.mode]}
                 </p>
                 <p className="mt-3 text-sm leading-6 text-sky-50">{result.answer}</p>
               </div>

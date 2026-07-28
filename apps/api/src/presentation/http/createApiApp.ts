@@ -69,6 +69,7 @@ import {
   ResolveIncident,
 } from '../../application/use-cases/ResolveIncident.js';
 import type { DocumentRetriever } from '../../application/ports/DocumentRetriever.js';
+import type { DocumentAnswerGenerator } from '../../application/ports/DocumentAnswerGenerator.js';
 import type { SessionRepository } from '../../application/ports/SessionRepository.js';
 import type { UploadedDocumentRepository } from '../../application/ports/UploadedDocumentRepository.js';
 import type { UploadedDocumentTextExtractor } from '../../application/ports/UploadedDocumentTextExtractor.js';
@@ -104,6 +105,7 @@ interface ApiAppOptions {
   }) => ChatWorkflow;
   readonly cookieSecret: string;
   readonly communityNoticeGenerator: CommunityNoticeGenerator;
+  readonly documentAnswerGenerator: DocumentAnswerGenerator;
   readonly documentRetriever: DocumentRetriever;
   readonly ids: IdGenerator;
   readonly incidentClassifier: IncidentClassifier;
@@ -123,6 +125,7 @@ interface ApiAppOptions {
 export function createApiApp(options: ApiAppOptions) {
   const app = express();
   const answerDocumentQuestion = new AnswerDocumentQuestion({
+    generator: options.documentAnswerGenerator,
     retriever: options.documentRetriever,
   });
   const createIncident = new CreateIncident({

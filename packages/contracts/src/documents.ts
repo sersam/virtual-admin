@@ -30,9 +30,11 @@ export const DocumentSourceSchema = z.object({
 });
 
 export const DocumentAnswerModeSchema = z.enum(['lexical-demo', 'local-demo', 'semantic-pgvector']);
+export const DocumentGenerationModeSchema = z.enum(['deterministic-demo', 'openai']);
 
 export const DocumentQueryResponseSchema = z.object({
   answer: z.string().min(1),
+  generationMode: DocumentGenerationModeSchema,
   mode: DocumentAnswerModeSchema,
   sources: z.array(DocumentSourceSchema),
 });

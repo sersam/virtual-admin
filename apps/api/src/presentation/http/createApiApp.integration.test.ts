@@ -8,6 +8,7 @@ import { InMemoryUploadedDocumentRepository } from '../../infrastructure/documen
 import { InMemorySessionRepository } from '../../infrastructure/session/InMemorySessionRepository.js';
 import { LangGraphChatWorkflow } from '../../infrastructure/agent/LangGraphChatWorkflow.js';
 import { DeterministicCommunityNoticeGenerator } from '../../infrastructure/communication/DeterministicCommunityNoticeGenerator.js';
+import { DeterministicDocumentAnswerGenerator } from '../../infrastructure/document/DeterministicDocumentAnswerGenerator.js';
 import { DeterministicIncidentClassifier } from '../../infrastructure/incident/DeterministicIncidentClassifier.js';
 import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemoryIncidentRepository.js';
 import { InMemoryMeetingRepository } from '../../infrastructure/meeting/InMemoryMeetingRepository.js';
@@ -67,6 +68,7 @@ function buildAppOptions(
       }),
     communityNoticeGenerator: new DeterministicCommunityNoticeGenerator(),
     cookieSecret: 'test-secret',
+    documentAnswerGenerator: new DeterministicDocumentAnswerGenerator(),
     documentRetriever,
     ids: { randomId: () => `00000000-0000-4000-8000-${String(++idSequence).padStart(12, '0')}` },
     incidentClassifier: new DeterministicIncidentClassifier(),
@@ -380,6 +382,7 @@ describe('createApiApp', () => {
       .send({ question: '¿Cuál es el horario de la piscina?' });
 
     expect(response.status).toBe(200);
+    expect(response.body.generationMode).toBe('deterministic-demo');
     expect(response.body.answer).toContain('piscina comunitaria');
     expect(response.body.sources[0]).toMatchObject({
       id: 'normas-piscina',
@@ -411,6 +414,7 @@ describe('createApiApp', () => {
       .send({ question: '¿Cuál es el horario de la piscina?' });
 
     expect(response.status).toBe(200);
+    expect(response.body.generationMode).toBe('deterministic-demo');
     expect(response.body.mode).toBe('semantic-pgvector');
     expect(response.body.sources[0]).toMatchObject({
       documentUrl: '/documents/normas-zonas-comunes.pdf',
@@ -751,6 +755,23 @@ describe('createApiApp', () => {
         audience: 'todos',
         tone: 'formal',
       });
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.code).toBe('AI_PROVIDER_ERROR');
+  });
+
+  it('devuelve un error controlado cuando falla el generador documental IA', async () => {
+    const response = await request(
+      buildApp(3, {
+        documentAnswerGenerator: {
+          generate: async () => {
+            throw new AiProviderError();
+          },
+        },
+      }),
+    )
+      .post('/api/documents/query')
+      .send({ question: '¿Cuál es el horario de la piscina?' });
 
     expect(response.status).toBe(502);
     expect(response.body.error.code).toBe('AI_PROVIDER_ERROR');

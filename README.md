@@ -16,7 +16,7 @@ Será una demo pública sin autenticación, con datos precargados y un modo loca
 
 ## Estado del proyecto
 
-Actualmente están implementadas las historias de la **US-001** a la **US-017**. La aplicación incluye shell responsive, API Express con sesiones demo aisladas, estado persistente opcional en PostgreSQL, documentos PDF subidos por sesión, consulta documental determinista con fuentes trazables y recuperación semántica con pgvector cuando el backend está configurado para ello.
+Actualmente están implementadas las historias de la **US-001** a la **US-018**. La aplicación incluye shell responsive, API Express con sesiones demo aisladas, estado persistente opcional en PostgreSQL, documentos PDF subidos por sesión, consulta documental RAG con respuestas generadas desde fuentes trazables y recuperación semántica con pgvector cuando el backend está configurado para ello.
 
 - [Backlog del MVP](docs/backlog.md)
 - [Arquitectura detallada](docs/architecture.md)
@@ -57,13 +57,13 @@ La API quedará disponible en [http://localhost:3000](http://localhost:3000), co
 
 ### Configuración OpenAI
 
-La API puede generar comunicados, clasificar incidencias y generar embeddings documentales con OpenAI desde backend. Para activar los proveedores OpenAI en local, define `OPENAI_API_KEY` al arrancar la API:
+La API puede generar comunicados, clasificar incidencias, redactar respuestas documentales RAG y generar embeddings documentales con OpenAI desde backend. Para activar los proveedores OpenAI en local, define `OPENAI_API_KEY` al arrancar la API:
 
 ```bash
 COOKIE_SECRET=local-demo-cookie-secret OPENAI_API_KEY=<TU_API_KEY> npm run dev:api
 ```
 
-El modelo fijado para texto es `gpt-5-nano`. La recuperación semántica documental usa `text-embedding-3-small` con 1536 dimensiones. Si `OPENAI_API_KEY` no está definida, la API usa los adaptadores demo deterministas y la recuperación documental léxica, sin llamadas externas. Las pruebas y CI no necesitan API key ni ejecutan llamadas reales a OpenAI.
+El modelo fijado para texto es `gpt-5-nano`. La recuperación semántica documental usa `text-embedding-3-small` con 1536 dimensiones. Si `OPENAI_API_KEY` no está definida, la API usa los adaptadores demo deterministas y la recuperación documental léxica, sin llamadas externas. Si `OPENAI_API_KEY` está definida, las respuestas documentales se redactan con OpenAI sobre las evidencias recuperadas, aunque la recuperación siga siendo léxica por falta de PostgreSQL. Las pruebas y CI no necesitan API key ni ejecutan llamadas reales a OpenAI.
 
 Cada operación IA registra en los logs del backend el modelo, versión, tokens, coste estimado, latencia y resultado. La telemetría documental no registra preguntas ni contenido de documentos.
 
@@ -85,9 +85,15 @@ Los documentos subidos persisten sus metadatos, texto extraído y binario PDF. L
 
 ### RAG semántico con pgvector
 
-La recuperación semántica se activa únicamente cuando existen `DATABASE_URL` y `OPENAI_API_KEY`. En ese modo, la primera consulta reconcilia de forma lazy el corpus demo y los PDFs subidos en la sesión: calcula chunks deterministas, genera embeddings para la pregunta y los chunks pendientes en una sola llamada, persiste los vectores en `document_chunks` y busca los vecinos más próximos con similitud coseno. La respuesta sigue siendo determinista y muestra hasta tres documentos distintos con fuentes reales.
+La recuperación semántica se activa únicamente cuando existen `DATABASE_URL` y `OPENAI_API_KEY`. En ese modo, la primera consulta reconcilia de forma lazy el corpus demo y los PDFs subidos en la sesión: calcula chunks deterministas, genera embeddings para la pregunta y los chunks pendientes en una sola llamada, persiste los vectores en `document_chunks` y busca los vecinos más próximos con similitud coseno. La respuesta muestra hasta tres documentos distintos con fuentes reales.
 
 Si falta `DATABASE_URL` o `OPENAI_API_KEY`, el backend conserva la recuperación léxica anterior. Si ambas variables existen y falla OpenAI, PostgreSQL o el índice vectorial en ejecución, la API devuelve un error explícito; no vuelve silenciosamente al modo léxico.
+
+### Respuestas RAG con OpenAI
+
+La consulta documental separa el modo de recuperación (`mode`) del modo de redacción (`generationMode`). El backend recupera como máximo tres documentos reales y los pasa a un generador documental. Sin API key, el generador demo determinista redacta una respuesta reproducible. Con API key, OpenAI genera una salida estructurada con `answer` y `sourceIds`; la API valida que cada fuente citada exista entre los documentos recuperados antes de exponerla al frontend.
+
+Si no se recupera ninguna evidencia por encima del umbral, la API devuelve un mensaje de evidencia insuficiente, `sources: []` y `generationMode: deterministic-demo`, sin invocar OpenAI. Si OpenAI está configurado y falla o devuelve fuentes desconocidas, la API responde con `AI_PROVIDER_ERROR` y no inventa referencias ni cambia al modo demo silenciosamente.
 
 Para probarlo en local:
 
@@ -96,7 +102,7 @@ DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run db
 COOKIE_SECRET=local-demo-cookie-secret DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual OPENAI_API_KEY=<TU_API_KEY> npm run dev:api
 ```
 
-Abre `/documentos`, realiza una pregunta documental y comprueba que la etiqueta de la respuesta sea `API RAG semántica`. Puedes subir un PDF y preguntar de nuevo: si contiene texto relevante, aparecerá como fuente real con enlace de descarga.
+Abre `/documentos`, realiza una pregunta documental y comprueba que la etiqueta de la respuesta combine redacción y recuperación, por ejemplo `OpenAI · API RAG semántica` o `Demo determinista · API RAG léxica`. Puedes subir un PDF y preguntar de nuevo: si contiene texto relevante, aparecerá como fuente real con enlace de descarga.
 
 Para demostrar la recuperación tras reinicio:
 
@@ -163,7 +169,7 @@ flowchart LR
 
 La aplicación web se encuentra en `apps/web`. La composición y el enrutamiento viven en `app`, la portada en `pages`, los datos y componentes de comunidad en `features/community`, el estado de sesión en `features/session`, y los elementos reutilizables en `shared`.
 
-La consulta documental vive en `features/documents`: la pantalla `/documentos` permite preguntar por estatutos, normas, actas y contratos ficticios, muestra los fragmentos recuperados como fuentes, permite abrir el PDF completo de cada documento en una pestaña nueva y ofrece una biblioteca directa de PDFs sin consulta previa.
+La consulta documental vive en `features/documents`: la pantalla `/documentos` permite preguntar por estatutos, normas, actas y contratos ficticios, muestra la respuesta redactada con su modo de generación, lista solo los fragmentos recuperados y citados como fuentes, permite abrir el PDF completo de cada documento en una pestaña nueva y ofrece una biblioteca directa de PDFs sin consulta previa.
 
 La API se encuentra en `apps/api` y separa las capas en:
 
@@ -172,7 +178,7 @@ La API se encuentra en `apps/api` y separa las capas en:
 - `infrastructure`: reloj del sistema, generador UUID y repositorio en memoria.
 - `presentation/http`: Express, cookies firmadas, controladores y presentadores.
 
-La consulta documental usa `AnswerDocumentQuestion` y el puerto `DocumentRetriever`. En modo local o sin configuración completa se emplea recuperación léxica determinista; con PostgreSQL migrado y `OPENAI_API_KEY`, la infraestructura usa embeddings OpenAI y pgvector sin cambiar los endpoints ni la forma del contrato HTTP.
+La consulta documental usa `AnswerDocumentQuestion` y los puertos `DocumentRetriever` y `DocumentAnswerGenerator`. En modo local o sin configuración completa se emplea recuperación léxica y generación determinista; con PostgreSQL migrado y `OPENAI_API_KEY`, la infraestructura usa embeddings OpenAI, pgvector y generación documental OpenAI sin exponer llamadas IA en frontend.
 
 ### Paquetes compartidos
 

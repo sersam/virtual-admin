@@ -31,6 +31,7 @@ const app = createApiApp({
       meetingMinutesDrafter: draftMeetingMinutes,
     }),
   communityNoticeGenerator: aiProviders.communityNoticeGenerator,
+  documentAnswerGenerator: aiProviders.documentAnswerGenerator,
   cookieSecret,
   documentRetriever: createDocumentRetriever({
     documentChunkRepository: persistence.documentChunkRepository,
