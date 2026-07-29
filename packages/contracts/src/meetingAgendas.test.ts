@@ -92,6 +92,32 @@ describe('meeting agenda contracts', () => {
     ).toThrow();
   });
 
+  it('acepta borradores generados con OpenAI', () => {
+    expect(
+      MeetingAgendaDraftResponseSchema.parse({
+        draft: {
+          title: 'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
+          body: 'Orden del día redactado con OpenAI.',
+          items: [
+            {
+              description: 'Incidencia urgente',
+              priority: 'urgente',
+              sourceType: 'incident',
+              sourceId: 'inc-1',
+            },
+          ],
+        },
+        meeting: {
+          id: 'meeting-ordinary-2026-09-18',
+          kind: 'ordinaria',
+          title: 'Junta ordinaria',
+          scheduledAt: '2026-09-18T17:00:00.000Z',
+        },
+        mode: 'openai',
+      }).mode,
+    ).toBe('openai');
+  });
+
   it('rechaza orígenes de entrada no soportados', () => {
     expect(() =>
       MeetingAgendaDraftResponseSchema.parse({

@@ -13,9 +13,10 @@ const port = Number(process.env.PORT ?? 3000);
 const cookieSecret = readRequiredEnvironmentVariable('COOKIE_SECRET');
 const aiProviders = createAiProviders({ openAiApiKey: process.env.OPENAI_API_KEY });
 const persistence = await createApiPersistence({ databaseUrl: process.env.DATABASE_URL });
+const clock = new SystemClock();
 
 const app = createApiApp({
-  clock: new SystemClock(),
+  clock,
   chatWorkflowFactory: ({
     answerDocumentQuestion,
     chatIntentClassifier,
@@ -45,8 +46,9 @@ const app = createApiApp({
   ids: new UuidGenerator(),
   incidentClassifier: aiProviders.incidentClassifier,
   incidentRepository: persistence.incidentRepository,
+  meetingAgendaGenerator: aiProviders.meetingAgendaGenerator,
   meetingMinutesGenerator: aiProviders.meetingMinutesGenerator,
-  meetingRepository: new InMemoryMeetingRepository(),
+  meetingRepository: new InMemoryMeetingRepository({ now: () => clock.now() }),
   pendingAgreementRepository: persistence.pendingAgreementRepository,
   proposalRepository: persistence.proposalRepository,
   repository: persistence.sessionRepository,

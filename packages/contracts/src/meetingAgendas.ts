@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AiProviderModeSchema } from './communications.js';
 import { IncidentPrioritySchema } from './incidents.js';
 import { MeetingSchema } from './meetings.js';
 
@@ -44,7 +45,7 @@ export const MeetingAgendaDraftSchema = z.object({
 export const MeetingAgendaDraftResponseSchema = z.object({
   draft: MeetingAgendaDraftSchema,
   meeting: MeetingSchema,
-  mode: z.literal('deterministic-demo'),
+  mode: AiProviderModeSchema,
 });
 
 export type MeetingAgendaDraftRequest = z.infer<typeof MeetingAgendaDraftRequestSchema>;

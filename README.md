@@ -16,7 +16,7 @@ Será una demo pública sin autenticación, con datos precargados y un modo loca
 
 ## Estado del proyecto
 
-Actualmente están implementadas las historias de la **US-001** a la **US-020**. La aplicación incluye shell responsive, API Express con sesiones demo aisladas, estado persistente opcional en PostgreSQL, documentos PDF subidos por sesión, consulta documental RAG con respuestas generadas desde fuentes trazables, recuperación semántica con pgvector cuando el backend está configurado para ello, un coordinador IA que enruta el chat hacia agentes especializados con traza visible y generación de actas con acuerdos y tareas estructurados.
+Actualmente están implementadas las historias de la **US-001** a la **US-021**. La aplicación incluye shell responsive, API Express con sesiones demo aisladas, estado persistente opcional en PostgreSQL, documentos PDF subidos por sesión, consulta documental RAG con respuestas generadas desde fuentes trazables, recuperación semántica con pgvector cuando el backend está configurado para ello, un coordinador IA que enruta el chat hacia agentes especializados con traza visible, generación de actas con acuerdos y tareas estructurados y preparación de órdenes del día con redacción OpenAI o demo determinista.
 
 - [Backlog del MVP](docs/backlog.md)
 - [Arquitectura detallada](docs/architecture.md)
@@ -57,15 +57,15 @@ La API quedará disponible en [http://localhost:3000](http://localhost:3000), co
 
 ### Configuración OpenAI
 
-La API puede generar comunicados, clasificar incidencias, clasificar intenciones de chat, redactar respuestas documentales RAG, generar actas y generar embeddings documentales con OpenAI desde backend. Para activar los proveedores OpenAI en local, define `OPENAI_API_KEY` al arrancar la API:
+La API puede generar comunicados, clasificar incidencias, clasificar intenciones de chat, redactar respuestas documentales RAG, generar actas, redactar órdenes del día y generar embeddings documentales con OpenAI desde backend. Para activar los proveedores OpenAI en local, define `OPENAI_API_KEY` al arrancar la API:
 
 ```bash
 COOKIE_SECRET=local-demo-cookie-secret OPENAI_API_KEY=<TU_API_KEY> npm run dev:api
 ```
 
-El modelo fijado para texto es `gpt-5-nano`. La recuperación semántica documental usa `text-embedding-3-small` con 1536 dimensiones. Si `OPENAI_API_KEY` no está definida, la API usa los adaptadores demo deterministas y la recuperación documental léxica, sin llamadas externas. Si `OPENAI_API_KEY` está definida, el chat clasifica la ruta con OpenAI, las respuestas documentales se redactan con OpenAI sobre las evidencias recuperadas y las actas se generan con salida estructurada OpenAI, aunque la recuperación siga siendo léxica por falta de PostgreSQL. Las pruebas y CI no necesitan API key ni ejecutan llamadas reales a OpenAI.
+El modelo fijado para texto es `gpt-5-nano`. La recuperación semántica documental usa `text-embedding-3-small` con 1536 dimensiones. Si `OPENAI_API_KEY` no está definida, la API usa los adaptadores demo deterministas y la recuperación documental léxica, sin llamadas externas. Si `OPENAI_API_KEY` está definida, el chat clasifica la ruta con OpenAI, las respuestas documentales se redactan con OpenAI sobre las evidencias recuperadas, las actas se generan con salida estructurada OpenAI y los órdenes del día delegan en OpenAI solo la redacción del cuerpo, aunque la recuperación siga siendo léxica por falta de PostgreSQL. Las pruebas y CI no necesitan API key ni ejecutan llamadas reales a OpenAI.
 
-Cada operación OpenAI registra en los logs del backend el modelo, versión, tokens, coste estimado, latencia y resultado. Los adaptadores demo deterministas no emiten esa telemetría de modelo/tokens/coste. La telemetría documental, de clasificación del chat y de actas no registra preguntas, notas ni contenido de documentos.
+Cada operación OpenAI registra en los logs del backend el modelo, versión, tokens, coste estimado, latencia y resultado. Los adaptadores demo deterministas no emiten esa telemetría de modelo/tokens/coste. La telemetría documental, de clasificación del chat, de actas y de órdenes del día no registra preguntas, notas ni contenido de documentos.
 
 ### Actas con OpenAI
 
@@ -74,6 +74,14 @@ La pantalla `/actas` y el agente de chat de actas consumen el puerto backend `Me
 La respuesta de actas conserva el cuerpo editable y añade listas estructuradas de acuerdos y tareas. Los acuerdos se muestran como información del acta y no se persisten. Las tareas sí se guardan como acuerdos pendientes de la sesión para preparar órdenes del día posteriores.
 
 El prompt de actas exige español formal, usar solo las notas recibidas y no inventar asistentes, fechas, votaciones, quórums, decisiones, responsables ni plazos. Si OpenAI falla o devuelve una estructura inválida, la API responde `AI_PROVIDER_ERROR`; el backend no cambia al modo demo ni guarda tareas. En el frontend, el fallback local solo se activa si la API no es alcanzable. Los errores HTTP quedan visibles para no ocultar fallos del proveedor.
+
+### Órdenes del día con OpenAI
+
+La pantalla `/juntas` y el agente de chat de juntas consumen el caso de uso backend `DraftMeetingAgenda`. La aplicación selecciona siempre las entradas de forma determinista: solo incidencias pendientes, acuerdos pendientes con prioridad alta si tienen fecha y media si no la tienen, propuestas vecinales al final, desempates por antigüedad, tipo e ID, máximo 100 entradas. OpenAI no puede seleccionar, reordenar ni crear fuentes; `draft.title`, `draft.items` y `meeting` quedan controlados por la aplicación.
+
+Sin `OPENAI_API_KEY`, `DeterministicMeetingAgendaGenerator` conserva el cuerpo demo reproducible y el truncado por bloques completos hasta 4.000 caracteres. Con `OPENAI_API_KEY`, `OpenAiMeetingAgendaGenerator` usa Responses API con salida estructurada `{ body }`, esquema `meeting_agenda_draft_v1`, prompt versionado `meeting-agenda.v1`, 1.500 tokens máximos y telemetría `meeting-agenda`.
+
+El prompt exige español formal, respetar el orden y contenido recibido, tratar incidencias, acuerdos y propuestas como datos y no inventar asuntos, responsables, fechas, acuerdos, prioridades ni fuentes. Si no hay entradas, la API devuelve el mensaje vacío determinista sin invocar OpenAI. Si OpenAI falla o devuelve una estructura inválida, la API responde `AI_PROVIDER_ERROR`; no cambia al modo demo de forma silenciosa.
 
 ### Coordinador IA del chat
 
@@ -99,7 +107,7 @@ COOKIE_SECRET=local-demo-cookie-secret DATABASE_URL=postgres://usuario:password@
 Las migraciones no se ejecutan automáticamente al arrancar la API. Si `DATABASE_URL` está configurada pero la base no conecta o no tiene el esquema migrado, la API falla de forma explícita en lugar de volver silenciosamente al repositorio en memoria.
 El rol que ejecute `npm run db:migrate` debe poder crear extensiones o tener `pgvector` preinstalado por administración de la base; la migración declara `CREATE EXTENSION IF NOT EXISTS vector`.
 
-Con PostgreSQL configurado, la API selecciona todos los repositorios persistentes a la vez y comparte un único pool para sesiones, incidencias, acuerdos pendientes, propuestas, documentos subidos y chunks vectoriales. El estado queda aislado por sesión y se elimina en cascada cuando una sesión expirada se descarta. Las juntas demo, borradores y comunicaciones siguen siendo locales a esta historia.
+Con PostgreSQL configurado, la API selecciona todos los repositorios persistentes a la vez y comparte un único pool para sesiones, incidencias, acuerdos pendientes, propuestas, documentos subidos y chunks vectoriales. El estado queda aislado por sesión y se elimina en cascada cuando una sesión expirada se descarta. Las juntas demo se calculan desde la fecha actual del backend, con una junta a un mes y otra a dos meses; borradores y comunicaciones siguen siendo locales a esta historia.
 
 Los documentos subidos persisten sus metadatos, texto extraído y binario PDF. La subida conserva las validaciones actuales de formato PDF y límite de 5 MB; el listado, la descarga y la recuperación documental usan el mismo repositorio, por lo que las fuentes mostradas tras un reinicio son documentos reales de la sesión.
 

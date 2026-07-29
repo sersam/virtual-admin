@@ -1,12 +1,19 @@
+import type { MeetingAgendaItem } from '@admin/contracts';
 import type { CommunityIncident } from '../../domain/incident/CommunityIncident.js';
 import type { PendingAgreement } from '../../domain/meetingAgenda/PendingAgreement.js';
 import type { CommunityMeeting } from '../../domain/meeting/CommunityMeeting.js';
 import type { CommunityProposal } from '../../domain/proposal/CommunityProposal.js';
 import type { IncidentRepository } from '../ports/IncidentRepository.js';
+import type {
+  MeetingAgendaDraftBody,
+  MeetingAgendaGenerator,
+  MeetingAgendaGeneratorInput,
+} from '../ports/MeetingAgendaGenerator.js';
 import type { MeetingRepository } from '../ports/MeetingRepository.js';
 import type { PendingAgreementRepository } from '../ports/PendingAgreementRepository.js';
 import type { ProposalRepository } from '../ports/ProposalRepository.js';
 import { describe, expect, it } from 'vitest';
+import { DeterministicMeetingAgendaGenerator } from '../../infrastructure/meetingAgenda/DeterministicMeetingAgendaGenerator.js';
 import { DraftMeetingAgenda } from './DraftMeetingAgenda.js';
 
 function suggestedNoticeFor(description: string): string {
@@ -22,6 +29,7 @@ function suggestedNoticeFor(description: string): string {
 describe('DraftMeetingAgenda', () => {
   it('combina incidencias y acuerdos pendientes priorizados para la sesión', async () => {
     const useCase = new DraftMeetingAgenda({
+      generator: new DeterministicMeetingAgendaGenerator(),
       incidentRepository: {
         listBySession: async () => [
           {
@@ -142,7 +150,12 @@ describe('DraftMeetingAgenda', () => {
   });
 
   it('devuelve un borrador vacío válido cuando no hay entradas pendientes', async () => {
+    const generator = new RecordingMeetingAgendaGenerator({
+      body: 'Este texto no debe usarse.',
+      mode: 'openai',
+    });
     const useCase = new DraftMeetingAgenda({
+      generator,
       incidentRepository: {
         listBySession: async () => [],
         resolve: async () => undefined,
@@ -179,10 +192,96 @@ describe('DraftMeetingAgenda', () => {
       }),
       mode: 'deterministic-demo',
     });
+    expect(generator.inputs).toEqual([]);
+  });
+
+  it('delega solo la redaccion y conserva titulo, junta y trazas controladas por la aplicacion', async () => {
+    const generator = new RecordingMeetingAgendaGenerator({
+      body: 'Texto redactado por OpenAI sin capacidad de alterar fuentes.',
+      mode: 'openai',
+    });
+    const useCase = new DraftMeetingAgenda({
+      generator,
+      incidentRepository: createIncidentRepository([
+        createIncident({
+          id: 'inc-urgent',
+          description: 'Fuga de agua urgente en el garaje',
+          priority: 'urgente',
+          createdAt: new Date('2026-06-23T11:00:00.000Z'),
+        }),
+      ]),
+      pendingAgreementRepository: createPendingAgreementRepository([
+        createPendingAgreement({
+          id: 'pending-a',
+          description: 'Revisar contrato de limpieza',
+          assignee: 'Ana',
+          dueDate: '30 de junio',
+          createdAt: new Date('2026-06-23T09:00:00.000Z'),
+        }),
+      ]),
+      proposalRepository: createProposalRepository([
+        createProposal({
+          id: 'proposal-a',
+          description: 'Instalar aparcabicis en el patio interior.',
+          createdAt: new Date('2026-07-26T09:00:00.000Z'),
+        }),
+      ]),
+      meetingRepository: createMeetingRepository(),
+    });
+
+    const response = await useCase.execute({
+      sessionId: 'session-a',
+      meetingId: 'meeting-ordinary-2026-09-18',
+    });
+
+    expect(generator.inputs).toEqual([
+      {
+        meeting: expect.objectContaining({
+          id: 'meeting-ordinary-2026-09-18',
+          title: 'Junta ordinaria',
+        }),
+        items: [
+          {
+            description: 'Fuga de agua urgente en el garaje',
+            priority: 'urgente',
+            sourceType: 'incident',
+            sourceId: 'inc-urgent',
+          },
+          {
+            description: 'Revisar contrato de limpieza',
+            priority: 'alta',
+            sourceType: 'pending-agreement',
+            sourceId: 'pending-a',
+            assignee: 'Ana',
+            dueDate: '30 de junio',
+          },
+          {
+            description: 'Instalar aparcabicis en el patio interior.',
+            sourceType: 'proposal',
+            sourceId: 'proposal-a',
+          },
+        ],
+      },
+    ]);
+    expect(response).toEqual({
+      draft: {
+        title: 'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
+        body: 'Texto redactado por OpenAI sin capacidad de alterar fuentes.',
+        items: generator.inputs[0]!.items,
+      },
+      meeting: {
+        id: 'meeting-ordinary-2026-09-18',
+        kind: 'ordinaria',
+        title: 'Junta ordinaria',
+        scheduledAt: '2026-09-18T17:00:00.000Z',
+      },
+      mode: 'openai',
+    });
   });
 
   it('falla si la junta no existe en la sesion', async () => {
     const useCase = new DraftMeetingAgenda({
+      generator: new DeterministicMeetingAgendaGenerator(),
       incidentRepository: createIncidentRepository([]),
       pendingAgreementRepository: createPendingAgreementRepository([]),
       proposalRepository: createProposalRepository([]),
@@ -196,6 +295,7 @@ describe('DraftMeetingAgenda', () => {
 
   it('ignora incidencias resueltas al preparar el orden del día', async () => {
     const useCase = new DraftMeetingAgenda({
+      generator: new DeterministicMeetingAgendaGenerator(),
       incidentRepository: createIncidentRepository([
         createIncident({
           id: 'inc-pending',
@@ -227,6 +327,7 @@ describe('DraftMeetingAgenda', () => {
 
   it('anade propuestas al final sin prioridad y en orden de antiguedad', async () => {
     const useCase = new DraftMeetingAgenda({
+      generator: new DeterministicMeetingAgendaGenerator(),
       incidentRepository: createIncidentRepository([
         createIncident({
           id: 'inc-urgent',
@@ -285,6 +386,7 @@ describe('DraftMeetingAgenda', () => {
 
   it('limita el orden del día a las 100 entradas más prioritarias', async () => {
     const useCase = new DraftMeetingAgenda({
+      generator: new DeterministicMeetingAgendaGenerator(),
       incidentRepository: createIncidentRepository(
         Array.from({ length: 101 }, (_, index) =>
           createIncident({
@@ -320,6 +422,7 @@ describe('DraftMeetingAgenda', () => {
   it('ordena de forma determinista cuando prioridad y fecha coinciden', async () => {
     const sharedCreatedAt = new Date('2026-06-23T10:00:00.000Z');
     const useCase = new DraftMeetingAgenda({
+      generator: new DeterministicMeetingAgendaGenerator(),
       incidentRepository: createIncidentRepository([
         createIncident({ id: 'inc-b', createdAt: sharedCreatedAt }),
         createIncident({ id: 'inc-a', createdAt: sharedCreatedAt }),
@@ -345,6 +448,7 @@ describe('DraftMeetingAgenda', () => {
 
   it('usa únicamente entradas de la sesión solicitada', async () => {
     const useCase = new DraftMeetingAgenda({
+      generator: new DeterministicMeetingAgendaGenerator(),
       incidentRepository: createIncidentRepository([
         createIncident({
           id: 'inc-session-a',
@@ -402,6 +506,7 @@ describe('DraftMeetingAgenda', () => {
   it('abrevia el cuerpo por bloques completos sin truncar entradas estructuradas', async () => {
     const longDescription = 'a'.repeat(990);
     const useCase = new DraftMeetingAgenda({
+      generator: new DeterministicMeetingAgendaGenerator(),
       incidentRepository: createIncidentRepository([]),
       pendingAgreementRepository: createPendingAgreementRepository([]),
       proposalRepository: createProposalRepository(
@@ -433,6 +538,7 @@ describe('DraftMeetingAgenda', () => {
 
   it('propaga errores al listar incidencias', async () => {
     const useCase = new DraftMeetingAgenda({
+      generator: new DeterministicMeetingAgendaGenerator(),
       incidentRepository: {
         ...createIncidentRepository([]),
         listBySession: async () => {
@@ -451,6 +557,7 @@ describe('DraftMeetingAgenda', () => {
 
   it('propaga errores al listar acuerdos pendientes', async () => {
     const useCase = new DraftMeetingAgenda({
+      generator: new DeterministicMeetingAgendaGenerator(),
       incidentRepository: createIncidentRepository([]),
       pendingAgreementRepository: {
         ...createPendingAgreementRepository([]),
@@ -469,6 +576,7 @@ describe('DraftMeetingAgenda', () => {
 
   it('propaga errores al listar propuestas', async () => {
     const useCase = new DraftMeetingAgenda({
+      generator: new DeterministicMeetingAgendaGenerator(),
       incidentRepository: createIncidentRepository([]),
       pendingAgreementRepository: createPendingAgreementRepository([]),
       proposalRepository: {
@@ -600,4 +708,18 @@ function createProposal(overrides: Partial<CommunityProposal> = {}): CommunityPr
     createdAt: new Date('2026-07-26T10:00:00.000Z'),
     ...overrides,
   };
+}
+
+class RecordingMeetingAgendaGenerator implements MeetingAgendaGenerator {
+  readonly inputs: Array<{
+    readonly items: readonly MeetingAgendaItem[];
+    readonly meeting: CommunityMeeting;
+  }> = [];
+
+  constructor(private readonly result: MeetingAgendaDraftBody) {}
+
+  async draft(input: MeetingAgendaGeneratorInput): Promise<MeetingAgendaDraftBody> {
+    this.inputs.push(input);
+    return this.result;
+  }
 }

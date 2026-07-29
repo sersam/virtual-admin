@@ -14,6 +14,7 @@ import {
   SendHorizontal,
 } from 'lucide-react';
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
+import { formatAiProviderMode } from '../../../shared/config/aiProviderMode';
 import { useProposals } from '../../proposals/hooks/useProposals';
 import { useMeetingAgendaDraft } from '../hooks/useMeetingAgendaDraft';
 import { useMeetings } from '../hooks/useMeetings';
@@ -104,8 +105,8 @@ export function MeetingAgendaPanel() {
 
           <div className="mt-6 space-y-4">
             <p className="rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-              Se usará la información pendiente de la sesión demo: incidencias registradas y tareas
-              detectadas en actas.
+              Se usará la información pendiente de la sesión demo: incidencias registradas, tareas
+              detectadas en actas y propuestas vecinales.
             </p>
             <MeetingSelector
               error={meetingsError}
@@ -157,7 +158,7 @@ export function MeetingAgendaPanel() {
               <div className="rounded-2xl bg-navy-950 p-5 text-white">
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-sky-100">
                   <FilePenLine aria-hidden="true" size={14} />
-                  Demo determinista
+                  {formatAiProviderMode(visibleDraft.mode)}
                 </span>
                 <h3 className="mt-4 font-display text-2xl font-extrabold">
                   {visibleDraft.draft.title}

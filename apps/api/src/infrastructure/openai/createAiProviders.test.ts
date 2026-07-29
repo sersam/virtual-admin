@@ -4,11 +4,13 @@ import { DeterministicDocumentAnswerGenerator } from '../document/DeterministicD
 import { DeterministicMeetingMinutesGenerator } from '../meetingMinutes/DeterministicMeetingMinutesGenerator.js';
 import { DeterministicChatIntentClassifier } from '../agent/DeterministicChatIntentClassifier.js';
 import { DeterministicIncidentClassifier } from '../incident/DeterministicIncidentClassifier.js';
+import { DeterministicMeetingAgendaGenerator } from '../meetingAgenda/DeterministicMeetingAgendaGenerator.js';
 import { OpenAiCommunityNoticeGenerator } from './OpenAiCommunityNoticeGenerator.js';
 import { OpenAiChatIntentClassifier } from './OpenAiChatIntentClassifier.js';
 import { OpenAiDocumentAnswerGenerator } from './OpenAiDocumentAnswerGenerator.js';
 import { OpenAiEmbeddingProvider } from './OpenAiEmbeddingProvider.js';
 import { OpenAiIncidentClassifier } from './OpenAiIncidentClassifier.js';
+import { OpenAiMeetingAgendaGenerator } from './OpenAiMeetingAgendaGenerator.js';
 import { OpenAiMeetingMinutesGenerator } from './OpenAiMeetingMinutesGenerator.js';
 import { createAiProviders } from './createAiProviders.js';
 
@@ -23,6 +25,7 @@ describe('createAiProviders', () => {
     expect(providers.chatIntentClassifier).toBeInstanceOf(DeterministicChatIntentClassifier);
     expect(providers.incidentClassifier).toBeInstanceOf(DeterministicIncidentClassifier);
     expect(providers.documentAnswerGenerator).toBeInstanceOf(DeterministicDocumentAnswerGenerator);
+    expect(providers.meetingAgendaGenerator).toBeInstanceOf(DeterministicMeetingAgendaGenerator);
     expect(providers.meetingMinutesGenerator).toBeInstanceOf(DeterministicMeetingMinutesGenerator);
   });
 
@@ -36,6 +39,7 @@ describe('createAiProviders', () => {
     expect(providers.chatIntentClassifier).toBeInstanceOf(DeterministicChatIntentClassifier);
     expect(providers.incidentClassifier).toBeInstanceOf(DeterministicIncidentClassifier);
     expect(providers.documentAnswerGenerator).toBeInstanceOf(DeterministicDocumentAnswerGenerator);
+    expect(providers.meetingAgendaGenerator).toBeInstanceOf(DeterministicMeetingAgendaGenerator);
     expect(providers.meetingMinutesGenerator).toBeInstanceOf(DeterministicMeetingMinutesGenerator);
   });
 
@@ -47,6 +51,7 @@ describe('createAiProviders', () => {
     expect(providers.documentAnswerGenerator).toBeInstanceOf(OpenAiDocumentAnswerGenerator);
     expect(providers.embeddingProvider).toBeInstanceOf(OpenAiEmbeddingProvider);
     expect(providers.incidentClassifier).toBeInstanceOf(OpenAiIncidentClassifier);
+    expect(providers.meetingAgendaGenerator).toBeInstanceOf(OpenAiMeetingAgendaGenerator);
     expect(providers.meetingMinutesGenerator).toBeInstanceOf(OpenAiMeetingMinutesGenerator);
   });
 });

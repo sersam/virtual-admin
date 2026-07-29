@@ -6,22 +6,52 @@ const demoMeetingTemplates = [
     id: 'meeting-ordinary-2026-09-18',
     kind: 'ordinaria',
     title: 'Junta ordinaria',
-    scheduledAt: new Date('2026-09-18T17:00:00.000Z'),
+    monthOffset: 1,
   },
   {
     id: 'meeting-extraordinary-2026-10-15',
     kind: 'extraordinaria',
     title: 'Junta extraordinaria',
-    scheduledAt: new Date('2026-10-15T17:00:00.000Z'),
+    monthOffset: 2,
   },
-] satisfies readonly Omit<CommunityMeeting, 'sessionId'>[];
+] satisfies ReadonlyArray<
+  Omit<CommunityMeeting, 'scheduledAt' | 'sessionId'> & { readonly monthOffset: number }
+>;
+
+interface InMemoryMeetingRepositoryOptions {
+  readonly now?: () => Date;
+}
 
 export class InMemoryMeetingRepository implements MeetingRepository {
+  private readonly now: () => Date;
+
+  constructor(options: InMemoryMeetingRepositoryOptions = {}) {
+    this.now = options.now ?? (() => new Date());
+  }
+
   async listBySession(sessionId: string): Promise<CommunityMeeting[]> {
-    return demoMeetingTemplates.map((meeting) => ({ ...meeting, sessionId }));
+    const today = this.now();
+
+    return demoMeetingTemplates.map(({ monthOffset, ...meeting }) => ({
+      ...meeting,
+      scheduledAt: buildFutureMeetingDate(today, monthOffset),
+      sessionId,
+    }));
   }
 
   async findBySession(sessionId: string, meetingId: string): Promise<CommunityMeeting | undefined> {
     return (await this.listBySession(sessionId)).find((meeting) => meeting.id === meetingId);
   }
+}
+
+function buildFutureMeetingDate(currentDate: Date, monthOffset: number): Date {
+  const year = currentDate.getUTCFullYear();
+  const month = currentDate.getUTCMonth() + monthOffset;
+  const day = Math.min(currentDate.getUTCDate(), getDaysInUtcMonth(year, month));
+
+  return new Date(Date.UTC(year, month, day, 17, 0, 0, 0));
+}
+
+function getDaysInUtcMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 }
