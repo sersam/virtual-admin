@@ -755,6 +755,61 @@ describe('createApiApp', () => {
     expect(response.body.draft.items).toHaveLength(6);
   });
 
+  it('expone ordenes del dia OpenAI del generador configurado sin alterar trazas', async () => {
+    const agent = request.agent(
+      buildApp(3, {
+        meetingAgendaGenerator: {
+          draft: async () => ({
+            body: 'Orden del día redactado con OpenAI para las entradas seleccionadas.',
+            mode: 'openai',
+          }),
+        },
+      }),
+    );
+
+    const response = await agent
+      .post('/api/meeting-agendas/draft')
+      .send({ meetingId: 'meeting-ordinary-2026-09-18' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      draft: {
+        title: 'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
+        body: 'Orden del día redactado con OpenAI para las entradas seleccionadas.',
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            sourceId: 'demo-fuga-agua-urgente',
+            sourceType: 'incident',
+          }),
+        ]),
+      },
+      meeting: {
+        id: 'meeting-ordinary-2026-09-18',
+      },
+      mode: 'openai',
+    });
+    expect(response.body.draft.items).toHaveLength(6);
+  });
+
+  it('devuelve AI_PROVIDER_ERROR si falla el generador de ordenes del dia', async () => {
+    const agent = request.agent(
+      buildApp(3, {
+        meetingAgendaGenerator: {
+          draft: async () => {
+            throw new AiProviderError('OpenAI no genero el orden del dia.');
+          },
+        },
+      }),
+    );
+
+    const response = await agent
+      .post('/api/meeting-agendas/draft')
+      .send({ meetingId: 'meeting-ordinary-2026-09-18' });
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.code).toBe('AI_PROVIDER_ERROR');
+  });
+
   it('rechaza borradores de orden del dia sin junta seleccionada', async () => {
     const response = await request(buildApp()).post('/api/meeting-agendas/draft').send({});
 
@@ -764,7 +819,18 @@ describe('createApiApp', () => {
   });
 
   it('rechaza una junta inexistente para el borrador de orden del dia', async () => {
-    const agent = request.agent(buildApp());
+    const calls: unknown[] = [];
+    const agent = request.agent(
+      buildApp(3, {
+        meetingAgendaGenerator: {
+          draft: async (input) => {
+            calls.push(input);
+
+            return { body: 'No debe generarse.', mode: 'openai' };
+          },
+        },
+      }),
+    );
 
     const response = await agent
       .post('/api/meeting-agendas/draft')
@@ -772,6 +838,7 @@ describe('createApiApp', () => {
 
     expect(response.status).toBe(404);
     expect(response.body.error.code).toBe('MEETING_NOT_FOUND');
+    expect(calls).toEqual([]);
   });
 
   it('crea incidencias clasificadas desde el endpoint dedicado', async () => {
@@ -898,6 +965,28 @@ describe('createApiApp', () => {
         description: 'Hay una fuga de agua urgente en el garaje.',
       }),
     );
+  });
+
+  it('devuelve AI_PROVIDER_ERROR en chat si falla el generador de juntas', async () => {
+    const agent = request.agent(
+      buildApp(5, {
+        chatIntentClassifier: {
+          classify: async () => ({ agent: 'juntas', provider: 'openai' }),
+        },
+        meetingAgendaGenerator: {
+          draft: async () => {
+            throw new AiProviderError('OpenAI no genero el orden del dia.');
+          },
+        },
+      }),
+    );
+
+    const response = await agent.post('/api/chat/messages').send({
+      message: 'Prepara el orden del día de la próxima junta.',
+    });
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.code).toBe('AI_PROVIDER_ERROR');
   });
 
   it('marca una incidencia como resuelta y conserva la resolución al repetir la operación', async () => {
