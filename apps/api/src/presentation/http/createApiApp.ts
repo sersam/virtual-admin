@@ -80,6 +80,7 @@ import type { ChatWorkflow } from '../../application/ports/ChatWorkflow.js';
 import type { CommunityNoticeGenerator } from '../../application/ports/CommunityNoticeGenerator.js';
 import type { IncidentClassifier } from '../../application/ports/IncidentClassifier.js';
 import type { IncidentRepository } from '../../application/ports/IncidentRepository.js';
+import type { MeetingAgendaGenerator } from '../../application/ports/MeetingAgendaGenerator.js';
 import type { MeetingRepository } from '../../application/ports/MeetingRepository.js';
 import type { MeetingMinutesGenerator } from '../../application/ports/MeetingMinutesGenerator.js';
 import type { PendingAgreementRepository } from '../../application/ports/PendingAgreementRepository.js';
@@ -114,6 +115,7 @@ interface ApiAppOptions {
   readonly ids: IdGenerator;
   readonly incidentClassifier: IncidentClassifier;
   readonly incidentRepository: IncidentRepository;
+  readonly meetingAgendaGenerator: MeetingAgendaGenerator;
   readonly meetingMinutesGenerator: MeetingMinutesGenerator;
   readonly meetingRepository: MeetingRepository;
   readonly pendingAgreementRepository: PendingAgreementRepository;
@@ -147,6 +149,7 @@ export function createApiApp(options: ApiAppOptions) {
   const listIncidents = new ListIncidents({ repository: options.incidentRepository });
   const listProposals = new ListProposals({ repository: options.proposalRepository });
   const draftMeetingAgenda = new DraftMeetingAgenda({
+    generator: options.meetingAgendaGenerator,
     incidentRepository: options.incidentRepository,
     meetingRepository: options.meetingRepository,
     pendingAgreementRepository: options.pendingAgreementRepository,

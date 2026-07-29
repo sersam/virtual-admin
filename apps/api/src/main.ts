@@ -45,6 +45,7 @@ const app = createApiApp({
   ids: new UuidGenerator(),
   incidentClassifier: aiProviders.incidentClassifier,
   incidentRepository: persistence.incidentRepository,
+  meetingAgendaGenerator: aiProviders.meetingAgendaGenerator,
   meetingMinutesGenerator: aiProviders.meetingMinutesGenerator,
   meetingRepository: new InMemoryMeetingRepository(),
   pendingAgreementRepository: persistence.pendingAgreementRepository,

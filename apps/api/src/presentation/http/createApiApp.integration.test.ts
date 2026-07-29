@@ -14,6 +14,7 @@ import { DeterministicMeetingMinutesGenerator } from '../../infrastructure/meeti
 import { DeterministicIncidentClassifier } from '../../infrastructure/incident/DeterministicIncidentClassifier.js';
 import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemoryIncidentRepository.js';
 import { InMemoryMeetingRepository } from '../../infrastructure/meeting/InMemoryMeetingRepository.js';
+import { DeterministicMeetingAgendaGenerator } from '../../infrastructure/meetingAgenda/DeterministicMeetingAgendaGenerator.js';
 import { InMemoryPendingAgreementRepository } from '../../infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
 import { InMemoryProposalRepository } from '../../infrastructure/proposal/InMemoryProposalRepository.js';
 import { createPostgresPool } from '../../infrastructure/database/createPostgresPool.js';
@@ -78,6 +79,7 @@ function buildAppOptions(
     ids: { randomId: () => `00000000-0000-4000-8000-${String(++idSequence).padStart(12, '0')}` },
     incidentClassifier: new DeterministicIncidentClassifier(),
     incidentRepository: new InMemoryIncidentRepository(),
+    meetingAgendaGenerator: new DeterministicMeetingAgendaGenerator(),
     meetingRepository: new InMemoryMeetingRepository(),
     meetingMinutesGenerator: new DeterministicMeetingMinutesGenerator(),
     pendingAgreementRepository: new InMemoryPendingAgreementRepository(),

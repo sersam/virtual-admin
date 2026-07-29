@@ -9,12 +9,14 @@ import type { PendingAgreement } from '../../domain/meetingAgenda/PendingAgreeme
 import type { CommunityProposal } from '../../domain/proposal/CommunityProposal.js';
 import type { IncidentRepository } from '../ports/IncidentRepository.js';
 import type { MeetingRepository } from '../ports/MeetingRepository.js';
+import type { MeetingAgendaGenerator } from '../ports/MeetingAgendaGenerator.js';
 import type { PendingAgreementRepository } from '../ports/PendingAgreementRepository.js';
 import type { ProposalRepository } from '../ports/ProposalRepository.js';
 import { presentMeeting } from './meetingPresenter.js';
 
 interface DraftMeetingAgendaDependencies {
   readonly incidentRepository: IncidentRepository;
+  readonly generator: MeetingAgendaGenerator;
   readonly meetingRepository: MeetingRepository;
   readonly pendingAgreementRepository: PendingAgreementRepository;
   readonly proposalRepository: ProposalRepository;
@@ -41,9 +43,6 @@ type AgendaItemWithCreatedAt = PrioritizedAgendaItem | ProposalAgendaItem;
 const TITLE = 'Orden del día';
 const EMPTY_BODY = 'No hay asuntos pendientes para incluir en el orden del día.';
 const MAX_AGENDA_ITEMS = 100;
-const MAX_BODY_LENGTH = 4_000;
-const TRUNCATED_BODY_NOTICE =
-  'Contenido abreviado por el límite del borrador. Consulta «Entradas utilizadas» para ver todas las fuentes.';
 const PRIORITY_WEIGHT: Record<IncidentPriority, number> = {
   urgente: 4,
   alta: 3,
@@ -76,16 +75,22 @@ export class DraftMeetingAgenda {
       ...pendingAgreements.map(presentPendingAgreementItem),
     ].sort(compareAgendaItems);
     const proposalItems = proposals.map(presentProposalItem).sort(compareProposalItems);
-    const items = [...prioritizedItems, ...proposalItems].slice(0, MAX_AGENDA_ITEMS);
+    const items = [...prioritizedItems, ...proposalItems]
+      .slice(0, MAX_AGENDA_ITEMS)
+      .map(presentTransportItem);
+    const generatedDraft =
+      items.length > 0
+        ? await this.dependencies.generator.draft({ meeting, items })
+        : { body: EMPTY_BODY, mode: 'deterministic-demo' as const };
 
     return {
       draft: {
         title: buildTitle(meeting),
-        body: items.length > 0 ? buildBody(items) : EMPTY_BODY,
-        items: items.map(presentTransportItem),
+        body: generatedDraft.body,
+        items,
       },
       meeting: presentMeeting(meeting),
-      mode: 'deterministic-demo',
+      mode: generatedDraft.mode,
     };
   }
 }
@@ -178,62 +183,4 @@ function presentTransportItem(item: AgendaItemWithCreatedAt): MeetingAgendaItem 
         sourceType: item.sourceType,
         sourceId: item.sourceId,
       };
-}
-
-function buildBody(items: readonly AgendaItemWithCreatedAt[]): string {
-  const visibleBlocks: string[][] = [];
-  let truncated = false;
-
-  for (const [index, item] of items.entries()) {
-    const block = formatAgendaBlock(item, index);
-    const candidateBlocks = [...visibleBlocks, block];
-    if (renderBody(candidateBlocks).length <= MAX_BODY_LENGTH) {
-      visibleBlocks.push(block);
-      continue;
-    }
-
-    truncated = true;
-    break;
-  }
-
-  if (!truncated) return renderBody(visibleBlocks);
-
-  while (
-    renderBody(visibleBlocks, TRUNCATED_BODY_NOTICE).length > MAX_BODY_LENGTH &&
-    visibleBlocks.length > 0
-  ) {
-    visibleBlocks.pop();
-  }
-
-  return renderBody(visibleBlocks, TRUNCATED_BODY_NOTICE);
-}
-
-function renderBody(blocks: readonly string[][], notice?: string): string {
-  return [TITLE, '', ...blocks.flat(), ...(notice ? [notice] : [])].join('\n');
-}
-
-function formatAgendaBlock(item: AgendaItemWithCreatedAt, index: number): string[] {
-  if (item.sourceType === 'proposal') {
-    return [`${index + 1}. ${item.description}`];
-  }
-
-  return [
-    `${index + 1}. [${formatPriority(item.priority)}] ${item.description}`,
-    `   ${formatSourceDetails(item)}`,
-  ];
-}
-
-function formatPriority(priority: IncidentPriority): string {
-  return priority.charAt(0).toLocaleUpperCase('es') + priority.slice(1);
-}
-
-function formatSourceDetails(item: PrioritizedAgendaItem): string {
-  const sourceName = item.sourceType === 'incident' ? 'incidencia' : 'acuerdo pendiente';
-  const details = [`Origen: ${sourceName} ${item.sourceId}.`];
-  if (item.sourceType === 'pending-agreement') {
-    if (item.assignee) details.push(`Responsable: ${item.assignee}.`);
-    if (item.dueDate) details.push(`Fecha: ${item.dueDate}.`);
-  }
-
-  return details.join(' ');
 }
