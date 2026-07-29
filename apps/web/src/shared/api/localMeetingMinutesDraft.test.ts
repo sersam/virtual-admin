@@ -15,6 +15,7 @@ describe('createLocalMeetingMinutesDraft', () => {
       draft: {
         title: 'Acta de reunión',
         body: expect.stringContaining('Acuerdos:'),
+        agreements: ['aprobar presupuesto.'],
         tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
       },
       mode: 'deterministic-demo',

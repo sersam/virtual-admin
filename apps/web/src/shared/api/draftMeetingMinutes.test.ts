@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { draftMeetingMinutes } from './draftMeetingMinutes';
+import { draftMeetingMinutes, MeetingMinutesApiHttpError } from './draftMeetingMinutes';
 
 describe('draftMeetingMinutes api', () => {
   afterEach(() => {
@@ -12,6 +12,7 @@ describe('draftMeetingMinutes api', () => {
         draft: {
           title: 'Acta de reunión',
           body: 'Acta de reunión\n\nAcuerdos:\n- Aprobar presupuesto.',
+          agreements: ['Aprobar presupuesto.'],
           tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
         },
         mode: 'deterministic-demo',
@@ -48,16 +49,17 @@ describe('draftMeetingMinutes api', () => {
   it('rechaza respuestas HTTP no exitosas', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 503 }));
 
-    await expect(draftMeetingMinutes('Acuerdo: aprobar presupuesto.')).rejects.toThrow(
-      'No se pudo redactar el acta (HTTP 503).',
+    await expect(draftMeetingMinutes('Acuerdo: aprobar presupuesto.')).rejects.toBeInstanceOf(
+      MeetingMinutesApiHttpError,
     );
+    await expect(draftMeetingMinutes('Acuerdo: aprobar presupuesto.')).rejects.toThrow('HTTP 503');
   });
 
   it('rechaza respuestas con formato inválido', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
         JSON.stringify({
-          draft: { title: '', body: 'Contenido válido', tasks: [] },
+          draft: { title: '', body: 'Contenido válido', agreements: [], tasks: [] },
           mode: 'deterministic-demo',
         }),
         { status: 200 },

@@ -10,6 +10,7 @@ import { LangGraphChatWorkflow } from '../../infrastructure/agent/LangGraphChatW
 import { DeterministicChatIntentClassifier } from '../../infrastructure/agent/DeterministicChatIntentClassifier.js';
 import { DeterministicCommunityNoticeGenerator } from '../../infrastructure/communication/DeterministicCommunityNoticeGenerator.js';
 import { DeterministicDocumentAnswerGenerator } from '../../infrastructure/document/DeterministicDocumentAnswerGenerator.js';
+import { DeterministicMeetingMinutesGenerator } from '../../infrastructure/meetingMinutes/DeterministicMeetingMinutesGenerator.js';
 import { DeterministicIncidentClassifier } from '../../infrastructure/incident/DeterministicIncidentClassifier.js';
 import { InMemoryIncidentRepository } from '../../infrastructure/incident/InMemoryIncidentRepository.js';
 import { InMemoryMeetingRepository } from '../../infrastructure/meeting/InMemoryMeetingRepository.js';
@@ -78,6 +79,7 @@ function buildAppOptions(
     incidentClassifier: new DeterministicIncidentClassifier(),
     incidentRepository: new InMemoryIncidentRepository(),
     meetingRepository: new InMemoryMeetingRepository(),
+    meetingMinutesGenerator: new DeterministicMeetingMinutesGenerator(),
     pendingAgreementRepository: new InMemoryPendingAgreementRepository(),
     proposalRepository: new InMemoryProposalRepository(),
     repository: new InMemorySessionRepository(),
@@ -564,11 +566,97 @@ describe('createApiApp', () => {
       draft: {
         title: 'Acta de reunión',
         body: expect.stringContaining('Acuerdos:'),
+        agreements: ['aprobar presupuesto.'],
         tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
       },
       mode: 'deterministic-demo',
     });
     expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
+  });
+
+  it('expone actas OpenAI del generador configurado y persiste solo tareas', async () => {
+    const pendingAgreementRepository = new InMemoryPendingAgreementRepository();
+    const agent = request.agent(
+      buildApp(5, {
+        meetingMinutesGenerator: {
+          draft: async () => ({
+            draft: {
+              title: 'Acta de reunión',
+              body: 'Acta formal generada con OpenAI.',
+              agreements: ['aprobar presupuesto anual'],
+              tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
+            },
+            mode: 'openai',
+          }),
+        },
+        pendingAgreementRepository,
+      }),
+    );
+
+    const response = await agent.post('/api/meeting-minutes/draft').send({
+      notes: 'Acuerdo: aprobar presupuesto anual.\nTarea: Revisar contrato; Responsable: Ana',
+    });
+    const agenda = await agent
+      .post('/api/meeting-agendas/draft')
+      .send({ meetingId: 'meeting-ordinary-2026-09-18' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      draft: {
+        title: 'Acta de reunión',
+        body: 'Acta formal generada con OpenAI.',
+        agreements: ['aprobar presupuesto anual'],
+        tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
+      },
+      mode: 'openai',
+    });
+    expect(agenda.body.draft.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          description: 'Revisar contrato',
+          sourceType: 'pending-agreement',
+        }),
+      ]),
+    );
+    expect(agenda.body.draft.items).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          description: 'aprobar presupuesto anual',
+          sourceType: 'pending-agreement',
+        }),
+      ]),
+    );
+  });
+
+  it('devuelve AI_PROVIDER_ERROR sin persistir tareas cuando falla el generador de actas', async () => {
+    const pendingAgreementRepository = new InMemoryPendingAgreementRepository();
+    const app = buildApp(5, {
+      meetingMinutesGenerator: {
+        draft: async () => {
+          throw new AiProviderError('OpenAI no genero el acta.');
+        },
+      },
+      pendingAgreementRepository,
+    });
+    const agent = request.agent(app);
+
+    const response = await agent.post('/api/meeting-minutes/draft').send({
+      notes: 'Acuerdo: aprobar presupuesto anual.\nTarea: Revisar contrato; Responsable: Ana',
+    });
+    const agenda = await agent
+      .post('/api/meeting-agendas/draft')
+      .send({ meetingId: 'meeting-ordinary-2026-09-18' });
+
+    expect(response.status).toBe(502);
+    expect(response.body.error.code).toBe('AI_PROVIDER_ERROR');
+    expect(agenda.body.draft.items).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          description: 'Revisar contrato',
+          sourceType: 'pending-agreement',
+        }),
+      ]),
+    );
   });
 
   it('lista las juntas demo seleccionables de la sesion', async () => {

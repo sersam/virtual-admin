@@ -280,6 +280,7 @@ function createWorkflowDependencies(
           draft: {
             title: 'Acta de reunión',
             body: 'Acta de reunión\n\nTareas:\n- Revisar contrato.',
+            agreements: ['Aprobar presupuesto.'],
             tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
           },
           mode: 'deterministic-demo',

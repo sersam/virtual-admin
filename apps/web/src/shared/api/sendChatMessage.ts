@@ -3,17 +3,18 @@ import {
   ChatMessageResponseSchema,
   type ChatMessageResponse,
 } from '@admin/contracts';
+import { ApiHttpError, ApiTransportError } from './apiErrors';
 import { apiBaseUrl } from './apiConfig';
 
-export class ChatApiHttpError extends Error {
+export class ChatApiHttpError extends ApiHttpError {
   constructor(readonly status: number) {
-    super(`No se pudo coordinar el mensaje (HTTP ${status}).`);
+    super(status, 'coordinar el mensaje');
   }
 }
 
-export class ChatApiTransportError extends Error {
+export class ChatApiTransportError extends ApiTransportError {
   constructor(options: { readonly cause?: unknown } = {}) {
-    super('No se pudo conectar con la API del coordinador.', options);
+    super('coordinar el mensaje', options);
   }
 }
 

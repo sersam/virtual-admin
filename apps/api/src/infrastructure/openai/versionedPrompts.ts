@@ -49,3 +49,18 @@ export const chatIntentPrompt = {
     'No anadas explicaciones, confianza, contenido del mensaje ni campos adicionales.',
   ].join('\n'),
 } as const;
+
+export const meetingMinutesPrompt = {
+  version: 'meeting-minutes.v1',
+  instructions: [
+    'Eres un secretario profesional de comunidades de propietarios.',
+    'Redacta actas formales en espanol a partir de notas de reunion.',
+    'Recibiras un JSON con notes.',
+    'Usa exclusivamente la informacion incluida en notes.',
+    'No inventes asistentes, fechas, votaciones, quorum, decisiones, responsables, plazos ni acuerdos.',
+    'No devuelvas titulo: la aplicacion lo anadira.',
+    'Devuelve un cuerpo formal, acuerdos detectados y tareas pendientes.',
+    'Si no hay acuerdos o tareas explicitas, devuelve listas vacias.',
+    'Devuelve responsable y fecha como null cuando no aparezcan de forma explicita en las notas.',
+  ].join('\n'),
+} as const;

@@ -119,6 +119,39 @@ test('redacta comunicados para vecinos', async ({ page }, testInfo) => {
   await expect(draftRegion.getByText('Demo determinista')).toBeVisible();
 });
 
+test('muestra actas OpenAI simuladas con acuerdos detectados', async ({ page }, testInfo) => {
+  await page.route('**/api/meeting-minutes/draft', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        draft: {
+          title: 'Acta de reunión',
+          body: 'Acta de reunión\n\nAcuerdos:\n- Aprobar presupuesto anual.',
+          agreements: ['Aprobar presupuesto anual.'],
+          tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
+        },
+        mode: 'openai',
+      }),
+    });
+  });
+  await page.goto('/actas');
+
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Generar acta' }).scrollIntoViewIfNeeded();
+  }
+
+  await page.getByRole('button', { name: 'Generar acta' }).click();
+
+  const draftRegion = page.getByLabel('Acta generada');
+  await expect(draftRegion.getByText('OpenAI')).toBeVisible();
+  await expect(draftRegion.getByText('Acuerdos detectados')).toBeVisible();
+  await expect(
+    draftRegion.getByRole('listitem').filter({ hasText: 'Aprobar presupuesto anual.' }),
+  ).toBeVisible();
+  await expect(draftRegion.getByText('Tareas detectadas')).toBeVisible();
+  await expect(draftRegion.getByText('Revisar contrato')).toBeVisible();
+});
+
 test('continua desde chat a comunicados, copia y descarga PDF', async ({
   context,
   page,

@@ -13,6 +13,8 @@ La consulta documental se mantiene en la capa de aplicacion mediante `DocumentRe
 
 El chat se coordina mediante `ChatWorkflow` y el puerto `ChatIntentClassifier`. La infraestructura LangGraph clasifica primero la intencion y enruta a nodos especializados para documentos, comunicados, actas, incidencias, juntas o respuesta general. La clasificacion puede usar OpenAI con salida estructurada o un adaptador demo determinista; los nodos delegan en los casos de uso existentes y la respuesta transporta `agent`, `mode` y `provider` para mantener trazabilidad visible.
 
+La generacion de actas se mantiene en aplicacion mediante `MeetingMinutesGenerator`. El caso de uso `DraftMeetingMinutes` no conoce OpenAI: delega la generacion en el puerto y, si el resultado es satisfactorio y existe sesion, persiste solo las tareas como acuerdos pendientes. La infraestructura decide entre `DeterministicMeetingMinutesGenerator` y `OpenAiMeetingMinutesGenerator` segun `OPENAI_API_KEY`. El adaptador OpenAI usa Responses API, prompt `meeting-minutes.v1`, esquema `meeting_minutes_draft_v1`, telemetria `meeting-minutes` y validacion Zod antes de exponer el borrador. Los acuerdos estructurados son visibles en transporte y UI, pero no modifican el estado persistente.
+
 ## Frontend
 
 - `app`: arranque, rutas y proveedores.

@@ -27,6 +27,7 @@ describe('createMeetingMinutesDraft', () => {
         'Tareas:',
         '- Solicitar tres presupuestos de jardinería. Responsable: Luis. Fecha: 30/06/2026.',
       ].join('\n'),
+      agreements: ['aprobar el presupuesto de mantenimiento.'],
       tasks: [
         {
           assignee: 'Luis',
@@ -44,6 +45,7 @@ describe('createMeetingMinutesDraft', () => {
       ),
     ).toEqual(
       expect.objectContaining({
+        agreements: ['mantener el horario actual.'],
         body: expect.stringContaining('No se han indicado tareas pendientes.'),
         tasks: [],
       }),
@@ -53,6 +55,7 @@ describe('createMeetingMinutesDraft', () => {
   it('usa las notas como contenido principal cuando no hay acuerdos explícitos', () => {
     expect(createMeetingMinutesDraft('Reunión para revisar incidencias del garaje.')).toEqual(
       expect.objectContaining({
+        agreements: [],
         body: expect.stringContaining('- Reunión para revisar incidencias del garaje.'),
         tasks: [],
       }),

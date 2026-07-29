@@ -4,8 +4,10 @@ import type { CommunityNoticeGenerator } from '../../application/ports/Community
 import type { DocumentAnswerGenerator } from '../../application/ports/DocumentAnswerGenerator.js';
 import type { EmbeddingProvider } from '../../application/ports/EmbeddingProvider.js';
 import type { IncidentClassifier } from '../../application/ports/IncidentClassifier.js';
+import type { MeetingMinutesGenerator } from '../../application/ports/MeetingMinutesGenerator.js';
 import { DeterministicCommunityNoticeGenerator } from '../communication/DeterministicCommunityNoticeGenerator.js';
 import { DeterministicDocumentAnswerGenerator } from '../document/DeterministicDocumentAnswerGenerator.js';
+import { DeterministicMeetingMinutesGenerator } from '../meetingMinutes/DeterministicMeetingMinutesGenerator.js';
 import { DeterministicChatIntentClassifier } from '../agent/DeterministicChatIntentClassifier.js';
 import { DeterministicIncidentClassifier } from '../incident/DeterministicIncidentClassifier.js';
 import { ConsoleAiTelemetryReporter } from './ConsoleAiTelemetryReporter.js';
@@ -17,6 +19,7 @@ import {
   OpenAiEmbeddingProvider,
 } from './OpenAiEmbeddingProvider.js';
 import { OpenAiIncidentClassifier } from './OpenAiIncidentClassifier.js';
+import { OpenAiMeetingMinutesGenerator } from './OpenAiMeetingMinutesGenerator.js';
 import { OfficialOpenAiResponsesClient } from './OpenAiResponsesClient.js';
 
 export interface AiProviders {
@@ -25,6 +28,7 @@ export interface AiProviders {
   readonly documentAnswerGenerator: DocumentAnswerGenerator;
   readonly embeddingProvider?: EmbeddingProvider;
   readonly incidentClassifier: IncidentClassifier;
+  readonly meetingMinutesGenerator: MeetingMinutesGenerator;
 }
 
 interface CreateAiProvidersOptions {
@@ -41,6 +45,7 @@ export function createAiProviders(options: CreateAiProvidersOptions): AiProvider
       communityNoticeGenerator: new DeterministicCommunityNoticeGenerator(),
       documentAnswerGenerator: new DeterministicDocumentAnswerGenerator(),
       incidentClassifier: new DeterministicIncidentClassifier(),
+      meetingMinutesGenerator: new DeterministicMeetingMinutesGenerator(),
     };
   }
 
@@ -56,5 +61,6 @@ export function createAiProviders(options: CreateAiProvidersOptions): AiProvider
       telemetry,
     }),
     incidentClassifier: new OpenAiIncidentClassifier({ responses, telemetry }),
+    meetingMinutesGenerator: new OpenAiMeetingMinutesGenerator({ responses, telemetry }),
   };
 }

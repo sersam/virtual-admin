@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react';
 import { ClipboardList, Download, FileText, SendHorizontal } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { formatAiProviderMode } from '../../../shared/config/aiProviderMode';
 import { useMeetingMinutesDraft } from '../hooks/useMeetingMinutesDraft';
 import { downloadMeetingMinutesPdf } from '../model/meetingMinutesPdf';
 
@@ -115,7 +116,7 @@ export function MeetingMinutesPanel() {
             <div className="rounded-2xl bg-navy-950 p-5 text-white">
               <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-sky-100">
                 <ClipboardList aria-hidden="true" size={14} />
-                Demo determinista
+                {formatAiProviderMode(result.mode)}
               </span>
               <h3 className="mt-4 font-display text-2xl font-extrabold">{result.draft.title}</h3>
               <label
@@ -136,26 +137,52 @@ export function MeetingMinutesPanel() {
               </button>
             </div>
 
-            {result.draft.tasks.length > 0 && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <h3 className="text-sm font-extrabold text-navy-950">Acuerdos detectados</h3>
+                {result.draft.agreements.length > 0 ? (
+                  <ul className="mt-3 space-y-2">
+                    {result.draft.agreements.map((agreement) => (
+                      <li
+                        className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-navy-950"
+                        key={agreement}
+                      >
+                        {agreement}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+                    No se han detectado acuerdos.
+                  </p>
+                )}
+              </div>
+
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <h3 className="text-sm font-extrabold text-navy-950">Tareas detectadas</h3>
-                <ul className="mt-3 space-y-2">
-                  {result.draft.tasks.map((task) => (
-                    <li
-                      className="grid gap-1 rounded-xl bg-slate-50 p-3 text-sm text-slate-600 md:grid-cols-[1fr_auto]"
-                      key={`${task.description}-${task.assignee ?? ''}-${task.dueDate ?? ''}`}
-                    >
-                      <span className="font-semibold text-navy-950">{task.description}</span>
-                      {(task.assignee || task.dueDate) && (
-                        <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-                          {[task.assignee, task.dueDate].filter(Boolean).join(' · ')}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                {result.draft.tasks.length > 0 ? (
+                  <ul className="mt-3 space-y-2">
+                    {result.draft.tasks.map((task) => (
+                      <li
+                        className="grid gap-1 rounded-xl bg-slate-50 p-3 text-sm text-slate-600 md:grid-cols-[1fr_auto]"
+                        key={`${task.description}-${task.assignee ?? ''}-${task.dueDate ?? ''}`}
+                      >
+                        <span className="font-semibold text-navy-950">{task.description}</span>
+                        {(task.assignee || task.dueDate) && (
+                          <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                            {[task.assignee, task.dueDate].filter(Boolean).join(' · ')}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+                    No se han detectado tareas.
+                  </p>
+                )}
               </div>
-            )}
+            </div>
           </div>
         )}
       </section>

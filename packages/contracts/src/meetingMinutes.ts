@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AiProviderModeSchema } from './communications.js';
 
 export const MeetingMinutesDraftRequestSchema = z.object({
   notes: z.string().trim().min(10).max(4_000),
@@ -13,12 +14,13 @@ export const MeetingMinutesTaskSchema = z.object({
 export const MeetingMinutesDraftSchema = z.object({
   title: z.string().trim().min(1).max(120),
   body: z.string().trim().min(1).max(4_000),
+  agreements: z.array(z.string().trim().min(1).max(240)).max(50),
   tasks: z.array(MeetingMinutesTaskSchema).max(50),
 });
 
 export const MeetingMinutesDraftResponseSchema = z.object({
   draft: MeetingMinutesDraftSchema,
-  mode: z.literal('deterministic-demo'),
+  mode: AiProviderModeSchema,
 });
 
 export type MeetingMinutesDraftRequest = z.infer<typeof MeetingMinutesDraftRequestSchema>;
