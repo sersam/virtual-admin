@@ -272,10 +272,9 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
           body: [
             'Orden del día · Junta extraordinaria · 15 de octubre de 2026',
             '',
-            '1. [Urgente] Hay una fuga de agua urgente en el garaje.',
-            '   Origen: incidencia inc-1.',
-            '2. [Alta] Revisar contrato de limpieza.',
-            '   Origen: acuerdo pendiente pending-1. Responsable: Ana. Fecha: 30 de junio.',
+            '1. Revisión prioritaria de la fuga de agua urgente en el garaje.',
+            '2. Seguimiento del contrato de limpieza.',
+            '3. Valoración de la instalación de aparcabicis.',
           ].join('\n'),
           items: [
             {
@@ -292,6 +291,11 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
               assignee: 'Ana',
               dueDate: '30 de junio',
             },
+            {
+              description: 'Instalar aparcabicis en el patio interior.',
+              sourceType: 'proposal',
+              sourceId: 'proposal-1',
+            },
           ],
         },
         meeting: {
@@ -300,7 +304,7 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
           title: 'Junta extraordinaria',
           scheduledAt: '2026-10-15T17:00:00.000Z',
         },
-        mode: 'deterministic-demo',
+        mode: 'openai',
       },
       status: 200,
     });
@@ -323,10 +327,13 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
   await expect(editableDraft).toHaveValue(/fuga de agua urgente/);
   await editableDraft.fill('Orden del día revisado por administración.');
   await expect(editableDraft).toHaveValue('Orden del día revisado por administración.');
+  await expect(draftRegion.getByText('OpenAI · GPT-5 nano')).toBeVisible();
   await expect(draftRegion.getByText('Entradas utilizadas')).toBeVisible();
   await expect(draftRegion.getByText('Incidencia', { exact: true })).toBeVisible();
   await expect(draftRegion.getByText('Acuerdo pendiente', { exact: true })).toBeVisible();
   await expect(draftRegion.getByText('Revisar contrato de limpieza')).toBeVisible();
+  await expect(draftRegion.getByText('Propuesta vecinal', { exact: true })).toBeVisible();
+  await expect(draftRegion.getByText('Instalar aparcabicis en el patio interior.')).toBeVisible();
 });
 
 test('registra propuestas vecinales y las incluye como fuente trazable de junta', async ({

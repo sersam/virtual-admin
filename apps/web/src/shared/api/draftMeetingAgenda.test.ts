@@ -12,6 +12,7 @@ describe('draftMeetingAgenda api', () => {
     const response = await draftMeetingAgenda('meeting-ordinary-2026-09-18');
 
     expect(response.draft.title).toBe('Orden del día · Junta ordinaria · 18 de septiembre de 2026');
+    expect(response.mode).toBe('openai');
     expect(globalThis.fetch).toHaveBeenCalledWith(
       '/api/meeting-agendas/draft',
       expect.objectContaining({
@@ -72,7 +73,7 @@ function validAgendaResponse(): Response {
         title: 'Junta ordinaria',
         scheduledAt: '2026-09-18T17:00:00.000Z',
       },
-      mode: 'deterministic-demo',
+      mode: 'openai',
     }),
     { status: 200 },
   );

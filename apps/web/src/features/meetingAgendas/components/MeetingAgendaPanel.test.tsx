@@ -71,17 +71,21 @@ describe('MeetingAgendaPanel', () => {
           ],
         },
         meeting: demoMeetings[0]!,
-        mode: 'deterministic-demo',
+        mode: 'openai',
       },
       status: 'ready',
     });
 
     render(<MeetingAgendaPanel />);
 
+    expect(
+      screen.getByText(/incidencias registradas, tareas detectadas en actas y propuestas/),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('Junta demo')).toHaveValue('meeting-ordinary-2026-09-18');
     await user.click(screen.getByRole('button', { name: 'Preparar orden del día' }));
 
     expect(generate).toHaveBeenCalledWith('meeting-ordinary-2026-09-18');
+    expect(screen.getByText('OpenAI · GPT-5 nano')).toBeInTheDocument();
     const editableDraft = screen.getByLabelText('Borrador editable del orden del día');
     expect((editableDraft as HTMLTextAreaElement).value).toContain('Hay una fuga de agua urgente');
     expect(screen.getByText('Entradas utilizadas')).toBeInTheDocument();
