@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-29 · PR [#26](https://github.com/sersam/virtual-admin/pull/26)
+
+### Added
+
+- US-020 prepara la generacion de actas formales con OpenAI desde backend, manteniendo el modo demo determinista y acuerdos y tareas estructurados.
+
 ## 2026-07-28 · PR [#25](https://github.com/sersam/virtual-admin/pull/25)
 
 ### Added
