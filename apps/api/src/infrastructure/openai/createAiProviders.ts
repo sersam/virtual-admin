@@ -21,6 +21,7 @@ import {
   OpenAiEmbeddingProvider,
 } from './OpenAiEmbeddingProvider.js';
 import { OpenAiIncidentClassifier } from './OpenAiIncidentClassifier.js';
+import { OpenAiMeetingAgendaGenerator } from './OpenAiMeetingAgendaGenerator.js';
 import { OpenAiMeetingMinutesGenerator } from './OpenAiMeetingMinutesGenerator.js';
 import { OfficialOpenAiResponsesClient } from './OpenAiResponsesClient.js';
 
@@ -65,7 +66,7 @@ export function createAiProviders(options: CreateAiProvidersOptions): AiProvider
       telemetry,
     }),
     incidentClassifier: new OpenAiIncidentClassifier({ responses, telemetry }),
-    meetingAgendaGenerator: new DeterministicMeetingAgendaGenerator(),
+    meetingAgendaGenerator: new OpenAiMeetingAgendaGenerator({ responses, telemetry }),
     meetingMinutesGenerator: new OpenAiMeetingMinutesGenerator({ responses, telemetry }),
   };
 }

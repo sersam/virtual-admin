@@ -4,6 +4,7 @@ export type AiOperation =
   | 'document-answer'
   | 'document-embedding'
   | 'incident-classification'
+  | 'meeting-agenda'
   | 'meeting-minutes';
 export type AiTelemetryResult = 'success' | 'failure';
 

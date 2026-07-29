@@ -10,6 +10,7 @@ import { OpenAiChatIntentClassifier } from './OpenAiChatIntentClassifier.js';
 import { OpenAiDocumentAnswerGenerator } from './OpenAiDocumentAnswerGenerator.js';
 import { OpenAiEmbeddingProvider } from './OpenAiEmbeddingProvider.js';
 import { OpenAiIncidentClassifier } from './OpenAiIncidentClassifier.js';
+import { OpenAiMeetingAgendaGenerator } from './OpenAiMeetingAgendaGenerator.js';
 import { OpenAiMeetingMinutesGenerator } from './OpenAiMeetingMinutesGenerator.js';
 import { createAiProviders } from './createAiProviders.js';
 
@@ -50,7 +51,7 @@ describe('createAiProviders', () => {
     expect(providers.documentAnswerGenerator).toBeInstanceOf(OpenAiDocumentAnswerGenerator);
     expect(providers.embeddingProvider).toBeInstanceOf(OpenAiEmbeddingProvider);
     expect(providers.incidentClassifier).toBeInstanceOf(OpenAiIncidentClassifier);
-    expect(providers.meetingAgendaGenerator).toBeInstanceOf(DeterministicMeetingAgendaGenerator);
+    expect(providers.meetingAgendaGenerator).toBeInstanceOf(OpenAiMeetingAgendaGenerator);
     expect(providers.meetingMinutesGenerator).toBeInstanceOf(OpenAiMeetingMinutesGenerator);
   });
 });
