@@ -1,6 +1,6 @@
 import type { MeetingMinutesDraftResponse } from '@admin/contracts';
 import type { PendingAgreement } from '../../domain/meetingAgenda/PendingAgreement.js';
-import { createMeetingMinutesDraft } from '../../domain/meetingMinutes/MeetingMinutesDraft.js';
+import { createDeterministicMeetingMinutesDraftResult } from '../meetingMinutes/createDeterministicMeetingMinutesDraftResult.js';
 import type { Clock } from '../ports/Clock.js';
 import type { IdGenerator } from '../ports/IdGenerator.js';
 import type { MeetingMinutesGenerator } from '../ports/MeetingMinutesGenerator.js';
@@ -56,16 +56,7 @@ export class DraftMeetingMinutes {
 
 const deterministicGenerator: MeetingMinutesGenerator = {
   async draft(notes: string): Promise<MeetingMinutesDraftResponse> {
-    const draft = createMeetingMinutesDraft(notes);
-
-    return {
-      draft: {
-        ...draft,
-        agreements: [...draft.agreements],
-        tasks: draft.tasks.map((task) => ({ ...task })),
-      },
-      mode: 'deterministic-demo',
-    };
+    return createDeterministicMeetingMinutesDraftResult(notes);
   },
 };
 

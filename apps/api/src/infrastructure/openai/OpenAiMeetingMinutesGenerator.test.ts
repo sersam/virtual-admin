@@ -18,7 +18,7 @@ describe('OpenAiMeetingMinutesGenerator', () => {
 
           return {
             output: {
-              body: 'Acta de reunión\n\nSe acuerda aprobar el presupuesto.',
+              body: 'Se acuerda aprobar el presupuesto.',
               agreements: ['aprobar el presupuesto'],
               tasks: [{ description: 'Revisar contrato', assignee: 'Ana', dueDate: null }],
             },
@@ -34,7 +34,7 @@ describe('OpenAiMeetingMinutesGenerator', () => {
     ).resolves.toEqual({
       draft: {
         title: 'Acta de reunión',
-        body: 'Acta de reunión\n\nSe acuerda aprobar el presupuesto.',
+        body: 'Se acuerda aprobar el presupuesto.',
         agreements: ['aprobar el presupuesto'],
         tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
       },
@@ -71,7 +71,7 @@ describe('OpenAiMeetingMinutesGenerator', () => {
       responses: {
         createStructuredResponse: async () => ({
           output: {
-            body: 'Acta de reunión\n\nNo se indican responsables ni fechas.',
+            body: 'No se indican responsables ni fechas.',
             agreements: [],
             tasks: [{ description: 'Revisar contrato', assignee: null, dueDate: null }],
           },
@@ -84,7 +84,7 @@ describe('OpenAiMeetingMinutesGenerator', () => {
     await expect(generator.draft('Tarea: Revisar contrato.')).resolves.toEqual({
       draft: {
         title: 'Acta de reunión',
-        body: 'Acta de reunión\n\nNo se indican responsables ni fechas.',
+        body: 'No se indican responsables ni fechas.',
         agreements: [],
         tasks: [{ description: 'Revisar contrato' }],
       },

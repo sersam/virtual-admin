@@ -1,4 +1,4 @@
-import { createMeetingMinutesDraft } from '../../domain/meetingMinutes/MeetingMinutesDraft.js';
+import { createDeterministicMeetingMinutesDraftResult } from '../../application/meetingMinutes/createDeterministicMeetingMinutesDraftResult.js';
 import type {
   MeetingMinutesDraftResult,
   MeetingMinutesGenerator,
@@ -6,15 +6,6 @@ import type {
 
 export class DeterministicMeetingMinutesGenerator implements MeetingMinutesGenerator {
   async draft(notes: string): Promise<MeetingMinutesDraftResult> {
-    const draft = createMeetingMinutesDraft(notes);
-
-    return {
-      draft: {
-        ...draft,
-        agreements: [...draft.agreements],
-        tasks: draft.tasks.map((task) => ({ ...task })),
-      },
-      mode: 'deterministic-demo',
-    };
+    return createDeterministicMeetingMinutesDraftResult(notes);
   }
 }

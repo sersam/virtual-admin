@@ -69,6 +69,31 @@ describe('MeetingMinutesPanel', () => {
     expect(screen.getByText('Revisar contrato')).toBeInTheDocument();
   });
 
+  it('muestra estados vacios cuando no detecta acuerdos ni tareas', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          draft: {
+            title: 'Acta de reunión',
+            body: 'Acta de reunión\n\nNo se indican acuerdos ni tareas.',
+            agreements: [],
+            tasks: [],
+          },
+          mode: 'deterministic-demo',
+        }),
+        { status: 200 },
+      ),
+    );
+
+    render(<MeetingMinutesPanel />);
+
+    await user.click(screen.getByRole('button', { name: 'Generar acta' }));
+
+    expect(await screen.findByText('No se han detectado acuerdos.')).toBeInTheDocument();
+    expect(screen.getByText('No se han detectado tareas.')).toBeInTheDocument();
+  });
+
   it('descarga un PDF con el borrador editado', async () => {
     const user = userEvent.setup();
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(

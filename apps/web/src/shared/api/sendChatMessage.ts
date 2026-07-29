@@ -3,7 +3,7 @@ import {
   ChatMessageResponseSchema,
   type ChatMessageResponse,
 } from '@admin/contracts';
-import { ApiHttpError, ApiTransportError, isApiTransportError } from './apiErrors';
+import { ApiHttpError, ApiTransportError } from './apiErrors';
 import { apiBaseUrl } from './apiConfig';
 
 export class ChatApiHttpError extends ApiHttpError {
@@ -45,5 +45,5 @@ export async function sendChatMessage(
 }
 
 export function isChatApiTransportError(error: unknown): error is ChatApiTransportError {
-  return error instanceof ChatApiTransportError || isApiTransportError(error);
+  return error instanceof ChatApiTransportError;
 }
