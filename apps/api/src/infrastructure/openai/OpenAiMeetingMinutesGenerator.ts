@@ -36,7 +36,7 @@ export class OpenAiMeetingMinutesGenerator implements MeetingMinutesGenerator {
         title: TITLE,
         body: output.body,
         agreements: output.agreements,
-        tasks: output.tasks,
+        tasks: output.tasks.map(presentTask),
       },
       mode: 'openai',
     };
@@ -45,8 +45,8 @@ export class OpenAiMeetingMinutesGenerator implements MeetingMinutesGenerator {
 
 const MeetingMinutesTaskOutputSchema = z.object({
   description: z.string().trim().min(1).max(240),
-  assignee: z.string().trim().min(1).max(120).optional(),
-  dueDate: z.string().trim().min(1).max(80).optional(),
+  assignee: z.string().trim().min(1).max(120).nullable(),
+  dueDate: z.string().trim().min(1).max(80).nullable(),
 });
 
 const MeetingMinutesDraftOutputSchema = z.object({
@@ -54,3 +54,17 @@ const MeetingMinutesDraftOutputSchema = z.object({
   agreements: z.array(z.string().trim().min(1).max(240)).max(50),
   tasks: z.array(MeetingMinutesTaskOutputSchema).max(50),
 });
+
+type MeetingMinutesTaskOutput = z.infer<typeof MeetingMinutesTaskOutputSchema>;
+
+function presentTask(task: MeetingMinutesTaskOutput): {
+  readonly assignee?: string;
+  readonly description: string;
+  readonly dueDate?: string;
+} {
+  return {
+    ...(task.assignee ? { assignee: task.assignee } : {}),
+    description: task.description,
+    ...(task.dueDate ? { dueDate: task.dueDate } : {}),
+  };
+}

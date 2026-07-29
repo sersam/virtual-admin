@@ -54,7 +54,7 @@ Devuelve:
 }
 ```
 
-El prompt `meeting-minutes.v1` debe exigir espanol formal, uso exclusivo de las notas recibidas y prohibir inventar asistentes, fechas, votaciones, quorum, decisiones, responsables o plazos. Los campos ausentes permanecen omitidos y las listas pueden estar vacias.
+El prompt `meeting-minutes.v1` debe exigir espanol formal, uso exclusivo de las notas recibidas y prohibir inventar asistentes, fechas, votaciones, quorum, decisiones, responsables o plazos. Para cumplir Structured Outputs, OpenAI devuelve `assignee` y `dueDate` como campos requeridos nullable; la aplicacion transforma `null` en campos omitidos antes de exponer el contrato publico. Las listas pueden estar vacias.
 
 La telemetria IA incorpora la operacion `meeting-minutes` y no registra el contenido de las notas.
 

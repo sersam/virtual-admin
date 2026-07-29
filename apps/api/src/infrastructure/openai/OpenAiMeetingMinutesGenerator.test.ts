@@ -20,7 +20,7 @@ describe('OpenAiMeetingMinutesGenerator', () => {
             output: {
               body: 'Acta de reunión\n\nSe acuerda aprobar el presupuesto.',
               agreements: ['aprobar el presupuesto'],
-              tasks: [{ description: 'Revisar contrato', assignee: 'Ana' }],
+              tasks: [{ description: 'Revisar contrato', assignee: 'Ana', dueDate: null }],
             },
             usage: { inputTokens: 1_100, cachedInputTokens: 100, outputTokens: 260 },
           };
@@ -64,6 +64,32 @@ describe('OpenAiMeetingMinutesGenerator', () => {
         result: 'success',
       }),
     ]);
+  });
+
+  it('transforma campos nullable de OpenAI en opcionales del contrato publico', async () => {
+    const generator = new OpenAiMeetingMinutesGenerator({
+      responses: {
+        createStructuredResponse: async () => ({
+          output: {
+            body: 'Acta de reunión\n\nNo se indican responsables ni fechas.',
+            agreements: [],
+            tasks: [{ description: 'Revisar contrato', assignee: null, dueDate: null }],
+          },
+          usage: { inputTokens: 120, cachedInputTokens: 0, outputTokens: 40 },
+        }),
+      },
+      telemetry: new RecordingTelemetryReporter(),
+    });
+
+    await expect(generator.draft('Tarea: Revisar contrato.')).resolves.toEqual({
+      draft: {
+        title: 'Acta de reunión',
+        body: 'Acta de reunión\n\nNo se indican responsables ni fechas.',
+        agreements: [],
+        tasks: [{ description: 'Revisar contrato' }],
+      },
+      mode: 'openai',
+    });
   });
 
   it('rechaza salidas invalidas y registra fallo observable', async () => {

@@ -61,6 +61,6 @@ export const meetingMinutesPrompt = {
     'No devuelvas titulo: la aplicacion lo anadira.',
     'Devuelve un cuerpo formal, acuerdos detectados y tareas pendientes.',
     'Si no hay acuerdos o tareas explicitas, devuelve listas vacias.',
-    'Omite responsable o fecha cuando no aparezcan de forma explicita en las notas.',
+    'Devuelve responsable y fecha como null cuando no aparezcan de forma explicita en las notas.',
   ].join('\n'),
 } as const;
