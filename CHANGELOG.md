@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-29 · PR [#27](https://github.com/sersam/virtual-admin/pull/27)
+
+### Added
+
+- Prepara ordenes del dia trazables para juntas con redaccion OpenAI en backend y modo demo determinista.
+
 ## 2026-07-29 · PR [#26](https://github.com/sersam/virtual-admin/pull/26)
 
 ### Added
