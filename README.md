@@ -107,7 +107,7 @@ COOKIE_SECRET=local-demo-cookie-secret DATABASE_URL=postgres://usuario:password@
 Las migraciones no se ejecutan automáticamente al arrancar la API. Si `DATABASE_URL` está configurada pero la base no conecta o no tiene el esquema migrado, la API falla de forma explícita en lugar de volver silenciosamente al repositorio en memoria.
 El rol que ejecute `npm run db:migrate` debe poder crear extensiones o tener `pgvector` preinstalado por administración de la base; la migración declara `CREATE EXTENSION IF NOT EXISTS vector`.
 
-Con PostgreSQL configurado, la API selecciona todos los repositorios persistentes a la vez y comparte un único pool para sesiones, incidencias, acuerdos pendientes, propuestas, documentos subidos y chunks vectoriales. El estado queda aislado por sesión y se elimina en cascada cuando una sesión expirada se descarta. Las juntas demo, borradores y comunicaciones siguen siendo locales a esta historia.
+Con PostgreSQL configurado, la API selecciona todos los repositorios persistentes a la vez y comparte un único pool para sesiones, incidencias, acuerdos pendientes, propuestas, documentos subidos y chunks vectoriales. El estado queda aislado por sesión y se elimina en cascada cuando una sesión expirada se descarta. Las juntas demo se calculan desde la fecha actual del backend, con una junta a un mes y otra a dos meses; borradores y comunicaciones siguen siendo locales a esta historia.
 
 Los documentos subidos persisten sus metadatos, texto extraído y binario PDF. La subida conserva las validaciones actuales de formato PDF y límite de 5 MB; el listado, la descarga y la recuperación documental usan el mismo repositorio, por lo que las fuentes mostradas tras un reinicio son documentos reales de la sesión.
 

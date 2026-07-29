@@ -52,9 +52,10 @@ function buildAppOptions(
   const documentRetriever =
     overrides.documentRetriever ??
     new LexicalDocumentRetriever(residencialSierraNevadaDocuments, uploadedDocumentRepository);
+  const clock = overrides.clock ?? { now: () => new Date('2026-06-23T08:00:00.000Z') };
 
   return {
-    clock: { now: () => new Date('2026-06-23T08:00:00.000Z') },
+    clock,
     chatWorkflowFactory: ({
       answerDocumentQuestion,
       chatIntentClassifier,
@@ -80,7 +81,8 @@ function buildAppOptions(
     incidentClassifier: new DeterministicIncidentClassifier(),
     incidentRepository: new InMemoryIncidentRepository(),
     meetingAgendaGenerator: new DeterministicMeetingAgendaGenerator(),
-    meetingRepository: new InMemoryMeetingRepository(),
+    meetingRepository:
+      overrides.meetingRepository ?? new InMemoryMeetingRepository({ now: () => clock.now() }),
     meetingMinutesGenerator: new DeterministicMeetingMinutesGenerator(),
     pendingAgreementRepository: new InMemoryPendingAgreementRepository(),
     proposalRepository: new InMemoryProposalRepository(),
@@ -673,13 +675,13 @@ describe('createApiApp', () => {
           id: 'meeting-ordinary-2026-09-18',
           kind: 'ordinaria',
           title: 'Junta ordinaria',
-          scheduledAt: '2026-09-18T17:00:00.000Z',
+          scheduledAt: '2026-07-23T17:00:00.000Z',
         },
         {
           id: 'meeting-extraordinary-2026-10-15',
           kind: 'extraordinaria',
           title: 'Junta extraordinaria',
-          scheduledAt: '2026-10-15T17:00:00.000Z',
+          scheduledAt: '2026-08-23T17:00:00.000Z',
         },
       ],
     });
@@ -705,7 +707,7 @@ describe('createApiApp', () => {
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
       draft: {
-        title: 'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
+        title: 'Orden del día · Junta ordinaria · 23 de julio de 2026',
         body: expect.stringContaining('fuga de agua urgente'),
         items: expect.arrayContaining([
           expect.objectContaining({
@@ -737,7 +739,7 @@ describe('createApiApp', () => {
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
       draft: {
-        title: 'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
+        title: 'Orden del día · Junta ordinaria · 23 de julio de 2026',
         body: expect.stringContaining('Fuga de agua urgente'),
         items: expect.arrayContaining([
           expect.objectContaining({
@@ -774,7 +776,7 @@ describe('createApiApp', () => {
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
       draft: {
-        title: 'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
+        title: 'Orden del día · Junta ordinaria · 23 de julio de 2026',
         body: 'Orden del día redactado con OpenAI para las entradas seleccionadas.',
         items: expect.arrayContaining([
           expect.objectContaining({

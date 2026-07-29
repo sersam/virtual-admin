@@ -28,6 +28,7 @@ La aplicacion debe conservar la seleccion, priorizacion, titulo, junta y trazabi
 - El chat sigue usando la primera junta demo cuando no recibe `meetingId`.
 - La UI mantiene selector, editor, trazabilidad e invalidacion al registrar propuestas.
 - La UI muestra el modo con `formatAiProviderMode` y menciona incidencias, acuerdos y propuestas.
+- Las juntas demo seleccionables tienen siempre fechas futuras: una a un mes de la fecha actual y otra a dos meses de la fecha actual.
 - Las pruebas usan clientes fake; CI no hace llamadas reales a OpenAI.
 
 ## Contratos e interfaces afectadas
@@ -88,7 +89,7 @@ La telemetria IA incorpora la operacion `meeting-agenda` y no registra contenido
 
 - OpenAI solo se usa desde backend.
 - No se anaden endpoints, persistencia, campos publicos, streaming, herramientas ni selector de modelo.
-- No se cambian el modelo compartido, el stack, las juntas demo, la persistencia ni los contratos del chat.
+- No se cambian el modelo compartido, el stack, la persistencia ni los contratos del chat.
 - Los filtros temporales y las incidencias resueltas pertenecen a la US-026.
 - OpenAI no selecciona, reordena ni crea entradas trazables.
 - No se anade fallback local al navegador para `/juntas`.

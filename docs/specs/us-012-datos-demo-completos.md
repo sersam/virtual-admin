@@ -36,8 +36,8 @@ Acuerdos pendientes:
 
 Juntas demo:
 
-- Junta ordinaria del 18 de septiembre de 2026 a las 17:00.
-- Junta extraordinaria del 15 de octubre de 2026 a las 17:00.
+- Junta ordinaria siempre programada un mes despues de la fecha actual, a las 17:00.
+- Junta extraordinaria siempre programada dos meses despues de la fecha actual, a las 17:00.
 
 ## Contratos
 
