@@ -117,6 +117,25 @@ describe('OpenAiMeetingAgendaGenerator', () => {
     ]);
   });
 
+  it('acepta cuerpos de 4.000 caracteres', async () => {
+    const generator = new OpenAiMeetingAgendaGenerator({
+      responses: {
+        createStructuredResponse: async () => ({
+          output: { body: 'a'.repeat(4_000) },
+          usage: { inputTokens: 500, cachedInputTokens: 0, outputTokens: 900 },
+        }),
+      },
+      telemetry: new RecordingTelemetryReporter(),
+    });
+
+    const response = await generator.draft(createAgendaInput());
+
+    expect(response).toEqual({
+      body: 'a'.repeat(4_000),
+      mode: 'openai',
+    });
+  });
+
   it('rechaza cuerpos vacios o fuera de limite y registra fallo observable', async () => {
     const telemetry = new RecordingTelemetryReporter();
     const generator = new OpenAiMeetingAgendaGenerator({
@@ -130,25 +149,30 @@ describe('OpenAiMeetingAgendaGenerator', () => {
       telemetry,
     });
 
-    await expect(
-      generator.draft({
-        meeting: {
-          id: 'meeting-ordinary-2026-09-18',
-          sessionId: 'session-a',
-          kind: 'ordinaria',
-          title: 'Junta ordinaria',
-          scheduledAt: new Date('2026-09-18T17:00:00.000Z'),
-        },
-        items: [
-          {
-            description: 'Fuga de agua urgente en el garaje',
-            priority: 'urgente',
-            sourceType: 'incident',
-            sourceId: 'inc-urgent',
-          },
-        ],
+    await expect(generator.draft(createAgendaInput())).rejects.toBeInstanceOf(OpenAiProviderError);
+    expect(telemetry.events).toEqual([
+      expect.objectContaining({
+        operation: 'meeting-agenda',
+        promptVersion: 'meeting-agenda.v1',
+        result: 'failure',
       }),
-    ).rejects.toBeInstanceOf(OpenAiProviderError);
+    ]);
+  });
+
+  it('rechaza cuerpos de 4.001 caracteres y registra fallo observable', async () => {
+    const telemetry = new RecordingTelemetryReporter();
+    const generator = new OpenAiMeetingAgendaGenerator({
+      nowMs: sequenceNow(3_000, 3_080),
+      responses: {
+        createStructuredResponse: async () => ({
+          output: { body: 'a'.repeat(4_001) },
+          usage: { inputTokens: 500, cachedInputTokens: 0, outputTokens: 930 },
+        }),
+      },
+      telemetry,
+    });
+
+    await expect(generator.draft(createAgendaInput())).rejects.toBeInstanceOf(OpenAiProviderError);
     expect(telemetry.events).toEqual([
       expect.objectContaining({
         operation: 'meeting-agenda',
@@ -170,4 +194,24 @@ class RecordingTelemetryReporter implements AiTelemetryReporter {
 function sequenceNow(...values: number[]): () => number {
   let index = 0;
   return () => values[index++] ?? values.at(-1) ?? 0;
+}
+
+function createAgendaInput(): Parameters<OpenAiMeetingAgendaGenerator['draft']>[0] {
+  return {
+    meeting: {
+      id: 'meeting-ordinary-2026-09-18',
+      sessionId: 'session-a',
+      kind: 'ordinaria',
+      title: 'Junta ordinaria',
+      scheduledAt: new Date('2026-09-18T17:00:00.000Z'),
+    },
+    items: [
+      {
+        description: 'Fuga de agua urgente en el garaje',
+        priority: 'urgente',
+        sourceType: 'incident',
+        sourceId: 'inc-urgent',
+      },
+    ],
+  };
 }

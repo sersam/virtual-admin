@@ -104,6 +104,46 @@ describe('MeetingAgendaPanel', () => {
     expect(editableDraft).toHaveValue('Orden revisado para la junta.');
   });
 
+  it('muestra el modo demo determinista al generar un orden del día local', async () => {
+    const user = userEvent.setup();
+    const generate = vi.fn();
+    useMeetingsMock.mockReturnValue({
+      meetings: demoMeetings,
+      status: 'ready',
+    });
+    useMeetingAgendaDraftMock.mockReturnValue({
+      generate,
+      reset: vi.fn(),
+      result: {
+        draft: {
+          title: 'Orden del día · Junta ordinaria · 18 de septiembre de 2026',
+          body: 'Orden del día\n\n1. [Urgente] Hay una fuga de agua urgente.',
+          items: [
+            {
+              description: 'Hay una fuga de agua urgente',
+              priority: 'urgente',
+              sourceType: 'incident',
+              sourceId: 'inc-1',
+            },
+          ],
+        },
+        meeting: demoMeetings[0]!,
+        mode: 'deterministic-demo',
+      },
+      status: 'ready',
+    });
+
+    render(<MeetingAgendaPanel />);
+
+    await user.click(screen.getByRole('button', { name: 'Preparar orden del día' }));
+
+    expect(generate).toHaveBeenCalledWith('meeting-ordinary-2026-09-18');
+    expect(screen.getByText('Demo determinista')).toBeInTheDocument();
+    expect(
+      (screen.getByLabelText('Borrador editable del orden del día') as HTMLTextAreaElement).value,
+    ).toContain('Hay una fuga de agua urgente');
+  });
+
   it('permite cambiar la junta seleccionada antes de generar', async () => {
     const user = userEvent.setup();
     const generate = vi.fn();
