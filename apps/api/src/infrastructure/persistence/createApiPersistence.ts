@@ -1,5 +1,6 @@
 import type pg from 'pg';
 import type { AiActionQuotaRepository } from '../../application/ports/AiActionQuotaRepository.js';
+import type { AiTelemetryEventRepository } from '../../application/ports/AiTelemetryEventRepository.js';
 import type { DocumentChunkRepository } from '../../application/ports/DocumentChunkRepository.js';
 import type { IncidentRepository } from '../../application/ports/IncidentRepository.js';
 import type { PendingAgreementRepository } from '../../application/ports/PendingAgreementRepository.js';
@@ -19,6 +20,8 @@ import { InMemoryAiActionQuotaRepository } from '../quota/InMemoryAiActionQuotaR
 import { PostgresAiActionQuotaRepository } from '../quota/PostgresAiActionQuotaRepository.js';
 import { InMemorySessionRepository } from '../session/InMemorySessionRepository.js';
 import { PostgresSessionRepository } from '../session/PostgresSessionRepository.js';
+import { InMemoryAiTelemetryEventRepository } from '../telemetry/InMemoryAiTelemetryEventRepository.js';
+import { PostgresAiTelemetryEventRepository } from '../telemetry/PostgresAiTelemetryEventRepository.js';
 import { createPostgresPool } from '../database/createPostgresPool.js';
 
 const defaultPostgresConnectionTimeoutMillis = 5_000;
@@ -30,6 +33,7 @@ interface CreateApiPersistenceOptions {
 
 export interface ApiPersistence {
   readonly aiActionQuotaRepository: AiActionQuotaRepository;
+  readonly aiTelemetryEventRepository: AiTelemetryEventRepository;
   readonly documentChunkRepository?: DocumentChunkRepository;
   readonly incidentRepository: IncidentRepository;
   readonly pendingAgreementRepository: PendingAgreementRepository;
@@ -45,6 +49,7 @@ export async function createApiPersistence(
   if (!options.databaseUrl?.trim()) {
     return {
       aiActionQuotaRepository: new InMemoryAiActionQuotaRepository(),
+      aiTelemetryEventRepository: new InMemoryAiTelemetryEventRepository(),
       documentChunkRepository: undefined,
       incidentRepository: new InMemoryIncidentRepository(),
       pendingAgreementRepository: new InMemoryPendingAgreementRepository(),
@@ -65,6 +70,7 @@ export async function createApiPersistence(
 
   return {
     aiActionQuotaRepository: new PostgresAiActionQuotaRepository(pool),
+    aiTelemetryEventRepository: new PostgresAiTelemetryEventRepository(pool),
     documentChunkRepository: new PostgresDocumentChunkRepository(pool),
     incidentRepository: new PostgresIncidentRepository(pool),
     pendingAgreementRepository: new PostgresPendingAgreementRepository(pool),
@@ -138,7 +144,20 @@ async function validatePostgresApiSchema(pool: pg.Pool): Promise<void> {
         quota.day,
         quota.identity_hash,
         quota.used,
-        quota.limit
+        quota.limit,
+        telemetry.id,
+        telemetry.occurred_at,
+        telemetry.operation,
+        telemetry.provider,
+        telemetry.model,
+        telemetry.prompt_version,
+        telemetry.input_tokens,
+        telemetry.cached_input_tokens,
+        telemetry.output_tokens,
+        telemetry.estimated_cost_usd,
+        telemetry.latency_ms,
+        telemetry.result,
+        telemetry.fallback_reason
       from demo_sessions sessions
       left join community_incidents incidents on incidents.session_id = sessions.id
       left join pending_agreements agreements on agreements.session_id = sessions.id
@@ -146,6 +165,7 @@ async function validatePostgresApiSchema(pool: pg.Pool): Promise<void> {
       left join uploaded_documents documents on documents.session_id = sessions.id
       left join document_chunks chunks on chunks.session_id = sessions.id
       left join ai_action_quota_counters quota on quota.day = to_char(sessions.created_at at time zone 'UTC', 'YYYY-MM-DD')
+      left join ai_telemetry_events telemetry on telemetry.occurred_at >= sessions.created_at
       limit 0
     `);
     const extension = await pool.query<{ extname: string }>(`
@@ -166,11 +186,15 @@ async function validatePostgresApiSchema(pool: pg.Pool): Promise<void> {
             tablename = 'ai_action_quota_counters'
             and indexname = 'ai_action_quota_counters_day_scope_idx'
           )
+          or (
+            tablename = 'ai_telemetry_events'
+            and indexname in ('ai_telemetry_events_occurred_at_idx', 'ai_telemetry_events_operation_idx', 'ai_telemetry_events_model_idx')
+          )
         )
       order by indexname
     `);
 
-    if (extension.rowCount !== 1 || indexes.rowCount !== 3) {
+    if (extension.rowCount !== 1 || indexes.rowCount !== 6) {
       throw new Error('El esquema PostgreSQL de la API no esta migrado.');
     }
   } catch (error) {

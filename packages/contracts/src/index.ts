@@ -7,5 +7,6 @@ export * from './incidents.js';
 export * from './meetingAgendas.js';
 export * from './meetingMinutes.js';
 export * from './meetings.js';
+export * from './observability.js';
 export * from './proposals.js';
 export * from './session.js';

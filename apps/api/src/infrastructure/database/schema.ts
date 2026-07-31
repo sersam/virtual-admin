@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   check,
   customType,
+  doublePrecision,
   index,
   integer,
   pgTable,
@@ -229,5 +230,52 @@ export const aiActionQuotaCounters = pgTable(
     check('ai_action_quota_counters_limit_positive', sql`${table.limit} > 0`),
     check('ai_action_quota_counters_used_not_above_limit', sql`${table.used} <= ${table.limit}`),
     index('ai_action_quota_counters_day_scope_idx').on(table.day, table.scope),
+  ],
+);
+
+export const aiTelemetryEvents = pgTable(
+  'ai_telemetry_events',
+  {
+    id: serial('id').primaryKey(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+    operation: varchar('operation', { length: 80 }).notNull(),
+    provider: varchar('provider', { length: 40 }).notNull(),
+    model: varchar('model', { length: 120 }).notNull(),
+    promptVersion: varchar('prompt_version', { length: 120 }).notNull(),
+    inputTokens: integer('input_tokens').notNull(),
+    cachedInputTokens: integer('cached_input_tokens').notNull(),
+    outputTokens: integer('output_tokens').notNull(),
+    estimatedCostUsd: doublePrecision('estimated_cost_usd').notNull(),
+    latencyMs: integer('latency_ms').notNull(),
+    result: varchar('result', { length: 20 }).notNull(),
+    fallbackReason: varchar('fallback_reason', { length: 40 }),
+  },
+  (table) => [
+    check('ai_telemetry_events_operation_length', sql`char_length(${table.operation}) >= 1`),
+    check(
+      'ai_telemetry_events_provider_value',
+      sql`${table.provider} in ('openai', 'deterministic-demo')`,
+    ),
+    check('ai_telemetry_events_model_length', sql`char_length(${table.model}) >= 1`),
+    check(
+      'ai_telemetry_events_prompt_version_length',
+      sql`char_length(${table.promptVersion}) >= 1`,
+    ),
+    check('ai_telemetry_events_input_tokens_non_negative', sql`${table.inputTokens} >= 0`),
+    check(
+      'ai_telemetry_events_cached_input_tokens_non_negative',
+      sql`${table.cachedInputTokens} >= 0`,
+    ),
+    check('ai_telemetry_events_output_tokens_non_negative', sql`${table.outputTokens} >= 0`),
+    check('ai_telemetry_events_cost_non_negative', sql`${table.estimatedCostUsd} >= 0`),
+    check('ai_telemetry_events_latency_non_negative', sql`${table.latencyMs} >= 0`),
+    check('ai_telemetry_events_result_value', sql`${table.result} in ('success', 'failure')`),
+    check(
+      'ai_telemetry_events_fallback_reason_value',
+      sql`${table.fallbackReason} is null or ${table.fallbackReason} in ('session-quota', 'ip-quota', 'provider-error', 'quota-unavailable')`,
+    ),
+    index('ai_telemetry_events_occurred_at_idx').on(table.occurredAt),
+    index('ai_telemetry_events_operation_idx').on(table.operation),
+    index('ai_telemetry_events_model_idx').on(table.provider, table.model),
   ],
 );

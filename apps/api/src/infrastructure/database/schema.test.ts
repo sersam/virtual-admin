@@ -1,9 +1,10 @@
 import { getTableColumns, getTableName } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import {
+  aiActionQuotaCounters,
+  aiTelemetryEvents,
   communityIncidents,
   communityProposals,
-  aiActionQuotaCounters,
   demoSessions,
   documentChunks,
   pendingAgreements,
@@ -143,5 +144,33 @@ describe('ai quota schema', () => {
     expect(columns.identityHash.name).toBe('identity_hash');
     expect(Object.keys(columns)).not.toContain('sessionId');
     expect(Object.keys(columns)).not.toContain('ipAddress');
+  });
+});
+
+describe('ai telemetry schema', () => {
+  it('define eventos tecnicos sin contenido de usuario ni identificadores', () => {
+    const columns = getTableColumns(aiTelemetryEvents);
+
+    expect(getTableName(aiTelemetryEvents)).toBe('ai_telemetry_events');
+    expect(Object.keys(columns)).toEqual([
+      'id',
+      'occurredAt',
+      'operation',
+      'provider',
+      'model',
+      'promptVersion',
+      'inputTokens',
+      'cachedInputTokens',
+      'outputTokens',
+      'estimatedCostUsd',
+      'latencyMs',
+      'result',
+      'fallbackReason',
+    ]);
+    expect(columns.promptVersion.name).toBe('prompt_version');
+    expect(columns.estimatedCostUsd.name).toBe('estimated_cost_usd');
+    expect(Object.keys(columns)).not.toEqual(
+      expect.arrayContaining(['prompt', 'response', 'document', 'sessionId', 'ipAddress']),
+    );
   });
 });

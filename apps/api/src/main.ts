@@ -8,12 +8,20 @@ import { LangGraphChatWorkflow } from './infrastructure/agent/LangGraphChatWorkf
 import { InMemoryMeetingRepository } from './infrastructure/meeting/InMemoryMeetingRepository.js';
 import { createAiProviders } from './infrastructure/openai/createAiProviders.js';
 import { createApiPersistence } from './infrastructure/persistence/createApiPersistence.js';
+import { PersistentAiTelemetryReporter } from './infrastructure/telemetry/PersistentAiTelemetryReporter.js';
 
 const port = Number(process.env.PORT ?? 3000);
 const cookieSecret = readRequiredEnvironmentVariable('COOKIE_SECRET');
-const aiProviders = createAiProviders({ openAiApiKey: process.env.OPENAI_API_KEY });
 const persistence = await createApiPersistence({ databaseUrl: process.env.DATABASE_URL });
 const clock = new SystemClock();
+const aiTelemetry = new PersistentAiTelemetryReporter({
+  clock,
+  repository: persistence.aiTelemetryEventRepository,
+});
+const aiProviders = createAiProviders({
+  openAiApiKey: process.env.OPENAI_API_KEY,
+  telemetry: aiTelemetry,
+});
 
 const app = createApiApp({
   clock,
