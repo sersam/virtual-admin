@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AiFallbackReasonSchema } from './ai.js';
 import { DocumentSourceSchema } from './documents.js';
 
 export const ChatAgentSchema = z.enum([
@@ -20,6 +21,7 @@ export const ChatMessageRequestSchema = z.object({
 export const ChatMessageResponseSchema = z.object({
   agent: ChatAgentSchema,
   answer: z.string().min(1),
+  fallbackReason: AiFallbackReasonSchema.optional(),
   mode: ChatModeSchema,
   provider: ChatProviderSchema,
   sources: z.array(DocumentSourceSchema),

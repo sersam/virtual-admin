@@ -204,3 +204,30 @@ export const documentChunks = pgTable(
     ),
   ],
 );
+
+export const aiActionQuotaCounters = pgTable(
+  'ai_action_quota_counters',
+  {
+    scope: varchar('scope', { length: 16 }).notNull(),
+    day: varchar('day', { length: 10 }).notNull(),
+    identityHash: varchar('identity_hash', { length: 64 }).notNull(),
+    used: integer('used').notNull(),
+    limit: integer('limit').notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.scope, table.day, table.identityHash],
+      name: 'ai_action_quota_counters_pkey',
+    }),
+    check('ai_action_quota_counters_scope_value', sql`${table.scope} in ('session', 'ip')`),
+    check('ai_action_quota_counters_day_length', sql`char_length(${table.day}) = 10`),
+    check(
+      'ai_action_quota_counters_identity_hash_length',
+      sql`char_length(${table.identityHash}) = 64`,
+    ),
+    check('ai_action_quota_counters_used_non_negative', sql`${table.used} >= 0`),
+    check('ai_action_quota_counters_limit_positive', sql`${table.limit} > 0`),
+    check('ai_action_quota_counters_used_not_above_limit', sql`${table.used} <= ${table.limit}`),
+    index('ai_action_quota_counters_day_scope_idx').on(table.day, table.scope),
+  ],
+);

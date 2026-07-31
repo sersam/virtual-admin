@@ -1,4 +1,5 @@
 import type pg from 'pg';
+import type { AiActionQuotaRepository } from '../../application/ports/AiActionQuotaRepository.js';
 import type { DocumentChunkRepository } from '../../application/ports/DocumentChunkRepository.js';
 import type { IncidentRepository } from '../../application/ports/IncidentRepository.js';
 import type { PendingAgreementRepository } from '../../application/ports/PendingAgreementRepository.js';
@@ -14,6 +15,8 @@ import { InMemoryPendingAgreementRepository } from '../meetingAgenda/InMemoryPen
 import { PostgresPendingAgreementRepository } from '../meetingAgenda/PostgresPendingAgreementRepository.js';
 import { InMemoryProposalRepository } from '../proposal/InMemoryProposalRepository.js';
 import { PostgresProposalRepository } from '../proposal/PostgresProposalRepository.js';
+import { InMemoryAiActionQuotaRepository } from '../quota/InMemoryAiActionQuotaRepository.js';
+import { PostgresAiActionQuotaRepository } from '../quota/PostgresAiActionQuotaRepository.js';
 import { InMemorySessionRepository } from '../session/InMemorySessionRepository.js';
 import { PostgresSessionRepository } from '../session/PostgresSessionRepository.js';
 import { createPostgresPool } from '../database/createPostgresPool.js';
@@ -26,6 +29,7 @@ interface CreateApiPersistenceOptions {
 }
 
 export interface ApiPersistence {
+  readonly aiActionQuotaRepository: AiActionQuotaRepository;
   readonly documentChunkRepository?: DocumentChunkRepository;
   readonly incidentRepository: IncidentRepository;
   readonly pendingAgreementRepository: PendingAgreementRepository;
@@ -40,6 +44,7 @@ export async function createApiPersistence(
 ): Promise<ApiPersistence> {
   if (!options.databaseUrl?.trim()) {
     return {
+      aiActionQuotaRepository: new InMemoryAiActionQuotaRepository(),
       documentChunkRepository: undefined,
       incidentRepository: new InMemoryIncidentRepository(),
       pendingAgreementRepository: new InMemoryPendingAgreementRepository(),
@@ -59,6 +64,7 @@ export async function createApiPersistence(
   await validatePostgresApiSchema(pool);
 
   return {
+    aiActionQuotaRepository: new PostgresAiActionQuotaRepository(pool),
     documentChunkRepository: new PostgresDocumentChunkRepository(pool),
     incidentRepository: new PostgresIncidentRepository(pool),
     pendingAgreementRepository: new PostgresPendingAgreementRepository(pool),
@@ -127,13 +133,19 @@ async function validatePostgresApiSchema(pool: pg.Pool): Promise<void> {
         chunks.document_url,
         chunks.content,
         chunks.embedding_model,
-        chunks.embedding
+        chunks.embedding,
+        quota.scope,
+        quota.day,
+        quota.identity_hash,
+        quota.used,
+        quota.limit
       from demo_sessions sessions
       left join community_incidents incidents on incidents.session_id = sessions.id
       left join pending_agreements agreements on agreements.session_id = sessions.id
       left join community_proposals proposals on proposals.session_id = sessions.id
       left join uploaded_documents documents on documents.session_id = sessions.id
       left join document_chunks chunks on chunks.session_id = sessions.id
+      left join ai_action_quota_counters quota on quota.day = to_char(sessions.created_at at time zone 'UTC', 'YYYY-MM-DD')
       limit 0
     `);
     const extension = await pool.query<{ extname: string }>(`
@@ -145,12 +157,20 @@ async function validatePostgresApiSchema(pool: pg.Pool): Promise<void> {
       select indexname
       from pg_indexes
       where schemaname = 'public'
-        and tablename = 'document_chunks'
-        and indexname in ('document_chunks_embedding_hnsw_idx', 'document_chunks_scope_document_idx')
+        and (
+          (
+            tablename = 'document_chunks'
+            and indexname in ('document_chunks_embedding_hnsw_idx', 'document_chunks_scope_document_idx')
+          )
+          or (
+            tablename = 'ai_action_quota_counters'
+            and indexname = 'ai_action_quota_counters_day_scope_idx'
+          )
+        )
       order by indexname
     `);
 
-    if (extension.rowCount !== 1 || indexes.rowCount !== 2) {
+    if (extension.rowCount !== 1 || indexes.rowCount !== 3) {
       throw new Error('El esquema PostgreSQL de la API no esta migrado.');
     }
   } catch (error) {

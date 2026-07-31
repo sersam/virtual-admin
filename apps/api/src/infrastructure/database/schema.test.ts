@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   communityIncidents,
   communityProposals,
+  aiActionQuotaCounters,
   demoSessions,
   documentChunks,
   pendingAgreements,
@@ -130,5 +131,17 @@ describe('database schema', () => {
     expect(columns.chunkIndex.name).toBe('chunk_index');
     expect(columns.documentUrl.name).toBe('document_url');
     expect(columns.embeddingModel.name).toBe('embedding_model');
+  });
+});
+
+describe('ai quota schema', () => {
+  it('define contadores diarios sin IP ni sesion en claro', () => {
+    const columns = getTableColumns(aiActionQuotaCounters);
+
+    expect(getTableName(aiActionQuotaCounters)).toBe('ai_action_quota_counters');
+    expect(Object.keys(columns)).toEqual(['scope', 'day', 'identityHash', 'used', 'limit']);
+    expect(columns.identityHash.name).toBe('identity_hash');
+    expect(Object.keys(columns)).not.toContain('sessionId');
+    expect(Object.keys(columns)).not.toContain('ipAddress');
   });
 });

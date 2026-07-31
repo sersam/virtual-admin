@@ -1,3 +1,4 @@
+export * from './ai.js';
 export * from './chat.js';
 export * from './communications.js';
 export * from './documents.js';

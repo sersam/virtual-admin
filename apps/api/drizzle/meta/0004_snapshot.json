@@ -1,0 +1,750 @@
+{
+  "id": "6082091a-fd98-4b13-affe-0c9321264521",
+  "prevId": "aa349dfb-4dd6-49a5-b462-ff1df191bdee",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.ai_action_quota_counters": {
+      "name": "ai_action_quota_counters",
+      "schema": "",
+      "columns": {
+        "scope": {
+          "name": "scope",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "day": {
+          "name": "day",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "identity_hash": {
+          "name": "identity_hash",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "used": {
+          "name": "used",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "limit": {
+          "name": "limit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "ai_action_quota_counters_day_scope_idx": {
+          "name": "ai_action_quota_counters_day_scope_idx",
+          "columns": [
+            {
+              "expression": "day",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "scope",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "ai_action_quota_counters_pkey": {
+          "name": "ai_action_quota_counters_pkey",
+          "columns": ["scope", "day", "identity_hash"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ai_action_quota_counters_scope_value": {
+          "name": "ai_action_quota_counters_scope_value",
+          "value": "\"ai_action_quota_counters\".\"scope\" in ('session', 'ip')"
+        },
+        "ai_action_quota_counters_day_length": {
+          "name": "ai_action_quota_counters_day_length",
+          "value": "char_length(\"ai_action_quota_counters\".\"day\") = 10"
+        },
+        "ai_action_quota_counters_identity_hash_length": {
+          "name": "ai_action_quota_counters_identity_hash_length",
+          "value": "char_length(\"ai_action_quota_counters\".\"identity_hash\") = 64"
+        },
+        "ai_action_quota_counters_used_non_negative": {
+          "name": "ai_action_quota_counters_used_non_negative",
+          "value": "\"ai_action_quota_counters\".\"used\" >= 0"
+        },
+        "ai_action_quota_counters_limit_positive": {
+          "name": "ai_action_quota_counters_limit_positive",
+          "value": "\"ai_action_quota_counters\".\"limit\" > 0"
+        },
+        "ai_action_quota_counters_used_not_above_limit": {
+          "name": "ai_action_quota_counters_used_not_above_limit",
+          "value": "\"ai_action_quota_counters\".\"used\" <= \"ai_action_quota_counters\".\"limit\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.community_incidents": {
+      "name": "community_incidents",
+      "schema": "",
+      "columns": {
+        "session_id": {
+          "name": "session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "priority": {
+          "name": "priority",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "suggested_responsible": {
+          "name": "suggested_responsible",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "suggested_notice": {
+          "name": "suggested_notice",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "inserted_order": {
+          "name": "inserted_order",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "community_incidents_session_id_demo_sessions_id_fk": {
+          "name": "community_incidents_session_id_demo_sessions_id_fk",
+          "tableFrom": "community_incidents",
+          "tableTo": "demo_sessions",
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "community_incidents_pkey": {
+          "name": "community_incidents_pkey",
+          "columns": ["session_id", "id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "community_incidents_description_length": {
+          "name": "community_incidents_description_length",
+          "value": "char_length(\"community_incidents\".\"description\") between 10 and 1000"
+        },
+        "community_incidents_type_value": {
+          "name": "community_incidents_type_value",
+          "value": "\"community_incidents\".\"type\" in ('agua', 'electricidad', 'ascensor', 'limpieza', 'seguridad', 'convivencia', 'otro')"
+        },
+        "community_incidents_priority_value": {
+          "name": "community_incidents_priority_value",
+          "value": "\"community_incidents\".\"priority\" in ('baja', 'media', 'alta', 'urgente')"
+        },
+        "community_incidents_suggested_notice_length": {
+          "name": "community_incidents_suggested_notice_length",
+          "value": "char_length(\"community_incidents\".\"suggested_notice\") <= 2000"
+        },
+        "community_incidents_status_value": {
+          "name": "community_incidents_status_value",
+          "value": "\"community_incidents\".\"status\" in ('pendiente', 'resuelta')"
+        },
+        "community_incidents_pending_without_resolution": {
+          "name": "community_incidents_pending_without_resolution",
+          "value": "(\"community_incidents\".\"status\" = 'pendiente' and \"community_incidents\".\"resolved_at\" is null) or (\"community_incidents\".\"status\" = 'resuelta' and \"community_incidents\".\"resolved_at\" is not null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.community_proposals": {
+      "name": "community_proposals",
+      "schema": "",
+      "columns": {
+        "session_id": {
+          "name": "session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "inserted_order": {
+          "name": "inserted_order",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "community_proposals_session_id_demo_sessions_id_fk": {
+          "name": "community_proposals_session_id_demo_sessions_id_fk",
+          "tableFrom": "community_proposals",
+          "tableTo": "demo_sessions",
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "community_proposals_pkey": {
+          "name": "community_proposals_pkey",
+          "columns": ["session_id", "id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "community_proposals_description_length": {
+          "name": "community_proposals_description_length",
+          "value": "char_length(\"community_proposals\".\"description\") between 10 and 1000"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.demo_sessions": {
+      "name": "demo_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requests_used": {
+          "name": "requests_used",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requests_limit": {
+          "name": "requests_limit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "demo_sessions_requests_used_non_negative": {
+          "name": "demo_sessions_requests_used_non_negative",
+          "value": "\"demo_sessions\".\"requests_used\" >= 0"
+        },
+        "demo_sessions_requests_limit_positive": {
+          "name": "demo_sessions_requests_limit_positive",
+          "value": "\"demo_sessions\".\"requests_limit\" > 0"
+        },
+        "demo_sessions_requests_used_not_above_limit": {
+          "name": "demo_sessions_requests_used_not_above_limit",
+          "value": "\"demo_sessions\".\"requests_used\" <= \"demo_sessions\".\"requests_limit\""
+        },
+        "demo_sessions_expires_after_created": {
+          "name": "demo_sessions_expires_after_created",
+          "value": "\"demo_sessions\".\"expires_at\" > \"demo_sessions\".\"created_at\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.document_chunks": {
+      "name": "document_chunks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(96)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "document_id": {
+          "name": "document_id",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document_fingerprint": {
+          "name": "document_fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chunk_index": {
+          "name": "chunk_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "section": {
+          "name": "section",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document_url": {
+          "name": "document_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "embedding_model": {
+          "name": "embedding_model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "embedding": {
+          "name": "embedding",
+          "type": "vector(1536)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "document_chunks_scope_document_idx": {
+          "name": "document_chunks_scope_document_idx",
+          "columns": [
+            {
+              "expression": "session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "document_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "document_fingerprint",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "document_chunks_embedding_hnsw_idx": {
+          "name": "document_chunks_embedding_hnsw_idx",
+          "columns": [
+            {
+              "expression": "embedding",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last",
+              "opclass": "vector_cosine_ops"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "hnsw",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "document_chunks_session_id_demo_sessions_id_fk": {
+          "name": "document_chunks_session_id_demo_sessions_id_fk",
+          "tableFrom": "document_chunks",
+          "tableTo": "demo_sessions",
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "document_chunks_document_id_length": {
+          "name": "document_chunks_document_id_length",
+          "value": "char_length(\"document_chunks\".\"document_id\") >= 1"
+        },
+        "document_chunks_document_fingerprint_length": {
+          "name": "document_chunks_document_fingerprint_length",
+          "value": "char_length(\"document_chunks\".\"document_fingerprint\") >= 1"
+        },
+        "document_chunks_chunk_index_non_negative": {
+          "name": "document_chunks_chunk_index_non_negative",
+          "value": "\"document_chunks\".\"chunk_index\" >= 0"
+        },
+        "document_chunks_title_length": {
+          "name": "document_chunks_title_length",
+          "value": "char_length(\"document_chunks\".\"title\") >= 1"
+        },
+        "document_chunks_type_length": {
+          "name": "document_chunks_type_length",
+          "value": "char_length(\"document_chunks\".\"type\") >= 1"
+        },
+        "document_chunks_section_length": {
+          "name": "document_chunks_section_length",
+          "value": "char_length(\"document_chunks\".\"section\") >= 1"
+        },
+        "document_chunks_document_url_length": {
+          "name": "document_chunks_document_url_length",
+          "value": "char_length(\"document_chunks\".\"document_url\") >= 1"
+        },
+        "document_chunks_content_length": {
+          "name": "document_chunks_content_length",
+          "value": "char_length(\"document_chunks\".\"content\") >= 1"
+        },
+        "document_chunks_embedding_model_length": {
+          "name": "document_chunks_embedding_model_length",
+          "value": "char_length(\"document_chunks\".\"embedding_model\") >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.pending_agreements": {
+      "name": "pending_agreements",
+      "schema": "",
+      "columns": {
+        "session_id": {
+          "name": "session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "varchar(240)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "assignee": {
+          "name": "assignee",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "due_date": {
+          "name": "due_date",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "normalized_signature": {
+          "name": "normalized_signature",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "inserted_order": {
+          "name": "inserted_order",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "pending_agreements_session_id_demo_sessions_id_fk": {
+          "name": "pending_agreements_session_id_demo_sessions_id_fk",
+          "tableFrom": "pending_agreements",
+          "tableTo": "demo_sessions",
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pending_agreements_pkey": {
+          "name": "pending_agreements_pkey",
+          "columns": ["session_id", "id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "pending_agreements_description_length": {
+          "name": "pending_agreements_description_length",
+          "value": "char_length(\"pending_agreements\".\"description\") >= 1"
+        },
+        "pending_agreements_assignee_length": {
+          "name": "pending_agreements_assignee_length",
+          "value": "\"pending_agreements\".\"assignee\" is null or char_length(\"pending_agreements\".\"assignee\") >= 1"
+        },
+        "pending_agreements_due_date_length": {
+          "name": "pending_agreements_due_date_length",
+          "value": "\"pending_agreements\".\"due_date\" is null or char_length(\"pending_agreements\".\"due_date\") >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.uploaded_documents": {
+      "name": "uploaded_documents",
+      "schema": "",
+      "columns": {
+        "session_id": {
+          "name": "session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "filename": {
+          "name": "filename",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content_type": {
+          "name": "content_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uploaded_at": {
+          "name": "uploaded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document_url": {
+          "name": "document_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text_content": {
+          "name": "text_content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "name": "content",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "inserted_order": {
+          "name": "inserted_order",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "uploaded_documents_session_id_demo_sessions_id_fk": {
+          "name": "uploaded_documents_session_id_demo_sessions_id_fk",
+          "tableFrom": "uploaded_documents",
+          "tableTo": "demo_sessions",
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "uploaded_documents_pkey": {
+          "name": "uploaded_documents_pkey",
+          "columns": ["session_id", "id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "uploaded_documents_title_length": {
+          "name": "uploaded_documents_title_length",
+          "value": "char_length(\"uploaded_documents\".\"title\") >= 1"
+        },
+        "uploaded_documents_filename_length": {
+          "name": "uploaded_documents_filename_length",
+          "value": "char_length(\"uploaded_documents\".\"filename\") >= 1"
+        },
+        "uploaded_documents_content_type_pdf": {
+          "name": "uploaded_documents_content_type_pdf",
+          "value": "\"uploaded_documents\".\"content_type\" = 'application/pdf'"
+        },
+        "uploaded_documents_size_bounds": {
+          "name": "uploaded_documents_size_bounds",
+          "value": "\"uploaded_documents\".\"size_bytes\" between 1 and 5242880"
+        },
+        "uploaded_documents_document_url_length": {
+          "name": "uploaded_documents_document_url_length",
+          "value": "char_length(\"uploaded_documents\".\"document_url\") >= 1"
+        },
+        "uploaded_documents_content_not_empty": {
+          "name": "uploaded_documents_content_not_empty",
+          "value": "octet_length(\"uploaded_documents\".\"content\") >= 1"
+        },
+        "uploaded_documents_content_length_matches_size": {
+          "name": "uploaded_documents_content_length_matches_size",
+          "value": "octet_length(\"uploaded_documents\".\"content\") = \"uploaded_documents\".\"size_bytes\""
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AiFallbackReasonSchema } from './ai.js';
 import { AiProviderModeSchema } from './communications.js';
 
 export const MeetingMinutesDraftRequestSchema = z.object({
@@ -20,6 +21,7 @@ export const MeetingMinutesDraftSchema = z.object({
 
 export const MeetingMinutesDraftResponseSchema = z.object({
   draft: MeetingMinutesDraftSchema,
+  fallbackReason: AiFallbackReasonSchema.optional(),
   mode: AiProviderModeSchema,
 });
 
