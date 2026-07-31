@@ -169,8 +169,8 @@ describe('ai telemetry schema', () => {
     ]);
     expect(columns.promptVersion.name).toBe('prompt_version');
     expect(columns.estimatedCostUsd.name).toBe('estimated_cost_usd');
-    expect(Object.keys(columns)).not.toEqual(
-      expect.arrayContaining(['prompt', 'response', 'document', 'sessionId', 'ipAddress']),
-    );
+    for (const forbidden of ['prompt', 'response', 'document', 'sessionId', 'ipAddress']) {
+      expect(Object.keys(columns)).not.toContain(forbidden);
+    }
   });
 });

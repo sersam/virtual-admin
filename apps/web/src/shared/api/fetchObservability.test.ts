@@ -4,18 +4,21 @@ import { fetchObservability } from './fetchObservability';
 describe('fetchObservability', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('valida el contrato de observabilidad de la API', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => new Response(JSON.stringify(response), { status: 200 })),
-    );
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(response), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
 
     await expect(fetchObservability()).resolves.toMatchObject({
       period: { day: '2026-07-31' },
       summary: { executions: 1 },
     });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/observability'),
+      expect.objectContaining({ credentials: 'omit', method: 'GET' }),
+    );
   });
 
   it('rechaza respuestas no disponibles', async () => {
@@ -25,6 +28,15 @@ describe('fetchObservability', () => {
     );
 
     await expect(fetchObservability()).rejects.toThrow('No se pudieron cargar las métricas');
+  });
+
+  it('rechaza respuestas 200 con contrato inválido', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ generatedAt: 'invalid' }), { status: 200 })),
+    );
+
+    await expect(fetchObservability()).rejects.toThrow();
   });
 });
 

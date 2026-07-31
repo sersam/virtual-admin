@@ -1,17 +1,15 @@
 import type { AiFallbackReason } from '@admin/contracts';
-import type { AiActionQuotaRepository } from '../ports/AiActionQuotaRepository.js';
+import type {
+  AiActionQuotaRepository,
+  AiActionQuotaReservationInput,
+} from '../ports/AiActionQuotaRepository.js';
 
 interface AiActionQuotaPolicyDependencies {
+  readonly logger?: { readonly error: (message: string, error: unknown) => void };
   readonly repository: AiActionQuotaRepository;
 }
 
-interface ReserveAiActionQuotaInput {
-  readonly day: string;
-  readonly ipHash: string;
-  readonly ipLimit: number;
-  readonly sessionHash: string;
-  readonly sessionLimit: number;
-}
+type ReserveAiActionQuotaInput = AiActionQuotaReservationInput;
 
 export type AiActionQuotaDecision =
   | { readonly allowed: true }
@@ -28,7 +26,8 @@ export class AiActionQuotaPolicy {
       const result = await this.dependencies.repository.reserve(input);
       if (result.status === 'reserved') return { allowed: true };
       return { allowed: false, fallbackReason: result.reason };
-    } catch {
+    } catch (error) {
+      this.dependencies.logger?.error('ai-action-quota-unavailable', error);
       return { allowed: false, fallbackReason: 'quota-unavailable' };
     }
   }

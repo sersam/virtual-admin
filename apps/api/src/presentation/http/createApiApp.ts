@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { type ErrorRequestHandler, type Request, type Response } from 'express';
@@ -102,6 +103,8 @@ import { hashDailyAiQuotaIdentity } from './hashDailyAiQuotaIdentity.js';
 
 const SESSION_COOKIE = 'va_session';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const AI_QUOTA_SECRET_CONTEXT = 'ai-action-quota-identity.v1';
+const FALLBACK_TELEMETRY_TIMEOUT_MS = 250;
 const uploadPdf = multer({
   limits: { fileSize: PdfUploadConstraints.maxSizeBytes },
   storage: multer.memoryStorage(),
@@ -110,6 +113,7 @@ const uploadPdf = multer({
 interface ApiAppOptions {
   readonly aiActionIpLimit?: number;
   readonly aiActionQuotaRepository?: AiActionQuotaRepository;
+  readonly aiActionQuotaSecret?: string;
   readonly aiActionSessionLimit?: number;
   readonly aiTelemetryEventRepository?: AiTelemetryEventRepository;
   readonly aiTelemetryReporter?: AiTelemetryReporter;
@@ -265,7 +269,10 @@ export function createApiApp(options: ApiAppOptions) {
     repository: options.uploadedDocumentRepository,
   });
   const aiQuotaPolicy = options.aiActionQuotaRepository
-    ? new AiActionQuotaPolicy({ repository: options.aiActionQuotaRepository })
+    ? new AiActionQuotaPolicy({
+        logger: console,
+        repository: options.aiActionQuotaRepository,
+      })
     : undefined;
 
   async function executeAiAction<Result extends object>(params: {
@@ -325,7 +332,7 @@ export function createApiApp(options: ApiAppOptions) {
     latencyMs: number,
     result: 'failure' | 'success',
   ): Promise<void> {
-    await options.aiTelemetryReporter?.record({
+    const telemetryWrite = options.aiTelemetryReporter?.record({
       cachedInputTokens: 0,
       estimatedCostUsd: 0,
       fallbackReason,
@@ -338,6 +345,16 @@ export function createApiApp(options: ApiAppOptions) {
       provider: 'deterministic-demo',
       result,
     });
+    if (!telemetryWrite) return;
+
+    await Promise.race([
+      telemetryWrite.catch((error: unknown) => {
+        console.error('ai-deterministic-fallback-telemetry-failed', error);
+      }),
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, FALLBACK_TELEMETRY_TIMEOUT_MS);
+      }),
+    ]);
   }
 
   app.disable('x-powered-by');
@@ -779,22 +796,30 @@ function attachSessionCookie(response: Response, sessionId: string, options: Api
 
 function buildQuotaInput(request: Request, sessionId: string, options: ApiAppOptions) {
   const day = toUtcDay(options.clock.now());
+  const secret = buildAiQuotaSecret(options);
 
   return {
     day,
     ipHash: hashDailyAiQuotaIdentity({
       day,
-      secret: options.cookieSecret,
+      secret,
       value: request.ip ?? 'unknown',
     }),
     ipLimit: options.aiActionIpLimit ?? 100,
     sessionHash: hashDailyAiQuotaIdentity({
       day,
-      secret: options.cookieSecret,
+      secret,
       value: sessionId,
     }),
     sessionLimit: options.aiActionSessionLimit ?? 20,
   };
+}
+
+function buildAiQuotaSecret(options: ApiAppOptions): string {
+  return (
+    options.aiActionQuotaSecret ??
+    createHmac('sha256', options.cookieSecret).update(AI_QUOTA_SECRET_CONTEXT).digest('hex')
+  );
 }
 
 function presentFallbackReason(result: object): { readonly fallbackReason?: AiFallbackReason } {

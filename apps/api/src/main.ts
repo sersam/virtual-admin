@@ -33,6 +33,9 @@ const aiActionIpLimit = readPositiveIntegerEnvironmentVariable('AI_ACTION_IP_DAI
 const app = createApiApp({
   aiActionIpLimit,
   aiActionQuotaRepository: persistence.aiActionQuotaRepository,
+  ...(process.env.AI_ACTION_QUOTA_SECRET
+    ? { aiActionQuotaSecret: process.env.AI_ACTION_QUOTA_SECRET }
+    : {}),
   aiActionSessionLimit,
   aiTelemetryEventRepository: persistence.aiTelemetryEventRepository,
   aiTelemetryReporter: aiTelemetry,

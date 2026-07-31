@@ -91,7 +91,7 @@ function ObservabilityContent({ data }: { readonly data: ObservabilityResponse }
           emptyLabel="Sin operaciones registradas hoy."
           items={data.byOperation.map((item) => ({
             label: formatOperation(item.operation),
-            value: `${formatInteger(item.executions)} ejecuciones`,
+            value: formatExecutions(item.executions),
           }))}
           title="Por operación"
         />
@@ -155,6 +155,10 @@ function formatCurrency(value: number): string {
 
 function formatInteger(value: number): string {
   return new Intl.NumberFormat('es-ES').format(value);
+}
+
+function formatExecutions(value: number): string {
+  return `${formatInteger(value)} ${value === 1 ? 'ejecución' : 'ejecuciones'}`;
 }
 
 function formatOperation(operation: string): string {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { AiActionQuotaRepository } from '../ports/AiActionQuotaRepository.js';
 import { AiActionQuotaPolicy, toUtcDay } from './AiActionQuotaPolicy.js';
 
@@ -33,12 +33,14 @@ describe('AiActionQuotaPolicy', () => {
         throw new Error('database unavailable');
       },
     };
-    const policy = new AiActionQuotaPolicy({ repository });
+    const logger = { error: vi.fn() };
+    const policy = new AiActionQuotaPolicy({ logger, repository });
 
     await expect(policy.reserve(validInput)).resolves.toEqual({
       allowed: false,
       fallbackReason: 'quota-unavailable',
     });
+    expect(logger.error).toHaveBeenCalledWith('ai-action-quota-unavailable', expect.any(Error));
   });
 });
 

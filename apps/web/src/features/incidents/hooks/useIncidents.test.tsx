@@ -144,6 +144,34 @@ describe('useIncidents', () => {
     expect(result.current.incidents).toEqual([liftIncident]);
   });
 
+  it('limpia el motivo de fallback al cargar un filtro sin IA', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ incidents: [] }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            fallbackReason: 'provider-error',
+            incident: liftIncident,
+            mode: 'deterministic-demo',
+          }),
+          { status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ incidents: [liftIncident] }), { status: 200 }),
+      );
+    const { result } = renderHook(() => useIncidents());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await act(() => result.current.create('El ascensor no funciona desde esta mañana.'));
+    expect(result.current.fallbackReason).toBe('provider-error');
+
+    await act(() => result.current.filterByType('ascensor'));
+
+    expect(result.current.fallbackReason).toBeUndefined();
+    expect(result.current.selectedType).toBe('ascensor');
+  });
+
   it('resuelve una incidencia y actualiza solo ese elemento del listado', async () => {
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(

@@ -41,7 +41,7 @@ describe('buildObservabilityResponse', () => {
       estimatedCostUsd: 0.001,
       executions: 2,
       fallbacks: 1,
-      totalTokens: 16,
+      totalTokens: 15,
     });
     expect(response.byOperation).toHaveLength(1);
     expect(response.byModel.map(({ model }) => model)).toEqual([

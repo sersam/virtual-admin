@@ -45,7 +45,7 @@ describe('PostgresAiTelemetryEventRepository', () => {
       sessionLimit: 20,
     });
 
-    expect(response.summary).toMatchObject({ executions: 1, successes: 1, totalTokens: 35 });
+    expect(response.summary).toMatchObject({ executions: 1, successes: 1, totalTokens: 30 });
     expect(response.byModel).toEqual([
       expect.objectContaining({ model: 'gpt-5-mini', provider: 'openai' }),
     ]);
@@ -60,9 +60,9 @@ describe('PostgresAiTelemetryEventRepository', () => {
       `,
     );
 
-    expect(columns.rows.map(({ column_name }) => column_name)).not.toEqual(
-      expect.arrayContaining(['prompt', 'response', 'document', 'session_id', 'ip_address']),
-    );
+    for (const forbidden of ['prompt', 'response', 'document', 'session_id', 'ip_address']) {
+      expect(columns.rows.map(({ column_name }) => column_name)).not.toContain(forbidden);
+    }
   });
 });
 

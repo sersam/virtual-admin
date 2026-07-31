@@ -3,7 +3,7 @@ import { apiBaseUrl } from './apiConfig';
 
 export async function fetchObservability(signal?: AbortSignal): Promise<ObservabilityResponse> {
   const response = await fetch(`${apiBaseUrl}/api/observability`, {
-    credentials: 'include',
+    credentials: 'omit',
     method: 'GET',
     signal,
   });

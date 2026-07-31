@@ -1,7 +1,9 @@
 import type { ObservabilityMetricSummary, ObservabilityResponse } from '@admin/contracts';
 import { ObservabilityResponseSchema } from '@admin/contracts';
-import type { AiTelemetrySummaryInput } from '../../application/ports/AiTelemetryEventRepository.js';
-import type { PersistedAiTelemetryEvent } from '../../application/ports/AiTelemetryEventRepository.js';
+import type {
+  AiTelemetrySummaryInput,
+  PersistedAiTelemetryEvent,
+} from '../../application/ports/AiTelemetryEventRepository.js';
 
 export function buildObservabilityResponse(
   events: readonly PersistedAiTelemetryEvent[],
@@ -102,6 +104,6 @@ function summarize(events: readonly PersistedAiTelemetryEvent[]): ObservabilityM
     inputTokens: totals.inputTokens,
     outputTokens: totals.outputTokens,
     successes: totals.successes,
-    totalTokens: totals.inputTokens + totals.cachedInputTokens + totals.outputTokens,
+    totalTokens: Math.max(totals.inputTokens, totals.cachedInputTokens) + totals.outputTokens,
   };
 }

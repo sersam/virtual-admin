@@ -48,6 +48,7 @@ export function useIncidents() {
     setState((current) => ({
       ...current,
       error: undefined,
+      fallbackReason: undefined,
       localClassification: undefined,
       selectedType: type,
       status: 'loading',
@@ -58,7 +59,7 @@ export function useIncidents() {
       if (latestLoadRequestId.current !== requestId) return;
       setState((current) => ({
         incidents,
-        fallbackReason: current.fallbackReason,
+        fallbackReason: undefined,
         providerMode: current.providerMode,
         selectedType: type,
         status: 'ready',

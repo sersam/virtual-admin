@@ -13,6 +13,7 @@ export class InMemoryAiActionQuotaRepository implements AiActionQuotaRepository 
   private readonly counters = new Map<string, QuotaCounter>();
 
   async reserve(input: AiActionQuotaReservationInput): Promise<AiActionQuotaReservationResult> {
+    this.forgetPreviousDays(input.day);
     const sessionKey = buildCounterKey('session', input.day, input.sessionHash);
     const ipKey = buildCounterKey('ip', input.day, input.ipHash);
     const sessionCounter = this.counters.get(sessionKey) ?? { limit: input.sessionLimit, used: 0 };
@@ -42,6 +43,12 @@ export class InMemoryAiActionQuotaRepository implements AiActionQuotaRepository 
 
   getUsedForTest(scope: 'ip' | 'session', day: string, hash: string): number {
     return this.counters.get(buildCounterKey(scope, day, hash))?.used ?? 0;
+  }
+
+  private forgetPreviousDays(day: string): void {
+    for (const key of this.counters.keys()) {
+      if (!key.includes(`:${day}:`)) this.counters.delete(key);
+    }
   }
 }
 

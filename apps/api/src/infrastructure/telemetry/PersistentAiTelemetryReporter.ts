@@ -16,7 +16,12 @@ export class PersistentAiTelemetryReporter implements AiTelemetryReporter {
   constructor(private readonly dependencies: PersistentAiTelemetryReporterDependencies) {}
 
   async record(event: AiTelemetryEvent): Promise<void> {
-    await Promise.allSettled([this.log(event), this.persist(event)]);
+    const results = await Promise.allSettled([this.log(event), this.persist(event)]);
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        console.error('ai-telemetry-reporter-failed', result.reason);
+      }
+    }
   }
 
   private async log(event: AiTelemetryEvent): Promise<void> {

@@ -172,7 +172,7 @@ describe('createApiApp', () => {
       summary: {
         executions: 1,
         successes: 1,
-        totalTokens: 32,
+        totalTokens: 30,
       },
     });
   });

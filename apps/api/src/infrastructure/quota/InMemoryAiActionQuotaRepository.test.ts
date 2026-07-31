@@ -43,6 +43,16 @@ describe('InMemoryAiActionQuotaRepository', () => {
       repository.reserve({ ...baseInput, day: '2026-08-01', sessionLimit: 1 }),
     ).resolves.toEqual({ status: 'reserved' });
   });
+
+  it('olvida contadores de dias anteriores al reservar una cuota nueva', async () => {
+    const repository = new InMemoryAiActionQuotaRepository();
+    await repository.reserve(baseInput);
+
+    await repository.reserve({ ...baseInput, day: '2026-08-01' });
+
+    expect(repository.getUsedForTest('session', baseInput.day, baseInput.sessionHash)).toBe(0);
+    expect(repository.getUsedForTest('ip', baseInput.day, baseInput.ipHash)).toBe(0);
+  });
 });
 
 const baseInput = {

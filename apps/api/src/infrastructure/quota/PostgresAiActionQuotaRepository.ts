@@ -38,21 +38,30 @@ export class PostgresAiActionQuotaRepository implements AiActionQuotaRepository 
 
       if (sessionCounter.used >= input.sessionLimit) {
         await client.query('commit');
+        client.release();
         return { status: 'rejected', reason: 'session-quota' };
       }
       if (ipCounter.used >= input.ipLimit) {
         await client.query('commit');
+        client.release();
         return { status: 'rejected', reason: 'ip-quota' };
       }
 
       await incrementCounters(client, input);
       await client.query('commit');
+      client.release();
       return { status: 'reserved' };
     } catch (error) {
-      await client.query('rollback');
-      throw error;
-    } finally {
+      try {
+        await client.query('rollback');
+      } catch (rollbackError) {
+        client.release(
+          rollbackError instanceof Error ? rollbackError : new Error('rollback fallido'),
+        );
+        throw error;
+      }
       client.release();
+      throw error;
     }
   }
 }
@@ -71,7 +80,7 @@ async function ensureCounter(
       insert into ai_action_quota_counters (scope, day, identity_hash, used, "limit")
       values ($1, $2, $3, 0, $4)
       on conflict (scope, day, identity_hash) do update set
-        "limit" = excluded."limit"
+        "limit" = greatest(excluded."limit", ai_action_quota_counters.used)
     `,
     [input.scope, input.day, input.identityHash, input.limit],
   );

@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import type pg from 'pg';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -45,7 +46,14 @@ describe('PostgresAiActionQuotaRepository', () => {
   });
 
   it('no almacena IP ni sesion en claro', async () => {
-    await repository.reserve(baseInput);
+    const day = '2026-07-31';
+    const rawIp = '203.0.113.10';
+    const rawSession = 'session-raw';
+    const secret = 'quota-test-secret';
+    const ipHash = hashIdentityForTest(secret, day, rawIp);
+    const sessionHash = hashIdentityForTest(secret, day, rawSession);
+
+    await repository.reserve({ ...baseInput, day, ipHash, sessionHash });
 
     const rows = await pool.query<{
       identity_hash: string;
@@ -53,11 +61,11 @@ describe('PostgresAiActionQuotaRepository', () => {
     }>('select scope, identity_hash from ai_action_quota_counters order by scope');
 
     expect(rows.rows).toEqual([
-      { scope: 'ip', identity_hash: baseInput.ipHash },
-      { scope: 'session', identity_hash: baseInput.sessionHash },
+      { scope: 'ip', identity_hash: ipHash },
+      { scope: 'session', identity_hash: sessionHash },
     ]);
-    expect(JSON.stringify(rows.rows)).not.toContain('203.0.113.10');
-    expect(JSON.stringify(rows.rows)).not.toContain('session-raw');
+    expect(JSON.stringify(rows.rows)).not.toContain(rawIp);
+    expect(JSON.stringify(rows.rows)).not.toContain(rawSession);
   });
 
   it('serializa consumos concurrentes de varias sesiones para una misma IP', async () => {
@@ -95,3 +103,7 @@ const baseInput = {
   sessionHash: 'a'.repeat(64),
   sessionLimit: 20,
 } as const;
+
+function hashIdentityForTest(secret: string, day: string, value: string): string {
+  return createHmac('sha256', secret).update(day).update(':').update(value).digest('hex');
+}

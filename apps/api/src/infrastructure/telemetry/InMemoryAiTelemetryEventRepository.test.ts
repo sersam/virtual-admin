@@ -39,6 +39,18 @@ describe('InMemoryAiTelemetryEventRepository', () => {
     });
 
     expect(response.summary.executions).toBe(1);
-    expect(JSON.stringify(repository.listForTest())).not.toContain('contenido de usuario');
+    expect(Object.keys(repository.listForTest()[0] ?? {}).sort()).toEqual([
+      'cachedInputTokens',
+      'estimatedCostUsd',
+      'inputTokens',
+      'latencyMs',
+      'model',
+      'occurredAt',
+      'operation',
+      'outputTokens',
+      'promptVersion',
+      'provider',
+      'result',
+    ]);
   });
 });

@@ -1,4 +1,8 @@
-import type { AiFallbackReason } from '@admin/contracts';
+import {
+  AiFallbackReasonSchema,
+  AiTelemetryProviderSchema,
+  type AiFallbackReason,
+} from '@admin/contracts';
 import type pg from 'pg';
 import type {
   AiTelemetryEventRepository,
@@ -85,10 +89,15 @@ export class PostgresAiTelemetryEventRepository implements AiTelemetryEventRepos
 }
 
 function mapRow(row: AiTelemetryEventRow): PersistedAiTelemetryEvent {
+  const provider = AiTelemetryProviderSchema.parse(row.provider);
+  const fallbackReason = row.fallback_reason
+    ? AiFallbackReasonSchema.parse(row.fallback_reason)
+    : undefined;
+
   return {
     cachedInputTokens: row.cached_input_tokens,
     estimatedCostUsd: row.estimated_cost_usd,
-    ...(row.fallback_reason ? { fallbackReason: row.fallback_reason } : {}),
+    ...(fallbackReason ? { fallbackReason } : {}),
     inputTokens: row.input_tokens,
     latencyMs: row.latency_ms,
     model: row.model,
@@ -96,7 +105,7 @@ function mapRow(row: AiTelemetryEventRow): PersistedAiTelemetryEvent {
     operation: row.operation,
     outputTokens: row.output_tokens,
     promptVersion: row.prompt_version,
-    provider: row.provider,
+    provider,
     result: row.result,
   };
 }

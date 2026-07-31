@@ -5,6 +5,7 @@ import { ObservabilityPanel } from './ObservabilityPanel';
 describe('ObservabilityPanel', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('muestra métricas reales agregadas', async () => {
@@ -16,9 +17,34 @@ describe('ObservabilityPanel', () => {
     render(<ObservabilityPanel />);
 
     expect(await screen.findByText('Límites y métricas técnicas IA')).toBeInTheDocument();
-    expect(await screen.findByText('1 ejecuciones')).toBeInTheDocument();
+    expect(await screen.findByText('1 ejecución')).toBeInTheDocument();
+    expect(screen.getByText('Ejecuciones').nextElementSibling).toHaveTextContent('1');
+    expect(screen.getByText('Fallbacks').nextElementSibling).toHaveTextContent('0');
+    expect(screen.getByText('Tokens').nextElementSibling).toHaveTextContent('30');
+    expect(screen.getByText('Coste estimado').nextElementSibling).toHaveTextContent(/0,001\s*US\$/);
     expect(screen.getByText(/20 acciones por sesión/i)).toBeInTheDocument();
+    expect(screen.getByText(/100 por IP/i)).toBeInTheDocument();
+    expect(screen.getByText(/90 ms · 2026-07-31 UTC/i)).toBeInTheDocument();
     expect(screen.getByText('Documentos')).toBeInTheDocument();
+    expect(screen.getByText('OpenAI · gpt-5-mini')).toBeInTheDocument();
+    expect(screen.getByText('30 tokens')).toBeInTheDocument();
+  });
+
+  it('muestra agregados vacíos sin inventar actividad', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify(emptyResponse), { status: 200 })),
+    );
+
+    render(<ObservabilityPanel />);
+
+    expect(await screen.findByText('Límites y métricas técnicas IA')).toBeInTheDocument();
+    expect(screen.getByText('Ejecuciones').nextElementSibling).toHaveTextContent('0');
+    expect(screen.getByText('Fallbacks').nextElementSibling).toHaveTextContent('0');
+    expect(screen.getByText('Tokens').nextElementSibling).toHaveTextContent('0');
+    expect(screen.getByText('Coste estimado').nextElementSibling).toHaveTextContent(/0,00\s*US\$/);
+    expect(screen.getByText('Sin operaciones registradas hoy.')).toBeInTheDocument();
+    expect(screen.getByText('Sin modelos registrados hoy.')).toBeInTheDocument();
   });
 
   it('muestra indisponibilidad sin inventar métricas', async () => {
@@ -61,4 +87,24 @@ const response = {
     timezone: 'UTC',
   },
   summary,
+};
+
+const emptySummary = {
+  averageLatencyMs: 0,
+  cachedInputTokens: 0,
+  estimatedCostUsd: 0,
+  executions: 0,
+  failures: 0,
+  fallbacks: 0,
+  inputTokens: 0,
+  outputTokens: 0,
+  successes: 0,
+  totalTokens: 0,
+} as const;
+
+const emptyResponse = {
+  ...response,
+  byModel: [],
+  byOperation: [],
+  summary: emptySummary,
 };

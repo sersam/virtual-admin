@@ -1,10 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Clock } from '../../application/ports/Clock.js';
 import type { AiTelemetryEventRepository } from '../../application/ports/AiTelemetryEventRepository.js';
 import { InMemoryAiTelemetryEventRepository } from './InMemoryAiTelemetryEventRepository.js';
 import { PersistentAiTelemetryReporter } from './PersistentAiTelemetryReporter.js';
 
 describe('PersistentAiTelemetryReporter', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('persiste eventos OpenAI con fecha y proveedor por defecto', async () => {
     const repository = new InMemoryAiTelemetryEventRepository();
     const reporter = new PersistentAiTelemetryReporter({
@@ -42,8 +46,41 @@ describe('PersistentAiTelemetryReporter', () => {
       },
       repository,
     });
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
     await expect(reporter.record(event)).resolves.toBeUndefined();
+    expect(console.error).toHaveBeenCalledTimes(2);
+  });
+
+  it('persiste eventos de fallback determinista con motivo publico', async () => {
+    const repository = new InMemoryAiTelemetryEventRepository();
+    const reporter = new PersistentAiTelemetryReporter({
+      clock,
+      consoleReporter: { record: async () => undefined },
+      repository,
+    });
+    const fallbackEvent = {
+      cachedInputTokens: 0,
+      estimatedCostUsd: 0,
+      fallbackReason: 'quota-unavailable',
+      inputTokens: 0,
+      latencyMs: 38,
+      model: 'deterministic-demo',
+      operation: 'chat-intent-classification',
+      outputTokens: 0,
+      promptVersion: 'deterministic-fallback.v1',
+      provider: 'deterministic-demo',
+      result: 'failure',
+    } as const;
+
+    await reporter.record(fallbackEvent);
+
+    expect(repository.listForTest()).toEqual([
+      {
+        ...fallbackEvent,
+        occurredAt: clock.now(),
+      },
+    ]);
   });
 });
 
