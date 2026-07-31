@@ -51,9 +51,9 @@ export function HomePage() {
         <DocumentPreview />
       </div>
 
-      <div className="grid items-start gap-6 xl:grid-cols-2">
-        <SessionCard />
+      <div className="space-y-6">
         <ObservabilityPanel />
+        <SessionCard />
       </div>
     </div>
   );
