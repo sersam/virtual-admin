@@ -68,10 +68,10 @@ async function ensureCounter(
 ): Promise<void> {
   await client.query(
     `
-      insert into ai_action_quota_counters (scope, day, identity_hash, used, limit)
+      insert into ai_action_quota_counters (scope, day, identity_hash, used, "limit")
       values ($1, $2, $3, 0, $4)
       on conflict (scope, day, identity_hash) do update set
-        limit = excluded.limit
+        "limit" = excluded."limit"
     `,
     [input.scope, input.day, input.identityHash, input.limit],
   );
@@ -83,7 +83,7 @@ async function selectCountersForUpdate(
 ): Promise<QuotaCounterRow[]> {
   const result = await client.query<QuotaCounterRow>(
     `
-      select scope, used, limit
+      select scope, used, "limit"
       from ai_action_quota_counters
       where day = $1
         and (

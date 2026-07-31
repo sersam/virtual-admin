@@ -144,7 +144,7 @@ async function validatePostgresApiSchema(pool: pg.Pool): Promise<void> {
         quota.day,
         quota.identity_hash,
         quota.used,
-        quota.limit,
+        quota."limit",
         telemetry.id,
         telemetry.occurred_at,
         telemetry.operation,
