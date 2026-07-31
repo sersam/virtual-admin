@@ -3,6 +3,7 @@ import cors from 'cors';
 import express, { type ErrorRequestHandler, type Request, type Response } from 'express';
 import multer from 'multer';
 import {
+  type AiFallbackReason,
   ChatMessageRequestSchema,
   ChatMessageResponseSchema,
   CommunityNoticeDraftRequestSchema,
@@ -24,12 +25,16 @@ import {
   ResolveIncidentResponseSchema,
   MeetingMinutesDraftRequestSchema,
   MeetingMinutesDraftResponseSchema,
+  ObservabilityResponseSchema,
   PdfUploadConstraints,
   ProposalListResponseSchema,
   SessionResponseSchema,
   UploadedDocumentResponseSchema,
   UploadedDocumentsResponseSchema,
 } from '@admin/contracts';
+import type { AiActionQuotaRepository } from '../../application/ports/AiActionQuotaRepository.js';
+import type { AiTelemetryEventRepository } from '../../application/ports/AiTelemetryEventRepository.js';
+import { AiActionQuotaPolicy, toUtcDay } from '../../application/quota/AiActionQuotaPolicy.js';
 import {
   EnsureDemoSession,
   SessionUsageLimitReachedError,
@@ -86,9 +91,14 @@ import type { MeetingMinutesGenerator } from '../../application/ports/MeetingMin
 import type { PendingAgreementRepository } from '../../application/ports/PendingAgreementRepository.js';
 import type { ProposalRepository } from '../../application/ports/ProposalRepository.js';
 import { AiProviderError } from '../../application/ports/AiProviderError.js';
+import type {
+  AiOperation,
+  AiTelemetryReporter,
+} from '../../application/ports/AiTelemetryReporter.js';
 import { presentIncident } from './incidentPresenter.js';
 import { presentProposal } from './proposalPresenter.js';
 import { presentSession } from './sessionPresenter.js';
+import { hashDailyAiQuotaIdentity } from './hashDailyAiQuotaIdentity.js';
 
 const SESSION_COOKIE = 'va_session';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -98,6 +108,11 @@ const uploadPdf = multer({
 });
 
 interface ApiAppOptions {
+  readonly aiActionIpLimit?: number;
+  readonly aiActionQuotaRepository?: AiActionQuotaRepository;
+  readonly aiActionSessionLimit?: number;
+  readonly aiTelemetryEventRepository?: AiTelemetryEventRepository;
+  readonly aiTelemetryReporter?: AiTelemetryReporter;
   readonly chatIntentClassifier: ChatIntentClassifier;
   readonly clock: Clock;
   readonly chatWorkflowFactory: (dependencies: {
@@ -110,6 +125,13 @@ interface ApiAppOptions {
   }) => ChatWorkflow;
   readonly cookieSecret: string;
   readonly communityNoticeGenerator: CommunityNoticeGenerator;
+  readonly deterministicChatIntentClassifier?: ChatIntentClassifier;
+  readonly deterministicCommunityNoticeGenerator?: CommunityNoticeGenerator;
+  readonly deterministicDocumentAnswerGenerator?: DocumentAnswerGenerator;
+  readonly deterministicDocumentRetriever?: DocumentRetriever;
+  readonly deterministicIncidentClassifier?: IncidentClassifier;
+  readonly deterministicMeetingAgendaGenerator?: MeetingAgendaGenerator;
+  readonly deterministicMeetingMinutesGenerator?: MeetingMinutesGenerator;
   readonly documentAnswerGenerator: DocumentAnswerGenerator;
   readonly documentRetriever: DocumentRetriever;
   readonly ids: IdGenerator;
@@ -126,17 +148,30 @@ interface ApiAppOptions {
   readonly ttlMs?: number;
   readonly uploadedDocumentRepository: UploadedDocumentRepository;
   readonly uploadedDocumentTextExtractor: UploadedDocumentTextExtractor;
+  readonly openAiConfigured?: boolean;
+  readonly trustProxy?: boolean | number;
   readonly version: string;
 }
 
 export function createApiApp(options: ApiAppOptions) {
   const app = express();
+  if (options.trustProxy !== undefined) app.set('trust proxy', options.trustProxy);
   const answerDocumentQuestion = new AnswerDocumentQuestion({
     generator: options.documentAnswerGenerator,
     retriever: options.documentRetriever,
   });
+  const fallbackAnswerDocumentQuestion = new AnswerDocumentQuestion({
+    generator: options.deterministicDocumentAnswerGenerator ?? options.documentAnswerGenerator,
+    retriever: options.deterministicDocumentRetriever ?? options.documentRetriever,
+  });
   const createIncident = new CreateIncident({
     classifier: options.incidentClassifier,
+    clock: options.clock,
+    ids: options.ids,
+    repository: options.incidentRepository,
+  });
+  const fallbackCreateIncident = new CreateIncident({
+    classifier: options.deterministicIncidentClassifier ?? options.incidentClassifier,
     clock: options.clock,
     ids: options.ids,
     repository: options.incidentRepository,
@@ -155,13 +190,29 @@ export function createApiApp(options: ApiAppOptions) {
     pendingAgreementRepository: options.pendingAgreementRepository,
     proposalRepository: options.proposalRepository,
   });
+  const fallbackDraftMeetingAgenda = new DraftMeetingAgenda({
+    generator: options.deterministicMeetingAgendaGenerator ?? options.meetingAgendaGenerator,
+    incidentRepository: options.incidentRepository,
+    meetingRepository: options.meetingRepository,
+    pendingAgreementRepository: options.pendingAgreementRepository,
+    proposalRepository: options.proposalRepository,
+  });
   const listMeetings = new ListMeetings({ meetingRepository: options.meetingRepository });
   const draftCommunityNotice = new DraftCommunityNotice({
     generator: options.communityNoticeGenerator,
   });
+  const fallbackDraftCommunityNotice = new DraftCommunityNotice({
+    generator: options.deterministicCommunityNoticeGenerator ?? options.communityNoticeGenerator,
+  });
   const draftMeetingMinutes = new DraftMeetingMinutes({
     clock: options.clock,
     generator: options.meetingMinutesGenerator,
+    ids: options.ids,
+    pendingAgreementRepository: options.pendingAgreementRepository,
+  });
+  const fallbackDraftMeetingMinutes = new DraftMeetingMinutes({
+    clock: options.clock,
+    generator: options.deterministicMeetingMinutesGenerator ?? options.meetingMinutesGenerator,
     ids: options.ids,
     pendingAgreementRepository: options.pendingAgreementRepository,
   });
@@ -177,6 +228,17 @@ export function createApiApp(options: ApiAppOptions) {
       draftCommunityNotice,
       draftMeetingAgenda,
       draftMeetingMinutes,
+    }),
+  });
+  const fallbackCoordinateChatMessage = new CoordinateChatMessage({
+    workflow: options.chatWorkflowFactory({
+      answerDocumentQuestion: fallbackAnswerDocumentQuestion,
+      chatIntentClassifier:
+        options.deterministicChatIntentClassifier ?? options.chatIntentClassifier,
+      createIncident: fallbackCreateIncident,
+      draftCommunityNotice: fallbackDraftCommunityNotice,
+      draftMeetingAgenda: fallbackDraftMeetingAgenda,
+      draftMeetingMinutes: fallbackDraftMeetingMinutes,
     }),
   });
   const ensureSession = new EnsureDemoSession({
@@ -202,6 +264,81 @@ export function createApiApp(options: ApiAppOptions) {
   const getUploadedDocument = new GetUploadedDocument({
     repository: options.uploadedDocumentRepository,
   });
+  const aiQuotaPolicy = options.aiActionQuotaRepository
+    ? new AiActionQuotaPolicy({ repository: options.aiActionQuotaRepository })
+    : undefined;
+
+  async function executeAiAction<Result extends object>(params: {
+    readonly fallback: () => Promise<Result>;
+    readonly operation: AiOperation;
+    readonly primary: () => Promise<Result>;
+    readonly request: Request;
+    readonly sessionId: string;
+  }): Promise<Result> {
+    if (!options.openAiConfigured) return params.primary();
+
+    const reserved = aiQuotaPolicy
+      ? await aiQuotaPolicy.reserve(buildQuotaInput(params.request, params.sessionId, options))
+      : ({ allowed: false, fallbackReason: 'quota-unavailable' } as const);
+
+    if (!reserved.allowed) {
+      return executeFallback(params.fallback, params.operation, reserved.fallbackReason);
+    }
+
+    try {
+      return await params.primary();
+    } catch (error) {
+      if (!(error instanceof AiProviderError)) throw error;
+      return executeFallback(params.fallback, params.operation, 'provider-error');
+    }
+  }
+
+  async function executeFallback<Result extends object>(
+    fallback: () => Promise<Result>,
+    operation: AiOperation,
+    fallbackReason: AiFallbackReason,
+  ): Promise<Result> {
+    const startedAt = Date.now();
+    try {
+      const result = await fallback();
+      await recordDeterministicFallback(
+        operation,
+        fallbackReason,
+        Date.now() - startedAt,
+        'success',
+      );
+      return { ...result, fallbackReason };
+    } catch (error) {
+      await recordDeterministicFallback(
+        operation,
+        fallbackReason,
+        Date.now() - startedAt,
+        'failure',
+      );
+      throw error;
+    }
+  }
+
+  async function recordDeterministicFallback(
+    operation: AiOperation,
+    fallbackReason: AiFallbackReason,
+    latencyMs: number,
+    result: 'failure' | 'success',
+  ): Promise<void> {
+    await options.aiTelemetryReporter?.record({
+      cachedInputTokens: 0,
+      estimatedCostUsd: 0,
+      fallbackReason,
+      inputTokens: 0,
+      latencyMs,
+      model: 'deterministic-demo',
+      operation,
+      outputTokens: 0,
+      promptVersion: 'deterministic-fallback.v1',
+      provider: 'deterministic-demo',
+      result,
+    });
+  }
 
   app.disable('x-powered-by');
   app.use(
@@ -243,7 +380,17 @@ export function createApiApp(options: ApiAppOptions) {
       }
 
       const session = await ensureSession.execute(readSignedSessionId(request));
-      const answer = await answerDocumentQuestion.execute(payloadResult.data.question, {
+      const answer = await executeAiAction({
+        fallback: () =>
+          fallbackAnswerDocumentQuestion.execute(payloadResult.data.question, {
+            sessionId: session.id,
+          }),
+        operation: 'document-answer',
+        primary: () =>
+          answerDocumentQuestion.execute(payloadResult.data.question, {
+            sessionId: session.id,
+          }),
+        request,
         sessionId: session.id,
       });
 
@@ -263,7 +410,17 @@ export function createApiApp(options: ApiAppOptions) {
       }
 
       const session = await ensureSession.execute(readSignedSessionId(request));
-      const answer = await coordinateChatMessage.execute(payloadResult.data.message, {
+      const answer = await executeAiAction({
+        fallback: () =>
+          fallbackCoordinateChatMessage.execute(payloadResult.data.message, {
+            sessionId: session.id,
+          }),
+        operation: 'chat-intent-classification',
+        primary: () =>
+          coordinateChatMessage.execute(payloadResult.data.message, {
+            sessionId: session.id,
+          }),
+        request,
         sessionId: session.id,
       });
 
@@ -283,7 +440,13 @@ export function createApiApp(options: ApiAppOptions) {
       }
 
       const session = await ensureSession.execute(readSignedSessionId(request));
-      const draft = await draftCommunityNotice.execute(payloadResult.data);
+      const draft = await executeAiAction({
+        fallback: () => fallbackDraftCommunityNotice.execute(payloadResult.data),
+        operation: 'community-notice',
+        primary: () => draftCommunityNotice.execute(payloadResult.data),
+        request,
+        sessionId: session.id,
+      });
 
       attachSessionCookie(response, session.id, options);
       response.json(CommunityNoticeDraftResponseSchema.parse(draft));
@@ -301,7 +464,17 @@ export function createApiApp(options: ApiAppOptions) {
       }
 
       const session = await ensureSession.execute(readSignedSessionId(request));
-      const draft = await draftMeetingMinutes.execute(payloadResult.data.notes, {
+      const draft = await executeAiAction({
+        fallback: () =>
+          fallbackDraftMeetingMinutes.execute(payloadResult.data.notes, {
+            sessionId: session.id,
+          }),
+        operation: 'meeting-minutes',
+        primary: () =>
+          draftMeetingMinutes.execute(payloadResult.data.notes, {
+            sessionId: session.id,
+          }),
+        request,
         sessionId: session.id,
       });
 
@@ -321,9 +494,20 @@ export function createApiApp(options: ApiAppOptions) {
       }
 
       const session = await ensureSession.execute(readSignedSessionId(request));
-      const draft = await draftMeetingAgenda.execute({
+      const draft = await executeAiAction({
+        fallback: () =>
+          fallbackDraftMeetingAgenda.execute({
+            sessionId: session.id,
+            meetingId: payloadResult.data.meetingId,
+          }),
+        operation: 'meeting-agenda',
+        primary: () =>
+          draftMeetingAgenda.execute({
+            sessionId: session.id,
+            meetingId: payloadResult.data.meetingId,
+          }),
+        request,
         sessionId: session.id,
-        meetingId: payloadResult.data.meetingId,
       });
 
       attachSessionCookie(response, session.id, options);
@@ -354,15 +538,27 @@ export function createApiApp(options: ApiAppOptions) {
       }
 
       const session = await ensureSession.execute(readSignedSessionId(request));
-      const incident = await createIncident.execute({
+      const incident = await executeAiAction({
+        fallback: () =>
+          fallbackCreateIncident.execute({
+            sessionId: session.id,
+            description: payloadResult.data.description,
+          }),
+        operation: 'incident-classification',
+        primary: () =>
+          createIncident.execute({
+            sessionId: session.id,
+            description: payloadResult.data.description,
+          }),
+        request,
         sessionId: session.id,
-        description: payloadResult.data.description,
       });
 
       attachSessionCookie(response, session.id, options);
       response.status(201).json(
         CreateIncidentResponseSchema.parse({
           incident: presentIncident(incident.incident),
+          ...presentFallbackReason(incident),
           mode: incident.mode,
         }),
       );
@@ -531,6 +727,32 @@ export function createApiApp(options: ApiAppOptions) {
     },
   );
 
+  app.get('/api/observability', async (_request: Request, response: Response, next) => {
+    try {
+      if (!options.aiTelemetryEventRepository) {
+        sendError(
+          response,
+          503,
+          'OBSERVABILITY_UNAVAILABLE',
+          'No hay métricas reales disponibles en este momento.',
+        );
+        return;
+      }
+
+      const generatedAt = options.clock.now();
+      const metrics = await options.aiTelemetryEventRepository.summarizeDay({
+        day: toUtcDay(generatedAt),
+        generatedAt,
+        ipLimit: options.aiActionIpLimit ?? 100,
+        sessionLimit: options.aiActionSessionLimit ?? 20,
+      });
+
+      response.json(ObservabilityResponseSchema.parse(metrics));
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.use((_request: Request, response: Response) => {
     sendError(response, 404, 'NOT_FOUND', 'Ruta no encontrada.');
   });
@@ -553,6 +775,34 @@ function attachSessionCookie(response: Response, sessionId: string, options: Api
     secure: options.secureCookies ?? false,
     signed: true,
   });
+}
+
+function buildQuotaInput(request: Request, sessionId: string, options: ApiAppOptions) {
+  const day = toUtcDay(options.clock.now());
+
+  return {
+    day,
+    ipHash: hashDailyAiQuotaIdentity({
+      day,
+      secret: options.cookieSecret,
+      value: request.ip ?? 'unknown',
+    }),
+    ipLimit: options.aiActionIpLimit ?? 100,
+    sessionHash: hashDailyAiQuotaIdentity({
+      day,
+      secret: options.cookieSecret,
+      value: sessionId,
+    }),
+    sessionLimit: options.aiActionSessionLimit ?? 20,
+  };
+}
+
+function presentFallbackReason(result: object): { readonly fallbackReason?: AiFallbackReason } {
+  if (!('fallbackReason' in result)) return {};
+  const fallbackReason = result.fallbackReason;
+  return typeof fallbackReason === 'string'
+    ? { fallbackReason: fallbackReason as AiFallbackReason }
+    : {};
 }
 
 const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {

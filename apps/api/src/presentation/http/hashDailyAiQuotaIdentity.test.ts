@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hashDailyAiQuotaIdentity } from './hashAiQuotaIdentity.js';
+import { hashDailyAiQuotaIdentity } from './hashDailyAiQuotaIdentity.js';
 
 describe('hashDailyAiQuotaIdentity', () => {
   it('genera hashes diarios estables sin incluir el valor original', () => {

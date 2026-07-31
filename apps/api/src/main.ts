@@ -22,8 +22,20 @@ const aiProviders = createAiProviders({
   openAiApiKey: process.env.OPENAI_API_KEY,
   telemetry: aiTelemetry,
 });
+const deterministicAiProviders = createAiProviders({});
+const openAiConfigured = Boolean(process.env.OPENAI_API_KEY?.trim());
+const aiActionSessionLimit = readPositiveIntegerEnvironmentVariable(
+  'AI_ACTION_SESSION_DAILY_LIMIT',
+  20,
+);
+const aiActionIpLimit = readPositiveIntegerEnvironmentVariable('AI_ACTION_IP_DAILY_LIMIT', 100);
 
 const app = createApiApp({
+  aiActionIpLimit,
+  aiActionQuotaRepository: persistence.aiActionQuotaRepository,
+  aiActionSessionLimit,
+  aiTelemetryEventRepository: persistence.aiTelemetryEventRepository,
+  aiTelemetryReporter: aiTelemetry,
   clock,
   chatWorkflowFactory: ({
     answerDocumentQuestion,
@@ -43,6 +55,16 @@ const app = createApiApp({
     }),
   chatIntentClassifier: aiProviders.chatIntentClassifier,
   communityNoticeGenerator: aiProviders.communityNoticeGenerator,
+  deterministicChatIntentClassifier: deterministicAiProviders.chatIntentClassifier,
+  deterministicCommunityNoticeGenerator: deterministicAiProviders.communityNoticeGenerator,
+  deterministicDocumentAnswerGenerator: deterministicAiProviders.documentAnswerGenerator,
+  deterministicDocumentRetriever: createDocumentRetriever({
+    documents: residencialSierraNevadaDocuments,
+    uploadedDocumentRepository: persistence.uploadedDocumentRepository,
+  }),
+  deterministicIncidentClassifier: deterministicAiProviders.incidentClassifier,
+  deterministicMeetingAgendaGenerator: deterministicAiProviders.meetingAgendaGenerator,
+  deterministicMeetingMinutesGenerator: deterministicAiProviders.meetingMinutesGenerator,
   documentAnswerGenerator: aiProviders.documentAnswerGenerator,
   cookieSecret,
   documentRetriever: createDocumentRetriever({
@@ -64,6 +86,8 @@ const app = createApiApp({
   version: '0.1.0',
   uploadedDocumentRepository: persistence.uploadedDocumentRepository,
   uploadedDocumentTextExtractor: new PdfParseUploadedDocumentTextExtractor(),
+  openAiConfigured,
+  trustProxy: process.env.NODE_ENV === 'production' ? 1 : false,
 });
 
 const server = app.listen(port, () => {
@@ -83,5 +107,17 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
 function readRequiredEnvironmentVariable(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`La variable de entorno ${name} es obligatoria.`);
+  return value;
+}
+
+function readPositiveIntegerEnvironmentVariable(name: string, fallback: number): number {
+  const rawValue = process.env[name]?.trim();
+  if (!rawValue) return fallback;
+
+  const value = Number(rawValue);
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`La variable de entorno ${name} debe ser un entero positivo.`);
+  }
+
   return value;
 }
