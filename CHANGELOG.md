@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-07-31 · PR [#28](https://github.com/sersam/virtual-admin/pull/28)
+
+### Added
+
+- Añade limites diarios para acciones IA, telemetria publica agregada y avisos de fallback determinista.
+
 ## 2026-07-29 · PR [#27](https://github.com/sersam/virtual-admin/pull/27)
 
 ### Added
