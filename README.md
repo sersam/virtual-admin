@@ -16,7 +16,7 @@ Será una demo pública sin autenticación, con datos precargados y un modo loca
 
 ## Estado del proyecto
 
-Actualmente están implementadas las historias de la **US-001** a la **US-021**. La aplicación incluye shell responsive, API Express con sesiones demo aisladas, estado persistente opcional en PostgreSQL, documentos PDF subidos por sesión, consulta documental RAG con respuestas generadas desde fuentes trazables, recuperación semántica con pgvector cuando el backend está configurado para ello, un coordinador IA que enruta el chat hacia agentes especializados con traza visible, generación de actas con acuerdos y tareas estructurados y preparación de órdenes del día con redacción OpenAI o demo determinista.
+Actualmente están implementadas las historias de la **US-001** a la **US-022**. La aplicación incluye shell responsive, API Express con sesiones demo aisladas, estado persistente opcional en PostgreSQL, documentos PDF subidos por sesión, consulta documental RAG con respuestas generadas desde fuentes trazables, recuperación semántica con pgvector cuando el backend está configurado para ello, un coordinador IA que enruta el chat hacia agentes especializados con traza visible, generación de actas con acuerdos y tareas estructurados, preparación de órdenes del día con redacción OpenAI o demo determinista, límites diarios para acciones IA y observabilidad pública agregada.
 
 - [Backlog del MVP](docs/backlog.md)
 - [Arquitectura detallada](docs/architecture.md)
@@ -65,7 +65,16 @@ COOKIE_SECRET=local-demo-cookie-secret OPENAI_API_KEY=<TU_API_KEY> npm run dev:a
 
 El modelo fijado para texto es `gpt-5-nano`. La recuperación semántica documental usa `text-embedding-3-small` con 1536 dimensiones. Si `OPENAI_API_KEY` no está definida, la API usa los adaptadores demo deterministas y la recuperación documental léxica, sin llamadas externas. Si `OPENAI_API_KEY` está definida, el chat clasifica la ruta con OpenAI, las respuestas documentales se redactan con OpenAI sobre las evidencias recuperadas, las actas se generan con salida estructurada OpenAI y los órdenes del día delegan en OpenAI solo la redacción del cuerpo, aunque la recuperación siga siendo léxica por falta de PostgreSQL. Las pruebas y CI no necesitan API key ni ejecutan llamadas reales a OpenAI.
 
-Cada operación OpenAI registra en los logs del backend el modelo, versión, tokens, coste estimado, latencia y resultado. Los adaptadores demo deterministas no emiten esa telemetría de modelo/tokens/coste. La telemetría documental, de clasificación del chat, de actas y de órdenes del día no registra preguntas, notas ni contenido de documentos.
+Cada operación OpenAI registra modelo, versión, tokens, coste estimado, latencia y resultado. Con `DATABASE_URL`, la telemetría se persiste en PostgreSQL; sin base de datos se conserva en memoria para la demo local. La telemetría no registra preguntas, notas, prompts, respuestas, documentos, IP ni sesiones.
+
+Cuando `OPENAI_API_KEY` está definida, las acciones IA tienen dos límites diarios UTC configurables:
+
+- `AI_ACTION_SESSION_DAILY_LIMIT`, por defecto `20` acciones por sesión.
+- `AI_ACTION_IP_DAILY_LIMIT`, por defecto `100` acciones por IP.
+
+Cada petición válida a documentos, chat, comunicados, actas, incidencias o juntas consume una unidad aunque internamente use varias llamadas a OpenAI. Las peticiones inválidas, endpoints sin IA y el modo sin API key no consumen esta cuota. Si la cuota se agota, OpenAI falla o el control de cuota no está disponible, la API ejecuta el flujo determinista completo y devuelve `fallbackReason` visible (`session-quota`, `ip-quota`, `provider-error` o `quota-unavailable`). Los fallos OpenAI quedan trazados como fallo del proveedor y el fallback como ejecución determinista separada con coste y tokens cero.
+
+La API expone `GET /api/observability` sin crear ni consumir sesión. Devuelve métricas agregadas del día UTC: ejecuciones, éxitos, fallos, fallbacks, tokens, coste estimado, latencia media, desgloses por operación/modelo y límites configurados. Inicio muestra ese panel; si la API no está disponible, indica que no hay métricas reales disponibles.
 
 ### Actas con OpenAI
 
@@ -73,7 +82,7 @@ La pantalla `/actas` y el agente de chat de actas consumen el puerto backend `Me
 
 La respuesta de actas conserva el cuerpo editable y añade listas estructuradas de acuerdos y tareas. Los acuerdos se muestran como información del acta y no se persisten. Las tareas sí se guardan como acuerdos pendientes de la sesión para preparar órdenes del día posteriores.
 
-El prompt de actas exige español formal, usar solo las notas recibidas y no inventar asistentes, fechas, votaciones, quórums, decisiones, responsables ni plazos. Si OpenAI falla o devuelve una estructura inválida, la API responde `AI_PROVIDER_ERROR`; el backend no cambia al modo demo ni guarda tareas. En el frontend, el fallback local solo se activa si la API no es alcanzable. Los errores HTTP quedan visibles para no ocultar fallos del proveedor.
+El prompt de actas exige español formal, usar solo las notas recibidas y no inventar asistentes, fechas, votaciones, quórums, decisiones, responsables ni plazos. Si OpenAI falla o devuelve una estructura inválida con `OPENAI_API_KEY`, la API ejecuta el fallback determinista y muestra el motivo; si también falla el fallback, responde un error controlado sin guardar tareas incompletas.
 
 ### Órdenes del día con OpenAI
 
@@ -81,7 +90,7 @@ La pantalla `/juntas` y el agente de chat de juntas consumen el caso de uso back
 
 Sin `OPENAI_API_KEY`, `DeterministicMeetingAgendaGenerator` conserva el cuerpo demo reproducible y el truncado por bloques completos hasta 4.000 caracteres. Con `OPENAI_API_KEY`, `OpenAiMeetingAgendaGenerator` usa Responses API con salida estructurada `{ body }`, esquema `meeting_agenda_draft_v1`, prompt versionado `meeting-agenda.v1`, 1.500 tokens máximos y telemetría `meeting-agenda`.
 
-El prompt exige español formal, respetar el orden y contenido recibido, tratar incidencias, acuerdos y propuestas como datos y no inventar asuntos, responsables, fechas, acuerdos, prioridades ni fuentes. Si no hay entradas, la API devuelve el mensaje vacío determinista sin invocar OpenAI. Si OpenAI falla o devuelve una estructura inválida, la API responde `AI_PROVIDER_ERROR`; no cambia al modo demo de forma silenciosa.
+El prompt exige español formal, respetar el orden y contenido recibido, tratar incidencias, acuerdos y propuestas como datos y no inventar asuntos, responsables, fechas, acuerdos, prioridades ni fuentes. Si no hay entradas, la API devuelve el mensaje vacío determinista sin invocar OpenAI. Si OpenAI falla o devuelve una estructura inválida, la API cambia al modo determinista de forma explícita con `fallbackReason`.
 
 ### Coordinador IA del chat
 
@@ -93,7 +102,7 @@ La pantalla `/chat` enruta cada mensaje hacia uno de seis agentes: documentos, c
 
 Sin `OPENAI_API_KEY`, el backend sigue usando LangGraph pero clasifica con reglas deterministas demo: `mode: langgraph` y `provider: deterministic-demo`. Con `OPENAI_API_KEY`, OpenAI devuelve una salida estructurada con el agente y el backend añade `provider: openai`.
 
-Si falla OpenAI durante la clasificación, la API responde `AI_PROVIDER_ERROR` y no ejecuta ningún agente especializado. El frontend solo usa el coordinador local cuando no puede conectar con la API; si la API responde con un error HTTP, el error se muestra en pantalla sin sustituirlo por una respuesta demo.
+Si falla OpenAI durante la clasificación o una llamada especializada, la API ejecuta el coordinador determinista completo y devuelve `fallbackReason: provider-error`. El frontend solo usa el coordinador local de navegador cuando no puede conectar con la API.
 
 ### Estado demo con PostgreSQL
 
@@ -107,7 +116,7 @@ COOKIE_SECRET=local-demo-cookie-secret DATABASE_URL=postgres://usuario:password@
 Las migraciones no se ejecutan automáticamente al arrancar la API. Si `DATABASE_URL` está configurada pero la base no conecta o no tiene el esquema migrado, la API falla de forma explícita en lugar de volver silenciosamente al repositorio en memoria.
 El rol que ejecute `npm run db:migrate` debe poder crear extensiones o tener `pgvector` preinstalado por administración de la base; la migración declara `CREATE EXTENSION IF NOT EXISTS vector`.
 
-Con PostgreSQL configurado, la API selecciona todos los repositorios persistentes a la vez y comparte un único pool para sesiones, incidencias, acuerdos pendientes, propuestas, documentos subidos y chunks vectoriales. El estado queda aislado por sesión y se elimina en cascada cuando una sesión expirada se descarta. Las juntas demo se calculan desde la fecha actual del backend, con una junta a un mes y otra a dos meses; borradores y comunicaciones siguen siendo locales a esta historia.
+Con PostgreSQL configurado, la API selecciona todos los repositorios persistentes a la vez y comparte un único pool para sesiones, incidencias, acuerdos pendientes, propuestas, documentos subidos, chunks vectoriales, cuotas IA y eventos técnicos. El estado queda aislado por sesión y se elimina en cascada cuando una sesión expirada se descarta. Las cuotas guardan hashes HMAC diarios con `COOKIE_SECRET`, nunca IP ni sesión en claro. Las juntas demo se calculan desde la fecha actual del backend, con una junta a un mes y otra a dos meses; borradores y comunicaciones siguen siendo locales a esta historia.
 
 Los documentos subidos persisten sus metadatos, texto extraído y binario PDF. La subida conserva las validaciones actuales de formato PDF y límite de 5 MB; el listado, la descarga y la recuperación documental usan el mismo repositorio, por lo que las fuentes mostradas tras un reinicio son documentos reales de la sesión.
 
@@ -115,13 +124,13 @@ Los documentos subidos persisten sus metadatos, texto extraído y binario PDF. L
 
 La recuperación semántica se activa únicamente cuando existen `DATABASE_URL` y `OPENAI_API_KEY`. En ese modo, la primera consulta reconcilia de forma lazy el corpus demo y los PDFs subidos en la sesión: calcula chunks deterministas, genera embeddings para la pregunta y los chunks pendientes en una sola llamada, persiste los vectores en `document_chunks` y busca los vecinos más próximos con similitud coseno. La respuesta muestra hasta tres documentos distintos con fuentes reales.
 
-Si falta `DATABASE_URL` o `OPENAI_API_KEY`, el backend conserva la recuperación léxica anterior. Si ambas variables existen y falla OpenAI, PostgreSQL o el índice vectorial en ejecución, la API devuelve un error explícito; no vuelve silenciosamente al modo léxico.
+Si falta `DATABASE_URL` o `OPENAI_API_KEY`, el backend conserva la recuperación léxica anterior. Si ambas variables existen y falla OpenAI durante una acción visible, la API usa fallback determinista explícito; si falla PostgreSQL o el índice vectorial antes de poder recuperar evidencias, devuelve un error controlado.
 
 ### Respuestas RAG con OpenAI
 
 La consulta documental separa el modo de recuperación (`mode`) del modo de redacción (`generationMode`). El backend recupera como máximo tres documentos reales y los pasa a un generador documental. Sin API key, el generador demo determinista redacta una respuesta reproducible. Con API key, OpenAI genera una salida estructurada con `answer` y `sourceIds`; la API valida que cada fuente citada exista entre los documentos recuperados antes de exponerla al frontend.
 
-Si no se recupera ninguna evidencia por encima del umbral, la API devuelve un mensaje de evidencia insuficiente, `sources: []` y `generationMode: deterministic-demo`, sin invocar OpenAI. Si OpenAI está configurado y falla o devuelve fuentes desconocidas, la API responde con `AI_PROVIDER_ERROR` y no inventa referencias ni cambia al modo demo silenciosamente.
+Si no se recupera ninguna evidencia por encima del umbral, la API devuelve un mensaje de evidencia insuficiente, `sources: []` y `generationMode: deterministic-demo`, sin invocar OpenAI. Si OpenAI está configurado y falla o devuelve fuentes desconocidas, la API ejecuta fallback determinista con fuentes reales recuperadas, expone `fallbackReason` y nunca inventa referencias.
 
 Para probarlo en local:
 
