@@ -40,9 +40,11 @@ describe('incident contracts', () => {
           status: 'pendiente',
           resolvedAt: null,
         },
+        fallbackReason: 'provider-error',
         mode: 'deterministic-demo',
       }),
     ).toMatchObject({
+      fallbackReason: 'provider-error',
       incident: {
         type: 'agua',
         priority: 'urgente',
@@ -50,6 +52,24 @@ describe('incident contracts', () => {
         suggestedNotice,
       },
     });
+
+    expect(() =>
+      CreateIncidentResponseSchema.parse({
+        incident: {
+          id: 'inc-0001',
+          description: 'Hay una fuga de agua urgente en el garaje.',
+          type: 'agua',
+          priority: 'urgente',
+          suggestedResponsible: 'Fontanería',
+          suggestedNotice,
+          createdAt: '2026-06-27T10:00:00.000Z',
+          status: 'pendiente',
+          resolvedAt: null,
+        },
+        fallbackReason: 'unsupported',
+        mode: 'deterministic-demo',
+      }),
+    ).toThrow();
   });
 
   it('valida filtros por tipo y listados de incidencias', () => {

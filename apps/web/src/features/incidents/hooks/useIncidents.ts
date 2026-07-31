@@ -1,4 +1,4 @@
-import type { AiProviderMode, Incident, IncidentType } from '@admin/contracts';
+import type { AiFallbackReason, AiProviderMode, Incident, IncidentType } from '@admin/contracts';
 import { classifyIncident, type IncidentClassification } from '@admin/incidents';
 import { useEffect, useRef, useState } from 'react';
 import { createIncident, listIncidents, resolveIncident } from '../../../shared/api/incidents';
@@ -19,6 +19,7 @@ interface IncidentsState {
   readonly error?: string;
   readonly incidents: Incident[];
   readonly localClassification?: IncidentClassification;
+  readonly fallbackReason?: AiFallbackReason;
   readonly providerMode?: AiProviderMode;
   readonly resolvingIncidentId?: string;
   readonly selectedType?: IncidentType;
@@ -47,6 +48,7 @@ export function useIncidents() {
     setState((current) => ({
       ...current,
       error: undefined,
+      fallbackReason: undefined,
       localClassification: undefined,
       selectedType: type,
       status: 'loading',
@@ -57,6 +59,7 @@ export function useIncidents() {
       if (latestLoadRequestId.current !== requestId) return;
       setState((current) => ({
         incidents,
+        fallbackReason: undefined,
         providerMode: current.providerMode,
         selectedType: type,
         status: 'ready',
@@ -103,6 +106,7 @@ export function useIncidents() {
           current.selectedType && response.incident.type !== current.selectedType
             ? current.incidents
             : [...current.incidents, response.incident],
+        fallbackReason: response.fallbackReason,
         providerMode: response.mode,
         selectedType: current.selectedType,
         status: 'ready',

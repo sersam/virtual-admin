@@ -58,6 +58,19 @@ describe('chat contracts', () => {
     });
   });
 
+  it('acepta un motivo de fallback determinista visible', () => {
+    expect(
+      ChatMessageResponseSchema.parse({
+        agent: 'general',
+        answer: 'Respuesta local de demostración.',
+        fallbackReason: 'provider-error',
+        mode: 'local-demo',
+        provider: 'deterministic-demo',
+        sources: [],
+      }),
+    ).toMatchObject({ fallbackReason: 'provider-error' });
+  });
+
   it('rechaza fuentes documentales simuladas o incompletas', () => {
     expect(() =>
       ChatMessageResponseSchema.parse({

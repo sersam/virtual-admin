@@ -1,6 +1,8 @@
 import { getTableColumns, getTableName } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import {
+  aiActionQuotaCounters,
+  aiTelemetryEvents,
   communityIncidents,
   communityProposals,
   demoSessions,
@@ -130,5 +132,45 @@ describe('database schema', () => {
     expect(columns.chunkIndex.name).toBe('chunk_index');
     expect(columns.documentUrl.name).toBe('document_url');
     expect(columns.embeddingModel.name).toBe('embedding_model');
+  });
+});
+
+describe('ai quota schema', () => {
+  it('define contadores diarios sin IP ni sesion en claro', () => {
+    const columns = getTableColumns(aiActionQuotaCounters);
+
+    expect(getTableName(aiActionQuotaCounters)).toBe('ai_action_quota_counters');
+    expect(Object.keys(columns)).toEqual(['scope', 'day', 'identityHash', 'used', 'limit']);
+    expect(columns.identityHash.name).toBe('identity_hash');
+    expect(Object.keys(columns)).not.toContain('sessionId');
+    expect(Object.keys(columns)).not.toContain('ipAddress');
+  });
+});
+
+describe('ai telemetry schema', () => {
+  it('define eventos tecnicos sin contenido de usuario ni identificadores', () => {
+    const columns = getTableColumns(aiTelemetryEvents);
+
+    expect(getTableName(aiTelemetryEvents)).toBe('ai_telemetry_events');
+    expect(Object.keys(columns)).toEqual([
+      'id',
+      'occurredAt',
+      'operation',
+      'provider',
+      'model',
+      'promptVersion',
+      'inputTokens',
+      'cachedInputTokens',
+      'outputTokens',
+      'estimatedCostUsd',
+      'latencyMs',
+      'result',
+      'fallbackReason',
+    ]);
+    expect(columns.promptVersion.name).toBe('prompt_version');
+    expect(columns.estimatedCostUsd.name).toBe('estimated_cost_usd');
+    for (const forbidden of ['prompt', 'response', 'document', 'sessionId', 'ipAddress']) {
+      expect(Object.keys(columns)).not.toContain(forbidden);
+    }
   });
 });

@@ -17,6 +17,8 @@ import { InMemoryMeetingRepository } from '../../infrastructure/meeting/InMemory
 import { DeterministicMeetingAgendaGenerator } from '../../infrastructure/meetingAgenda/DeterministicMeetingAgendaGenerator.js';
 import { InMemoryPendingAgreementRepository } from '../../infrastructure/meetingAgenda/InMemoryPendingAgreementRepository.js';
 import { InMemoryProposalRepository } from '../../infrastructure/proposal/InMemoryProposalRepository.js';
+import { InMemoryAiActionQuotaRepository } from '../../infrastructure/quota/InMemoryAiActionQuotaRepository.js';
+import { InMemoryAiTelemetryEventRepository } from '../../infrastructure/telemetry/InMemoryAiTelemetryEventRepository.js';
 import { createPostgresPool } from '../../infrastructure/database/createPostgresPool.js';
 import { migrateDatabase } from '../../infrastructure/database/migrateDatabase.js';
 import { createApiPersistence } from '../../infrastructure/persistence/createApiPersistence.js';
@@ -53,6 +55,12 @@ function buildAppOptions(
     overrides.documentRetriever ??
     new LexicalDocumentRetriever(residencialSierraNevadaDocuments, uploadedDocumentRepository);
   const clock = overrides.clock ?? { now: () => new Date('2026-06-23T08:00:00.000Z') };
+  const deterministicChatIntentClassifier = new DeterministicChatIntentClassifier();
+  const deterministicCommunityNoticeGenerator = new DeterministicCommunityNoticeGenerator();
+  const deterministicDocumentAnswerGenerator = new DeterministicDocumentAnswerGenerator();
+  const deterministicIncidentClassifier = new DeterministicIncidentClassifier();
+  const deterministicMeetingAgendaGenerator = new DeterministicMeetingAgendaGenerator();
+  const deterministicMeetingMinutesGenerator = new DeterministicMeetingMinutesGenerator();
 
   return {
     clock,
@@ -75,6 +83,13 @@ function buildAppOptions(
     chatIntentClassifier: new DeterministicChatIntentClassifier(),
     communityNoticeGenerator: new DeterministicCommunityNoticeGenerator(),
     cookieSecret: 'test-secret',
+    deterministicChatIntentClassifier,
+    deterministicCommunityNoticeGenerator,
+    deterministicDocumentAnswerGenerator,
+    deterministicDocumentRetriever: documentRetriever,
+    deterministicIncidentClassifier,
+    deterministicMeetingAgendaGenerator,
+    deterministicMeetingMinutesGenerator,
     documentAnswerGenerator: new DeterministicDocumentAnswerGenerator(),
     documentRetriever,
     ids: { randomId: () => `00000000-0000-4000-8000-${String(++idSequence).padStart(12, '0')}` },
@@ -117,6 +132,49 @@ describe('createApiApp', () => {
     expect(response.status).toBe(204);
     expect(response.headers['access-control-allow-origin']).toBe('http://localhost:5173');
     expect(response.headers['access-control-allow-methods']).toContain('PATCH');
+  });
+
+  it('expone observabilidad publica sin crear ni consumir sesion', async () => {
+    const aiTelemetryEventRepository = new InMemoryAiTelemetryEventRepository();
+    await aiTelemetryEventRepository.record({
+      cachedInputTokens: 2,
+      estimatedCostUsd: 0.001,
+      inputTokens: 20,
+      latencyMs: 120,
+      model: 'gpt-5-mini',
+      occurredAt: new Date('2026-06-23T07:00:00.000Z'),
+      operation: 'document-answer',
+      outputTokens: 10,
+      promptVersion: 'document-answer.v1',
+      provider: 'openai',
+      result: 'success',
+    });
+
+    const response = await request(
+      buildApp(3, {
+        aiActionIpLimit: 100,
+        aiActionSessionLimit: 20,
+        aiTelemetryEventRepository,
+      }),
+    ).get('/api/observability');
+
+    expect(response.status).toBe(200);
+    expect(response.headers['set-cookie']).toBeUndefined();
+    expect(response.body).toMatchObject({
+      limits: {
+        aiActionsPerIpPerDay: 100,
+        aiActionsPerSessionPerDay: 20,
+      },
+      period: {
+        day: '2026-06-23',
+        timezone: 'UTC',
+      },
+      summary: {
+        executions: 1,
+        successes: 1,
+        totalTokens: 30,
+      },
+    });
   });
 
   it('crea cookies firmadas y reutiliza la sesión del mismo navegador', async () => {
@@ -552,6 +610,89 @@ describe('createApiApp', () => {
         audience: 'residentes',
         tone: 'directo',
       },
+    ]);
+  });
+
+  it('activa fallback determinista visible cuando se agota la cuota diaria de sesion IA', async () => {
+    const agent = request.agent(
+      buildApp(6, {
+        aiActionIpLimit: 100,
+        aiActionQuotaRepository: new InMemoryAiActionQuotaRepository(),
+        aiActionSessionLimit: 1,
+        communityNoticeGenerator: {
+          draft: async (input) => ({
+            draft: {
+              subject: input.subject,
+              body: 'Comunicado preparado con OpenAI.',
+            },
+            mode: 'openai',
+          }),
+        },
+        openAiConfigured: true,
+      }),
+    );
+
+    const first = await agent.post('/api/communications/draft').send({
+      subject: 'Corte de agua',
+      type: 'urgente',
+      audience: 'residentes',
+      tone: 'directo',
+    });
+    const second = await agent.post('/api/communications/draft').send({
+      subject: 'Limpieza del garaje',
+      type: 'informativo',
+      audience: 'todos',
+      tone: 'formal',
+    });
+
+    expect(first.body).toMatchObject({ mode: 'openai' });
+    expect(second.status).toBe(200);
+    expect(second.body).toMatchObject({
+      fallbackReason: 'session-quota',
+      mode: 'deterministic-demo',
+    });
+    expect(second.body.draft.body).toContain('Estimados vecinos');
+  });
+
+  it('activa fallback determinista visible cuando falla OpenAI y registra el fallback', async () => {
+    const recorded: unknown[] = [];
+    const agent = request.agent(
+      buildApp(6, {
+        aiActionQuotaRepository: new InMemoryAiActionQuotaRepository(),
+        aiTelemetryReporter: {
+          record: async (event) => {
+            recorded.push(event);
+          },
+        },
+        communityNoticeGenerator: {
+          draft: async () => {
+            throw new AiProviderError('OpenAI no genero el comunicado.');
+          },
+        },
+        openAiConfigured: true,
+      }),
+    );
+
+    const response = await agent.post('/api/communications/draft').send({
+      subject: 'Corte de agua',
+      type: 'urgente',
+      audience: 'residentes',
+      tone: 'directo',
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      fallbackReason: 'provider-error',
+      mode: 'deterministic-demo',
+    });
+    expect(recorded).toEqual([
+      expect.objectContaining({
+        fallbackReason: 'provider-error',
+        model: 'deterministic-demo',
+        operation: 'community-notice',
+        provider: 'deterministic-demo',
+        result: 'success',
+      }),
     ]);
   });
 

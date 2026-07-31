@@ -12,8 +12,12 @@ import { InMemoryPendingAgreementRepository } from '../meetingAgenda/InMemoryPen
 import { PostgresPendingAgreementRepository } from '../meetingAgenda/PostgresPendingAgreementRepository.js';
 import { InMemoryProposalRepository } from '../proposal/InMemoryProposalRepository.js';
 import { PostgresProposalRepository } from '../proposal/PostgresProposalRepository.js';
+import { InMemoryAiActionQuotaRepository } from '../quota/InMemoryAiActionQuotaRepository.js';
+import { PostgresAiActionQuotaRepository } from '../quota/PostgresAiActionQuotaRepository.js';
 import { InMemorySessionRepository } from '../session/InMemorySessionRepository.js';
 import { PostgresSessionRepository } from '../session/PostgresSessionRepository.js';
+import { InMemoryAiTelemetryEventRepository } from '../telemetry/InMemoryAiTelemetryEventRepository.js';
+import { PostgresAiTelemetryEventRepository } from '../telemetry/PostgresAiTelemetryEventRepository.js';
 import { createApiPersistence } from './createApiPersistence.js';
 
 interface RepositoryWithPool {
@@ -45,6 +49,10 @@ describe('createApiPersistence', () => {
     const blankUrl = await createApiPersistence({ databaseUrl: '   ' });
 
     expect(withoutUrl.sessionRepository).toBeInstanceOf(InMemorySessionRepository);
+    expect(withoutUrl.aiActionQuotaRepository).toBeInstanceOf(InMemoryAiActionQuotaRepository);
+    expect(withoutUrl.aiTelemetryEventRepository).toBeInstanceOf(
+      InMemoryAiTelemetryEventRepository,
+    );
     expect(withoutUrl.incidentRepository).toBeInstanceOf(InMemoryIncidentRepository);
     expect(withoutUrl.pendingAgreementRepository).toBeInstanceOf(
       InMemoryPendingAgreementRepository,
@@ -55,6 +63,8 @@ describe('createApiPersistence', () => {
     );
     expect(withoutUrl.documentChunkRepository).toBeUndefined();
     expect(blankUrl.sessionRepository).toBeInstanceOf(InMemorySessionRepository);
+    expect(blankUrl.aiActionQuotaRepository).toBeInstanceOf(InMemoryAiActionQuotaRepository);
+    expect(blankUrl.aiTelemetryEventRepository).toBeInstanceOf(InMemoryAiTelemetryEventRepository);
     expect(blankUrl.uploadedDocumentRepository).toBeInstanceOf(InMemoryUploadedDocumentRepository);
     expect(blankUrl.documentChunkRepository).toBeUndefined();
     await expect(withoutUrl.close()).resolves.toBeUndefined();
@@ -66,6 +76,10 @@ describe('createApiPersistence', () => {
 
     try {
       expect(persistence.sessionRepository).toBeInstanceOf(PostgresSessionRepository);
+      expect(persistence.aiActionQuotaRepository).toBeInstanceOf(PostgresAiActionQuotaRepository);
+      expect(persistence.aiTelemetryEventRepository).toBeInstanceOf(
+        PostgresAiTelemetryEventRepository,
+      );
       expect(persistence.incidentRepository).toBeInstanceOf(PostgresIncidentRepository);
       expect(persistence.pendingAgreementRepository).toBeInstanceOf(
         PostgresPendingAgreementRepository,
@@ -86,6 +100,12 @@ describe('createApiPersistence', () => {
         pool,
       );
       expect((persistence.documentChunkRepository as unknown as RepositoryWithPool).pool).toBe(
+        pool,
+      );
+      expect((persistence.aiActionQuotaRepository as unknown as RepositoryWithPool).pool).toBe(
+        pool,
+      );
+      expect((persistence.aiTelemetryEventRepository as unknown as RepositoryWithPool).pool).toBe(
         pool,
       );
 

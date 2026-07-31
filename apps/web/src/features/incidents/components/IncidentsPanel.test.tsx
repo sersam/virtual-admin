@@ -103,6 +103,34 @@ describe('IncidentsPanel', () => {
     expect(await screen.findByText('OpenAI · GPT-5 nano')).toBeInTheDocument();
   });
 
+  it('muestra el motivo de fallback al crear una incidencia determinista', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ incidents: [] }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            fallbackReason: 'provider-error',
+            incident: liftIncident,
+            mode: 'deterministic-demo',
+          }),
+          { status: 201 },
+        ),
+      );
+
+    render(<IncidentsPanel />);
+    expect(await screen.findByText('Sin incidencias registradas')).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText('Descripción de la incidencia'));
+    await user.type(
+      screen.getByLabelText('Descripción de la incidencia'),
+      'El ascensor no funciona desde esta mañana.',
+    );
+    await user.click(screen.getByRole('button', { name: 'Registrar incidencia' }));
+
+    expect(await screen.findByText(/OpenAI no respondió correctamente/i)).toBeInTheDocument();
+  });
+
   it('filtra el listado por tipo de incidencia', async () => {
     const user = userEvent.setup();
     vi.spyOn(globalThis, 'fetch')

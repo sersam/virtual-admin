@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
 import { formatAiProviderMode } from '../../../shared/config/aiProviderMode';
+import { AiFallbackNotice } from '../../../shared/ui/AiFallbackNotice';
 import { useProposals } from '../../proposals/hooks/useProposals';
 import { useMeetingAgendaDraft } from '../hooks/useMeetingAgendaDraft';
 import { useMeetings } from '../hooks/useMeetings';
@@ -160,6 +161,7 @@ export function MeetingAgendaPanel() {
                   <FilePenLine aria-hidden="true" size={14} />
                   {formatAiProviderMode(visibleDraft.mode)}
                 </span>
+                <AiFallbackNotice reason={visibleDraft.fallbackReason} />
                 <h3 className="mt-4 font-display text-2xl font-extrabold">
                   {visibleDraft.draft.title}
                 </h3>

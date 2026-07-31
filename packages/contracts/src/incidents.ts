@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AiFallbackReasonSchema } from './ai.js';
 import { AiProviderModeSchema } from './communications.js';
 
 export const IncidentTypeSchema = z.enum([
@@ -36,6 +37,7 @@ export const IncidentSchema = IncidentBaseSchema.and(
 );
 
 export const CreateIncidentResponseSchema = z.object({
+  fallbackReason: AiFallbackReasonSchema.optional(),
   incident: IncidentSchema,
   mode: AiProviderModeSchema,
 });

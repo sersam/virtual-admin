@@ -1,3 +1,4 @@
+export * from './ai.js';
 export * from './chat.js';
 export * from './communications.js';
 export * from './documents.js';
@@ -6,5 +7,6 @@ export * from './incidents.js';
 export * from './meetingAgendas.js';
 export * from './meetingMinutes.js';
 export * from './meetings.js';
+export * from './observability.js';
 export * from './proposals.js';
 export * from './session.js';

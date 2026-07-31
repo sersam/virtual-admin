@@ -59,6 +59,28 @@ describe('document contracts', () => {
     ).toMatchObject({ mode: 'semantic-pgvector' });
   });
 
+  it('acepta un motivo de fallback en respuestas documentales', () => {
+    expect(
+      DocumentQueryResponseSchema.parse({
+        answer: 'Respuesta determinista con fuentes recuperadas.',
+        fallbackReason: 'session-quota',
+        generationMode: 'deterministic-demo',
+        mode: 'lexical-demo',
+        sources: [
+          {
+            documentUrl: '/documents/normas-zonas-comunes.pdf',
+            excerpt: 'La piscina comunitaria abre de 10:00 a 21:00.',
+            id: 'normas-piscina',
+            score: 0.94,
+            section: 'Piscina',
+            title: 'Normas de uso de piscina',
+            type: 'normas',
+          },
+        ],
+      }),
+    ).toMatchObject({ fallbackReason: 'session-quota' });
+  });
+
   it('rechaza preguntas vacías y puntuaciones fuera de rango', () => {
     expect(() => DocumentQueryRequestSchema.parse({ question: '  ' })).toThrow();
     expect(() =>

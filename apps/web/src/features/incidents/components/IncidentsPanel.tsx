@@ -3,6 +3,7 @@ import type { Incident, IncidentPriority, IncidentType } from '@admin/contracts'
 import { CheckCircle2, ClipboardList, Copy, Filter, SendHorizontal, Wrench } from 'lucide-react';
 import { useState } from 'react';
 import { formatAiProviderMode } from '../../../shared/config/aiProviderMode';
+import { AiFallbackNotice } from '../../../shared/ui/AiFallbackNotice';
 import { useIncidents } from '../hooks/useIncidents';
 
 const suggestedDescriptions = [
@@ -35,6 +36,7 @@ export function IncidentsPanel() {
   const {
     create,
     error,
+    fallbackReason,
     filterByType,
     incidents,
     providerMode,
@@ -121,6 +123,7 @@ export function IncidentsPanel() {
               </span>
             ) : null}
           </div>
+          <AiFallbackNotice reason={fallbackReason} />
 
           <label
             className="grid gap-2 text-sm font-bold text-navy-950"

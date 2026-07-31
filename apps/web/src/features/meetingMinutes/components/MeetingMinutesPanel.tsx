@@ -2,6 +2,7 @@ import type { FormEvent } from 'react';
 import { ClipboardList, Download, FileText, SendHorizontal } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { formatAiProviderMode } from '../../../shared/config/aiProviderMode';
+import { AiFallbackNotice } from '../../../shared/ui/AiFallbackNotice';
 import { useMeetingMinutesDraft } from '../hooks/useMeetingMinutesDraft';
 import { downloadMeetingMinutesPdf } from '../model/meetingMinutesPdf';
 
@@ -118,6 +119,7 @@ export function MeetingMinutesPanel() {
                 <ClipboardList aria-hidden="true" size={14} />
                 {formatAiProviderMode(result.mode)}
               </span>
+              <AiFallbackNotice reason={result.fallbackReason} />
               <h3 className="mt-4 font-display text-2xl font-extrabold">{result.draft.title}</h3>
               <label
                 className="mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-sky-100"

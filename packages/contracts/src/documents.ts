@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AiFallbackReasonSchema } from './ai.js';
 
 export const DocumentQueryRequestSchema = z.object({
   question: z.string().trim().min(3).max(300),
@@ -34,6 +35,7 @@ export const DocumentGenerationModeSchema = z.enum(['deterministic-demo', 'opena
 
 export const DocumentQueryResponseSchema = z.object({
   answer: z.string().min(1),
+  fallbackReason: AiFallbackReasonSchema.optional(),
   generationMode: DocumentGenerationModeSchema,
   mode: DocumentAnswerModeSchema,
   sources: z.array(DocumentSourceSchema),

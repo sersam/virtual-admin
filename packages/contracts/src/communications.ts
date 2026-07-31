@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AiFallbackReasonSchema } from './ai.js';
 
 export const CommunityNoticeTypeSchema = z.enum(['informativo', 'recordatorio', 'urgente']);
 export const CommunityNoticeAudienceSchema = z.enum(['todos', 'propietarios', 'residentes']);
@@ -20,6 +21,7 @@ export const AiProviderModeSchema = z.enum(['deterministic-demo', 'openai']);
 
 export const CommunityNoticeDraftResponseSchema = z.object({
   draft: CommunityNoticeDraftSchema,
+  fallbackReason: AiFallbackReasonSchema.optional(),
   mode: AiProviderModeSchema,
 });
 
