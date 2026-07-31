@@ -9,6 +9,7 @@ import type {
 import { ClipboardCheck, ClipboardCopy, Download, FilePenLine, SendHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import { formatAiProviderMode } from '../../../shared/config/aiProviderMode';
+import { AiFallbackNotice } from '../../../shared/ui/AiFallbackNotice';
 import { useCommunityNoticeDraft } from '../hooks/useCommunityNoticeDraft';
 import { downloadCommunityNoticePdf } from '../model/communityNoticePdf';
 
@@ -222,6 +223,7 @@ function EditableCommunityNoticeResult(
             {formatAiProviderMode(props.result.mode)}
           </span>
         </div>
+        <AiFallbackNotice reason={props.result.fallbackReason} />
         <h3 className="mt-4 font-display text-2xl font-extrabold">{props.result.draft.subject}</h3>
         <label
           className="mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-sky-100"

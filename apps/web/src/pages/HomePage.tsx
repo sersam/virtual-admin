@@ -4,6 +4,7 @@ import { CommunityMetrics } from '../features/community/components/CommunityMetr
 import { DocumentPreview } from '../features/community/components/DocumentPreview';
 import { ToolGrid } from '../features/community/components/ToolGrid';
 import { community } from '../features/community/model/community';
+import { ObservabilityPanel } from '../features/observability/components/ObservabilityPanel';
 import { SessionCard } from '../features/session/components/SessionCard';
 
 export function HomePage() {
@@ -50,7 +51,10 @@ export function HomePage() {
         <DocumentPreview />
       </div>
 
-      <SessionCard />
+      <div className="grid items-start gap-6 xl:grid-cols-2">
+        <SessionCard />
+        <ObservabilityPanel />
+      </div>
     </div>
   );
 }

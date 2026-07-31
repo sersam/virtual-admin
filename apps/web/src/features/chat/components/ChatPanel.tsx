@@ -4,6 +4,7 @@ import { Bot, ExternalLink, SendHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { createCommunityNoticeHandoffState } from '../../../shared/model/communityNoticeHandoff';
+import { AiFallbackNotice } from '../../../shared/ui/AiFallbackNotice';
 import { useChatMessage } from '../hooks/useChatMessage';
 
 const agentLabels: Record<ChatAgent, string> = {
@@ -151,6 +152,7 @@ export function ChatPanel() {
                   {providerLabels[result.provider]}
                 </span>
               </div>
+              <AiFallbackNotice reason={result.fallbackReason} />
               <p className="mt-4 whitespace-pre-line text-sm leading-6 text-sky-50">
                 {result.answer}
               </p>

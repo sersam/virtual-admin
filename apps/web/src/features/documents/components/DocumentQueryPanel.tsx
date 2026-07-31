@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react';
 import { ExternalLink, Search, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
+import { AiFallbackNotice } from '../../../shared/ui/AiFallbackNotice';
 import { useDocumentQuery } from '../hooks/useDocumentQuery';
 import { DocumentLibrary } from './DocumentLibrary';
 import { UploadedDocumentManager } from './UploadedDocumentManager';
@@ -110,6 +111,7 @@ export function DocumentQueryPanel() {
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-sky-200">
                   {generationModeLabels[result.generationMode]} · {documentModeLabels[result.mode]}
                 </p>
+                <AiFallbackNotice reason={result.fallbackReason} />
                 <p className="mt-3 text-sm leading-6 text-sky-50">{result.answer}</p>
               </div>
               <div className="space-y-3">

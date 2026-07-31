@@ -1,6 +1,13 @@
 import { expect, test } from '@playwright/test';
 
 test('muestra la portada institucional y navega entre herramientas', async ({ page }, testInfo) => {
+  await page.route('**/api/observability', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: observabilityResponse,
+      status: 200,
+    });
+  });
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
     'Una administración más clara',
@@ -11,6 +18,8 @@ test('muestra la portada institucional y navega entre herramientas', async ({ pa
   await expect(
     page.getByRole('heading', { name: 'Demo sin registro y sin estado compartido' }),
   ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Límites y métricas técnicas IA' })).toBeVisible();
+  await expect(page.getByText('20 acciones por sesión')).toBeVisible();
 
   if (testInfo.project.name === 'mobile') {
     await page.getByRole('button', { name: 'Abrir menú' }).click();
@@ -117,6 +126,34 @@ test('redacta comunicados para vecinos', async ({ page }, testInfo) => {
     /Estimados residentes:/,
   );
   await expect(draftRegion.getByText('Demo determinista')).toBeVisible();
+});
+
+test('muestra el motivo de fallback determinista en comunicados', async ({ page }, testInfo) => {
+  await page.route('**/api/communications/draft', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        draft: {
+          subject: 'Corte de agua',
+          body: 'Estimados vecinos:\n\nComunicado determinista por fallback.',
+        },
+        fallbackReason: 'provider-error',
+        mode: 'deterministic-demo',
+      }),
+    });
+  });
+  await page.goto('/comunicados');
+
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Redactar comunicado' }).scrollIntoViewIfNeeded();
+  }
+
+  await page.getByLabel('Asunto').fill('Corte de agua');
+  await page.getByRole('button', { name: 'Redactar comunicado' }).click();
+
+  const draftRegion = page.getByLabel('Comunicado generado');
+  await expect(draftRegion.getByText('Demo determinista')).toBeVisible();
+  await expect(draftRegion.getByText(/OpenAI no respondió correctamente/i)).toBeVisible();
 });
 
 test('muestra actas OpenAI simuladas con acuerdos detectados', async ({ page }, testInfo) => {
@@ -579,3 +616,33 @@ test('adapta la navegación al viewport', async ({ page }, testInfo) => {
   await expect(page.getByRole('navigation', { name: 'Navegación principal' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Abrir menú' })).toBeHidden();
 });
+
+const observabilitySummary = {
+  averageLatencyMs: 90,
+  cachedInputTokens: 0,
+  estimatedCostUsd: 0.001,
+  executions: 1,
+  failures: 0,
+  fallbacks: 0,
+  inputTokens: 20,
+  outputTokens: 10,
+  successes: 1,
+  totalTokens: 30,
+} as const;
+
+const observabilityResponse = {
+  byModel: [{ ...observabilitySummary, model: 'gpt-5-mini', provider: 'openai' }],
+  byOperation: [{ ...observabilitySummary, operation: 'document-answer' }],
+  generatedAt: '2026-07-31T11:00:00.000Z',
+  limits: {
+    aiActionsPerIpPerDay: 100,
+    aiActionsPerSessionPerDay: 20,
+  },
+  period: {
+    day: '2026-07-31',
+    endsAt: '2026-08-01T00:00:00.000Z',
+    startsAt: '2026-07-31T00:00:00.000Z',
+    timezone: 'UTC',
+  },
+  summary: observabilitySummary,
+};
