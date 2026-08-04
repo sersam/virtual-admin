@@ -93,8 +93,9 @@ const app = createApiApp({
   trustProxy: process.env.NODE_ENV === 'production' ? 1 : false,
 });
 
-const server = app.listen(port, () => {
-  console.warn(`API demo disponible en http://127.0.0.1:${port}`);
+const host = '0.0.0.0';
+const server = app.listen(port, host, () => {
+  console.warn(`API demo disponible en http://${host}:${port}`);
 });
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
