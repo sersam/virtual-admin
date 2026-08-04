@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "evaluation-dataset/v1",
+  "datasetVersion": "2026-08-04",
+  "capability": "actas",
+  "cases": [
+    {
+      "id": "minutes-001",
+      "notes": "Acta de junta. Acuerdo: aprobar la reparacion de la puerta del garaje. Tarea: Laura pedira tres presupuestos antes del 30 de junio.",
+      "expectedAgreements": ["aprobar la reparacion de la puerta del garaje"],
+      "expectedTasks": [
+        {
+          "description": "Laura pedira tres presupuestos antes del 30 de junio",
+          "assignee": "Laura",
+          "dueDate": "30 de junio"
+        }
+      ],
+      "forbiddenClaims": ["cubierta"]
+    },
+    {
+      "id": "minutes-002",
+      "notes": "Reunion extraordinaria. Se acuerda renovar las luces LED del portal 1. Tarea: Mario revisara ofertas el 12 de julio.",
+      "expectedAgreements": ["renovar las luces LED del portal 1"],
+      "expectedTasks": [
+        {
+          "description": "Mario revisara ofertas el 12 de julio",
+          "assignee": "Mario",
+          "dueDate": "12 de julio"
+        }
+      ],
+      "forbiddenClaims": ["garaje"]
+    },
+    {
+      "id": "minutes-003",
+      "notes": "Junta ordinaria. Acuerdo: mantener la cuota mensual sin cambios. No se asignan tareas pendientes.",
+      "expectedAgreements": ["mantener la cuota mensual sin cambios"],
+      "expectedTasks": [],
+      "forbiddenClaims": ["derrama"]
+    },
+    {
+      "id": "minutes-004",
+      "notes": "Resumen. Tarea: Administracion avisara del corte de agua. Tarea: Conserjeria colocara carteles.",
+      "expectedAgreements": [],
+      "expectedTasks": [
+        {
+          "description": "Administracion avisara del corte de agua",
+          "assignee": "Administracion"
+        },
+        {
+          "description": "Conserjeria colocara carteles",
+          "assignee": "Conserjeria"
+        }
+      ],
+      "forbiddenClaims": ["fecha aprobada"]
+    },
+    {
+      "id": "minutes-005",
+      "notes": "Acta breve. Acuerdo: contratar limpieza de cristales. Tarea: Ana confirmara disponibilidad antes del viernes.",
+      "expectedAgreements": ["contratar limpieza de cristales"],
+      "expectedTasks": [
+        {
+          "description": "Ana confirmara disponibilidad antes del viernes",
+          "assignee": "Ana",
+          "dueDate": "viernes"
+        }
+      ],
+      "forbiddenClaims": ["piscina"]
+    },
+    {
+      "id": "minutes-006",
+      "notes": "Notas sin decisiones formales. Se informa del estado de la cubierta y se ruega enviar dudas por correo.",
+      "expectedAgreements": [],
+      "expectedTasks": [],
+      "forbiddenClaims": ["se acuerda", "tarea"]
+    }
+  ]
+}

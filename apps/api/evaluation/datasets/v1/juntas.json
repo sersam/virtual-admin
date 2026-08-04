@@ -1,0 +1,157 @@
+{
+  "schemaVersion": "evaluation-dataset/v1",
+  "datasetVersion": "2026-08-04",
+  "capability": "juntas",
+  "cases": [
+    {
+      "id": "agenda-001",
+      "meetingId": "meeting-ordinary-2026-09-18",
+      "seed": {
+        "incidents": [
+          {
+            "id": "agenda-inc-agua",
+            "description": "Fuga de agua en cuarto de contadores",
+            "type": "agua",
+            "priority": "urgente",
+            "status": "pendiente",
+            "createdAt": "2026-07-01T10:00:00.000Z"
+          }
+        ],
+        "pendingAgreements": [],
+        "proposals": []
+      },
+      "expectedItems": [{ "sourceType": "incident", "sourceId": "agenda-inc-agua" }],
+      "expectedBodyConcepts": ["Fuga de agua", "urgente"],
+      "forbiddenClaims": ["propuesta aprobada"],
+      "emptyExpected": false
+    },
+    {
+      "id": "agenda-002",
+      "meetingId": "meeting-ordinary-2026-09-18",
+      "seed": {
+        "incidents": [],
+        "pendingAgreements": [
+          {
+            "id": "agenda-agreement-led",
+            "description": "Pedir presupuesto para luces LED",
+            "assignee": "Marta",
+            "dueDate": "15 de agosto",
+            "createdAt": "2026-07-03T10:00:00.000Z"
+          }
+        ],
+        "proposals": []
+      },
+      "expectedItems": [{ "sourceType": "pending-agreement", "sourceId": "agenda-agreement-led" }],
+      "expectedBodyConcepts": ["luces LED", "Marta", "15 de agosto"],
+      "forbiddenClaims": ["incidencia urgente"],
+      "emptyExpected": false
+    },
+    {
+      "id": "agenda-003",
+      "meetingId": "meeting-ordinary-2026-09-18",
+      "seed": {
+        "incidents": [],
+        "pendingAgreements": [],
+        "proposals": [
+          {
+            "id": "agenda-proposal-bicis",
+            "description": "Instalar aparcabicis en el patio interior",
+            "createdAt": "2026-07-05T10:00:00.000Z"
+          }
+        ]
+      },
+      "expectedItems": [{ "sourceType": "proposal", "sourceId": "agenda-proposal-bicis" }],
+      "expectedBodyConcepts": ["aparcabicis", "patio interior"],
+      "forbiddenClaims": ["acuerdo pendiente"],
+      "emptyExpected": false
+    },
+    {
+      "id": "agenda-004",
+      "meetingId": "meeting-ordinary-2026-09-18",
+      "seed": {
+        "incidents": [
+          {
+            "id": "agenda-inc-ascensor",
+            "description": "Ascensor del portal 2 parado",
+            "type": "ascensor",
+            "priority": "alta",
+            "status": "pendiente",
+            "createdAt": "2026-07-02T10:00:00.000Z"
+          },
+          {
+            "id": "agenda-inc-limpieza",
+            "description": "Manchas en portal principal",
+            "type": "limpieza",
+            "priority": "baja",
+            "status": "pendiente",
+            "createdAt": "2026-07-01T09:00:00.000Z"
+          }
+        ],
+        "pendingAgreements": [
+          {
+            "id": "agenda-agreement-garaje",
+            "description": "Solicitar presupuesto de motor de garaje",
+            "createdAt": "2026-07-01T08:00:00.000Z"
+          }
+        ],
+        "proposals": [
+          {
+            "id": "agenda-proposal-sombra",
+            "description": "Poner toldo en zona infantil",
+            "createdAt": "2026-07-01T07:00:00.000Z"
+          }
+        ]
+      },
+      "expectedItems": [
+        { "sourceType": "incident", "sourceId": "agenda-inc-ascensor" },
+        { "sourceType": "pending-agreement", "sourceId": "agenda-agreement-garaje" },
+        { "sourceType": "incident", "sourceId": "agenda-inc-limpieza" },
+        { "sourceType": "proposal", "sourceId": "agenda-proposal-sombra" }
+      ],
+      "expectedBodyConcepts": ["Ascensor", "motor de garaje", "Manchas", "toldo"],
+      "forbiddenClaims": ["cuota extraordinaria"],
+      "emptyExpected": false
+    },
+    {
+      "id": "agenda-005",
+      "meetingId": "meeting-ordinary-2026-09-18",
+      "seed": {
+        "incidents": [
+          {
+            "id": "agenda-inc-resuelta",
+            "description": "Cerradura reparada en portal 3",
+            "type": "seguridad",
+            "priority": "alta",
+            "status": "resuelta",
+            "createdAt": "2026-07-04T10:00:00.000Z"
+          }
+        ],
+        "pendingAgreements": [],
+        "proposals": [
+          {
+            "id": "agenda-proposal-camaras",
+            "description": "Valorar camaras en acceso principal",
+            "createdAt": "2026-07-04T09:00:00.000Z"
+          }
+        ]
+      },
+      "expectedItems": [{ "sourceType": "proposal", "sourceId": "agenda-proposal-camaras" }],
+      "expectedBodyConcepts": ["camaras", "acceso principal"],
+      "forbiddenClaims": ["Cerradura reparada"],
+      "emptyExpected": false
+    },
+    {
+      "id": "agenda-006",
+      "meetingId": "meeting-ordinary-2026-09-18",
+      "seed": {
+        "incidents": [],
+        "pendingAgreements": [],
+        "proposals": []
+      },
+      "expectedItems": [],
+      "expectedBodyConcepts": ["No hay asuntos pendientes"],
+      "forbiddenClaims": ["incidencia", "propuesta", "acuerdo pendiente"],
+      "emptyExpected": true
+    }
+  ]
+}

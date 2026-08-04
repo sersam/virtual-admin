@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "evaluation-dataset/v1",
+  "datasetVersion": "2026-08-04",
+  "capability": "comunicados",
+  "cases": [
+    {
+      "id": "notice-001",
+      "input": {
+        "subject": "Revision de garaje",
+        "type": "informativo",
+        "audience": "todos",
+        "tone": "formal"
+      },
+      "requiredConcepts": ["Estimados vecinos", "Revision de garaje", "colaboracion"],
+      "forbiddenClaims": ["multa"]
+    },
+    {
+      "id": "notice-002",
+      "input": {
+        "subject": "Pago de derrama",
+        "type": "recordatorio",
+        "audience": "propietarios",
+        "tone": "formal"
+      },
+      "requiredConcepts": ["Estimados propietarios", "recordamos", "Pago de derrama"],
+      "forbiddenClaims": ["recargo aprobado"]
+    },
+    {
+      "id": "notice-003",
+      "input": {
+        "subject": "Corte de agua",
+        "type": "urgente",
+        "audience": "residentes",
+        "tone": "directo"
+      },
+      "requiredConcepts": ["Estimados residentes", "urgente", "Corte de agua", "actuen"],
+      "forbiddenClaims": ["agua potable garantizada"]
+    },
+    {
+      "id": "notice-004",
+      "input": {
+        "subject": "Limpieza extraordinaria",
+        "type": "informativo",
+        "audience": "residentes",
+        "tone": "cercano"
+      },
+      "requiredConcepts": [
+        "Estimados residentes",
+        "Limpieza extraordinaria",
+        "convivencia agradable"
+      ],
+      "forbiddenClaims": ["coste adicional"]
+    },
+    {
+      "id": "notice-005",
+      "input": {
+        "subject": "Entrega de mandos",
+        "type": "recordatorio",
+        "audience": "todos",
+        "tone": "directo"
+      },
+      "requiredConcepts": ["Estimados vecinos", "recordamos", "Entrega de mandos", "actuen"],
+      "forbiddenClaims": ["entrega finalizada"]
+    },
+    {
+      "id": "notice-006",
+      "input": {
+        "subject": "Reunion de propietarios",
+        "type": "informativo",
+        "audience": "propietarios",
+        "tone": "cercano"
+      },
+      "requiredConcepts": [
+        "Estimados propietarios",
+        "Reunion de propietarios",
+        "convivencia agradable"
+      ],
+      "forbiddenClaims": ["acuerdos aprobados"]
+    },
+    {
+      "id": "notice-007",
+      "input": {
+        "subject": "Acceso bloqueado al portal",
+        "type": "urgente",
+        "audience": "todos",
+        "tone": "formal"
+      },
+      "requiredConcepts": [
+        "Estimados vecinos",
+        "urgente",
+        "Acceso bloqueado al portal",
+        "colaboracion"
+      ],
+      "forbiddenClaims": ["servicio restablecido"]
+    },
+    {
+      "id": "notice-008",
+      "input": {
+        "subject": "Uso de la sala comun",
+        "type": "recordatorio",
+        "audience": "residentes",
+        "tone": "cercano"
+      },
+      "requiredConcepts": [
+        "Estimados residentes",
+        "recordamos",
+        "Uso de la sala comun",
+        "convivencia agradable"
+      ],
+      "forbiddenClaims": ["reservas canceladas"]
+    }
+  ]
+}
