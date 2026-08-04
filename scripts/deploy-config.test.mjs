@@ -57,10 +57,7 @@ async function importVercelConfig(origin, caseName) {
 }
 
 test('configura Vercel con proxy API y fallback SPA en ese orden', async () => {
-  const { default: config } = await importVercelConfig(
-    'https://administrador-api.up.railway.app/',
-    'valid',
-  );
+  const { config } = await importVercelConfig('https://administrador-api.up.railway.app/', 'valid');
 
   assert.deepEqual(config.rewrites, [
     {

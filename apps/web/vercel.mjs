@@ -23,7 +23,7 @@ export function normalizeRailwayApiOrigin(rawOrigin = process.env.RAILWAY_API_OR
 
 const railwayApiOrigin = normalizeRailwayApiOrigin();
 
-export default {
+export const config = {
   rewrites: [
     {
       source: '/api/:path*',
