@@ -93,14 +93,25 @@ function toCommunityIncident(
   sessionId: string,
   incident: AgendaEvaluationCase['seed']['incidents'][number],
 ): CommunityIncident {
-  return {
+  const incidentBase = {
     ...incident,
     createdAt: new Date(incident.createdAt),
-    resolvedAt: incident.status === 'resuelta' ? new Date('2026-08-01T10:00:00.000Z') : null,
     sessionId,
     suggestedNotice: `Se ha registrado: ${incident.description}`,
     suggestedResponsible: 'Administracion',
   };
+
+  return incident.status === 'resuelta'
+    ? {
+        ...incidentBase,
+        resolvedAt: new Date('2026-08-01T10:00:00.000Z'),
+        status: 'resuelta',
+      }
+    : {
+        ...incidentBase,
+        resolvedAt: null,
+        status: 'pendiente',
+      };
 }
 
 function toCommunityProposal(

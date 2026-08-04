@@ -188,7 +188,12 @@ export interface EvaluationDatasetValidationSummary {
   readonly totalCases: number;
 }
 
-type DatasetFile = z.infer<typeof datasetFileSchema>;
+type DatasetFile = {
+  [Capability in EvaluationCapability]: {
+    readonly capability: Capability;
+    readonly cases: EvaluationDatasets[Capability];
+  };
+}[EvaluationCapability];
 
 export async function loadEvaluationDatasets(
   directory = getDefaultDatasetDirectory(),
@@ -204,7 +209,7 @@ export async function loadEvaluationDatasets(
       throw new Error(`${file}: dataset invalido: ${parsedDataset.error.message}`);
     }
 
-    assignDatasetCases(datasets, parsedDataset.data);
+    assignDatasetCases(datasets, parsedDataset.data as DatasetFile);
   }
 
   validateEvaluationDatasets(datasets);
@@ -278,10 +283,31 @@ function createEmptyDatasets(): MutableEvaluationDatasets {
 }
 
 function assignDatasetCases(datasets: MutableEvaluationDatasets, dataset: DatasetFile): void {
-  datasets[dataset.capability] =
-    dataset.cases as MutableEvaluationDatasets[typeof dataset.capability];
+  if (dataset.capability === 'actas') {
+    datasets.actas = (dataset as DatasetFileFor<'actas'>).cases;
+  }
+  if (dataset.capability === 'comunicados') {
+    datasets.comunicados = (dataset as DatasetFileFor<'comunicados'>).cases;
+  }
+  if (dataset.capability === 'coordinacion') {
+    datasets.coordinacion = (dataset as DatasetFileFor<'coordinacion'>).cases;
+  }
+  if (dataset.capability === 'incidencias') {
+    datasets.incidencias = (dataset as DatasetFileFor<'incidencias'>).cases;
+  }
+  if (dataset.capability === 'juntas') {
+    datasets.juntas = (dataset as DatasetFileFor<'juntas'>).cases;
+  }
+  if (dataset.capability === 'rag') {
+    datasets.rag = (dataset as DatasetFileFor<'rag'>).cases;
+  }
 }
 
 type MutableEvaluationDatasets = {
   -readonly [Capability in keyof EvaluationDatasets]: EvaluationDatasets[Capability];
 };
+
+type DatasetFileFor<Capability extends EvaluationCapability> = Extract<
+  DatasetFile,
+  { capability: Capability }
+>;

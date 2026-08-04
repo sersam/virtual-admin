@@ -427,7 +427,7 @@ function calculateTaskDetailsAccuracy(
     );
     if (!actualTask) return 0;
 
-    const expectedDetails = [expectedTask.assignee, expectedTask.dueDate].filter(Boolean);
+    const expectedDetails = [expectedTask.assignee, expectedTask.dueDate].filter(isPresentString);
     if (expectedDetails.length === 0) return 1;
 
     const matchedDetails = expectedDetails.filter((detail) => {
@@ -456,6 +456,10 @@ function descriptionsMatch(actual: string, expected: string): boolean {
     .filter(Boolean);
 
   return expectedTerms.length > 0 && expectedTerms.every((term) => actualTerms.has(term));
+}
+
+function isPresentString(value: string | undefined): value is string {
+  return Boolean(value);
 }
 
 function sanitizeError(error: unknown): string {

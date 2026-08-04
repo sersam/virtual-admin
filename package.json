@@ -24,12 +24,14 @@
     "test:e2e": "node scripts/run-workspace-script.mjs test:e2e",
     "build": "npm run build:root && node scripts/run-workspace-script.mjs build",
     "build:root": "tsc -p tsconfig.json",
+    "eval:demo": "tsx apps/api/src/presentation/cli/runEvaluation.ts demo",
+    "eval:openai": "tsx apps/api/src/presentation/cli/runEvaluation.ts openai",
     "smoke:public": "node scripts/public-smoke.mjs",
     "changes:validate": "node scripts/validate-changes.mjs",
     "changes:consume": "node scripts/consume-changes.mjs",
     "db:generate": "npm run db:generate --workspace @admin/api",
     "db:migrate": "npm run db:migrate --workspace @admin/api",
-    "quality": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run test:e2e && npm run changes:validate"
+    "quality": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run test:e2e && npm run eval:demo && npm run changes:validate"
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",
