@@ -58,3 +58,9 @@ test('publica un workflow manual para ejecutar el smoke postdespliegue', async (
   assert.match(workflow, /PUBLIC_WEB_URL: \$\{\{ vars\.PUBLIC_WEB_URL \}\}/);
   assert.match(workflow, /npm run smoke:public/);
 });
+
+test('excluye los scripts raiz de la cobertura Sonar porque se prueban sin LCOV', async () => {
+  const sonarProperties = await readFile('sonar-project.properties', 'utf8');
+
+  assert.match(sonarProperties, /^sonar\.coverage\.exclusions=.*scripts\/\*\*\/\*\.mjs/m);
+});
