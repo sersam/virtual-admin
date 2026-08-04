@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-08-04 · PR [#29](https://github.com/sersam/virtual-admin/pull/29)
+
+### Added
+
+- Documenta y prepara el despliegue publico de la demo con API Railway, frontend Vercel, PostgreSQL pgvector y smoke postdespliegue.
+
 ## 2026-07-31 · PR [#28](https://github.com/sersam/virtual-admin/pull/28)
 
 ### Added
