@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assertSingleFragment, insertChangelogEntry, parseFragment } from './changelog-lib.mjs';
+import {
+  assertSingleFragment,
+  insertChangelogEntry,
+  listMarkdownFragments,
+  parseFragment,
+} from './changelog-lib.mjs';
 
 test('acepta un fragmento válido', () => {
   assert.deepEqual(parseFragment('---\ntype: Added\n---\nNueva funcionalidad completa.'), {
@@ -17,6 +22,12 @@ test('exige exactamente un fragmento por historia', () => {
   assert.doesNotThrow(() => assertSingleFragment(['us-000.md']));
   assert.throws(() => assertSingleFragment([]), /exactamente un fragmento/);
   assert.throws(() => assertSingleFragment(['a.md', 'b.md']), /encontrados: 2/);
+});
+
+test('lista cero fragmentos cuando el directorio de cambios no existe', async () => {
+  await assert.doesNotReject(async () => {
+    assert.deepEqual(await listMarkdownFragments('.changes-inexistente'), []);
+  });
 });
 
 test('no modifica el changelog si falta la sección Unreleased', () => {
