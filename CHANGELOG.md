@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-08-04 · PR [#30](https://github.com/sersam/virtual-admin/pull/30)
+
+### Fixed
+
+- El validador de changelog maneja directorios `.changes` ausentes sin mostrar una traza interna de Node.
+
 ## 2026-08-04 · PR [#29](https://github.com/sersam/virtual-admin/pull/29)
 
 ### Added
