@@ -76,6 +76,18 @@ Cada petición válida a documentos, chat, comunicados, actas, incidencias o jun
 
 La API expone `GET /api/observability` sin crear ni consumir sesión. Devuelve métricas agregadas del día UTC: ejecuciones, éxitos, fallos, fallbacks, tokens, coste estimado, latencia media, desgloses por operación/modelo y límites configurados. Inicio muestra ese panel; si la API no está disponible, indica que no hay métricas reales disponibles.
 
+### Despliegue público
+
+La demo pública se despliega con API Express y PostgreSQL pgvector en Railway, frontend Vite en Vercel y proxy same-origin de Vercel para `/api/*`. Railway ejecuta migraciones en predeploy, espera `/health` antes de activar la versión y arranca la API con `npm run start --workspace @admin/api`. Vercel mantiene `VITE_API_BASE_URL` sin definir y usa `apps/web/vercel.mjs` para reenviar la API y resolver rutas profundas de la SPA.
+
+El smoke postdespliegue se ejecuta con:
+
+```bash
+PUBLIC_WEB_URL=https://<frontend>.vercel.app PUBLIC_API_URL=https://<api>.up.railway.app npm run smoke:public
+```
+
+La guía operativa completa está en [docs/deployment.md](docs/deployment.md). Incluye aprovisionamiento, variables, rotación de secretos, rollback, evidencia de PR y limitaciones.
+
 ### Actas con OpenAI
 
 La pantalla `/actas` y el agente de chat de actas consumen el puerto backend `MeetingMinutesGenerator`. Sin `OPENAI_API_KEY`, el generador demo extrae líneas `Acuerdo:`, `Tarea:` y `Pendiente:` de forma determinista. Con `OPENAI_API_KEY`, el adaptador OpenAI usa Responses API con salida estructurada, esquema `meeting_minutes_draft_v1` y prompt versionado `meeting-minutes.v1`.
@@ -174,6 +186,7 @@ npm run lint          # Ejecuta ESLint
 npm run typecheck     # Comprueba TypeScript
 npm test              # Ejecuta las pruebas
 npm run build         # Verifica la compilación
+npm run smoke:public  # Ejecuta el smoke contra la demo publica desplegada
 npm run test:e2e      # Ejecuta los flujos end-to-end en Chromium
 npm run quality       # Ejecuta el conjunto completo de controles
 ```

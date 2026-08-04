@@ -23,6 +23,17 @@ La observabilidad IA usa `AiTelemetryReporter` y `AiTelemetryEventRepository`. L
 
 Las juntas demo proceden de `InMemoryMeetingRepository` y se calculan con el reloj del backend: la junta ordinaria queda a un mes de la fecha actual y la extraordinaria a dos meses, manteniendo las 17:00 UTC y ajustando fin de mes al ultimo dia disponible cuando sea necesario.
 
+## Despliegue publico
+
+La topologia publica separa responsabilidades por proveedor:
+
+- Railway aloja la API Express y la base PostgreSQL pgvector. `railway.json` declara build, predeploy de migraciones, start, healthcheck `/health`, reinicio por fallo y rutas observadas.
+- La API escucha en `0.0.0.0` con el `PORT` inyectado por Railway. En produccion activa cookies seguras y confia en un unico salto de proxy.
+- Vercel aloja el frontend Vite. `apps/web/vercel.mjs` valida `RAILWAY_API_ORIGIN`, reenvia `/api/:path*` al origen Railway y usa `/index.html` como fallback de rutas profundas.
+- El navegador consume la API por rutas relativas same-origin; por tanto `VITE_API_BASE_URL` queda sin definir en Vercel.
+- OpenAI solo vive en Railway. Las cuotas, fallbacks y observabilidad de US-022 protegen el coste y hacen visible cualquier degradacion determinista.
+- El estado demo persistente sigue aislado por sesion. El smoke postdespliegue crea una sesion canario, comprueba idempotencia del seed y no imprime cookies, sesiones ni contenido generado.
+
 ## Frontend
 
 - `app`: arranque, rutas y proveedores.
