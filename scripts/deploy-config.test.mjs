@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
 import test from 'node:test';
 
 async function readJson(path) {
@@ -33,4 +34,57 @@ test('la API expone un arranque de produccion disponible en Railway', async () =
   assert.equal(packageJson.devDependencies.tsx, undefined);
   assert.match(main, /const host = '0\.0\.0\.0';/);
   assert.match(main, /app\.listen\(port,\s*host,/);
+});
+
+async function importVercelConfig(origin, caseName) {
+  const previousOrigin = process.env.RAILWAY_API_ORIGIN;
+  if (origin === undefined) {
+    delete process.env.RAILWAY_API_ORIGIN;
+  } else {
+    process.env.RAILWAY_API_ORIGIN = origin;
+  }
+
+  try {
+    const url = pathToFileURL('apps/web/vercel.mjs');
+    return await import(`${url.href}?case=${caseName}`);
+  } finally {
+    if (previousOrigin === undefined) {
+      delete process.env.RAILWAY_API_ORIGIN;
+    } else {
+      process.env.RAILWAY_API_ORIGIN = previousOrigin;
+    }
+  }
+}
+
+test('configura Vercel con proxy API y fallback SPA en ese orden', async () => {
+  const { default: config } = await importVercelConfig(
+    'https://administrador-api.up.railway.app/',
+    'valid',
+  );
+
+  assert.deepEqual(config.rewrites, [
+    {
+      source: '/api/:path*',
+      destination: 'https://administrador-api.up.railway.app/api/:path*',
+    },
+    {
+      source: '/(.*)',
+      destination: '/index.html',
+    },
+  ]);
+});
+
+test('valida el origen Railway requerido para Vercel', async () => {
+  await assert.rejects(
+    importVercelConfig(undefined, 'missing'),
+    /RAILWAY_API_ORIGIN es obligatoria/,
+  );
+  await assert.rejects(
+    importVercelConfig('http://administrador-api.up.railway.app', 'http'),
+    /RAILWAY_API_ORIGIN debe usar HTTPS/,
+  );
+  await assert.rejects(
+    importVercelConfig('https://administrador-api.up.railway.app/api', 'path'),
+    /RAILWAY_API_ORIGIN no debe incluir ruta/,
+  );
 });
