@@ -33,4 +33,6 @@ test('GitHub Actions ejecuta eval demo y sube reportes aunque falle', async () =
   assert.match(workflow, /npm run eval:demo/);
   assert.match(workflow, /if: always\(\)/);
   assert.match(workflow, /artifacts\/evaluations/);
+  assert.match(workflow, /actions\/upload-artifact@[a-f0-9]{40} # v4/);
+  assert.doesNotMatch(workflow, /actions\/upload-artifact@v4(?![a-f0-9])/);
 });

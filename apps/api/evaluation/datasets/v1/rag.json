@@ -12,7 +12,7 @@
           "title": "Comunicado piscina julio",
           "type": "comunicado",
           "section": "Horarios",
-          "content": "La piscina abre en julio de 10:00 a 21:00. Los menores de 12 anos deben entrar acompanados.",
+          "content": "La piscina abre en julio de 10:00 a 21:00. Los menores de 12 años deben entrar acompañados.",
           "documentUrl": "/documents/eval-piscina.pdf"
         },
         {
@@ -46,7 +46,7 @@
           "title": "Presupuesto anual",
           "type": "presupuesto",
           "section": "Gastos",
-          "content": "El presupuesto reserva 3800 euros para mantenimiento vegetal y pequenas reparaciones.",
+          "content": "El presupuesto reserva 3800 euros para mantenimiento vegetal y pequeñas reparaciones.",
           "documentUrl": "/documents/eval-presupuesto.pdf"
         }
       ],
@@ -62,7 +62,7 @@
         {
           "id": "rag-doc-ruido",
           "title": "Normas de convivencia",
-          "type": "normativa",
+          "type": "normas",
           "section": "Descanso",
           "content": "La norma de ruido nocturno indica que entre las 22:00 y las 08:00 se deben evitar ruidos, musica alta y taladros.",
           "documentUrl": "/documents/eval-convivencia.pdf"
@@ -70,7 +70,7 @@
         {
           "id": "rag-doc-zonas",
           "title": "Normas de zonas comunes",
-          "type": "normativa",
+          "type": "normas",
           "section": "Uso",
           "content": "Las zonas comunes deben quedar limpias tras su uso y no pueden reservarse sin autorizacion.",
           "documentUrl": "/documents/eval-zonas.pdf"
@@ -140,7 +140,7 @@
         {
           "id": "rag-doc-extintores",
           "title": "Plan de seguridad",
-          "type": "normativa",
+          "type": "normas",
           "section": "Extintores",
           "content": "La revision de extintores sera el 3 de septiembre y afectara a portales y garaje.",
           "documentUrl": "/documents/eval-extintores.pdf"
@@ -174,7 +174,7 @@
       ],
       "expectedSourceIds": [],
       "expectedCitedSourceIds": [],
-      "expectedFacts": ["fuentes suficientes"],
+      "expectedFacts": ["No he encontrado fuentes suficientes"],
       "insufficientEvidence": true
     },
     {
@@ -184,7 +184,7 @@
         {
           "id": "rag-doc-mascotas",
           "title": "Normas de mascotas",
-          "type": "normativa",
+          "type": "normas",
           "section": "Convivencia",
           "content": "Los perros deben ir atados en zonas comunes y los propietarios limpiaran cualquier suciedad.",
           "documentUrl": "/documents/eval-mascotas.pdf"
@@ -192,7 +192,7 @@
       ],
       "expectedSourceIds": [],
       "expectedCitedSourceIds": [],
-      "expectedFacts": ["fuentes suficientes"],
+      "expectedFacts": ["No he encontrado fuentes suficientes"],
       "insufficientEvidence": true
     }
   ]

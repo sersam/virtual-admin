@@ -53,6 +53,16 @@ describe('evaluationMetrics', () => {
     expect(metrics.macroF1).toBeCloseTo(0.33, 2);
   });
 
+  it('rechaza clasificaciones con longitudes incompatibles', () => {
+    expect(() =>
+      calculateClassificationMetrics({
+        actual: ['documentos'],
+        expected: ['documentos', 'actas'],
+        labels: ['documentos', 'actas'],
+      }),
+    ).toThrow(/misma longitud/u);
+  });
+
   it('puntua orden de fuentes por precision, recall y posiciones exactas', () => {
     expect(
       scoreOrderedIds(['urgent-incident', 'pending-task'], ['urgent-incident', 'proposal']),
@@ -80,5 +90,27 @@ describe('evaluationMetrics', () => {
       passed: false,
       failures: ['coordinacion queda en 0.80 y exige 0.90.'],
     });
+  });
+
+  it('bloquea gates por errores tecnicos y afirmaciones prohibidas', () => {
+    const scores: CapabilityScore[] = [
+      { capability: 'rag', score: 1, technicalErrors: 1, forbiddenClaims: 2 },
+    ];
+
+    expect(
+      evaluateCapabilityGates(scores, {
+        minimumScores: {},
+        requireNoForbiddenClaims: true,
+        requireNoTechnicalErrors: true,
+      }),
+    ).toMatchObject({
+      passed: false,
+      failures: ['rag registra 1 errores tecnicos.', 'rag registra 2 afirmaciones prohibidas.'],
+    });
+  });
+
+  it('calcula la tasa de elementos inventados sobre los elementos devueltos', () => {
+    expect(calculateSetMetrics(['a'], ['a', 'b'])).toMatchObject({ hallucinationRate: 0.5 });
+    expect(calculateSetMetrics([], ['a'])).toMatchObject({ hallucinationRate: 1 });
   });
 });

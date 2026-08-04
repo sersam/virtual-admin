@@ -6,6 +6,7 @@ import {
   CommunityNoticeAudienceSchema,
   CommunityNoticeToneSchema,
   CommunityNoticeTypeSchema,
+  DocumentSourceSchema,
   IncidentPrioritySchema,
   IncidentStatusSchema,
   IncidentTypeSchema,
@@ -29,7 +30,7 @@ const communityDocumentSchema = z.object({
   id: z.string().trim().min(1),
   section: z.string().trim().min(1),
   title: z.string().trim().min(1),
-  type: z.enum(['acta', 'contrato', 'comunicado', 'normativa', 'presupuesto', 'adjunto']),
+  type: DocumentSourceSchema.shape.type,
 });
 
 const ragCaseSchema = z
@@ -188,6 +189,11 @@ export interface EvaluationDatasetValidationSummary {
   readonly totalCases: number;
 }
 
+export interface EvaluationDatasetBundle {
+  readonly datasets: EvaluationDatasets;
+  readonly summary: EvaluationDatasetValidationSummary;
+}
+
 type DatasetFile = {
   [Capability in EvaluationCapability]: {
     readonly capability: Capability;
@@ -195,10 +201,12 @@ type DatasetFile = {
   };
 }[EvaluationCapability];
 
-export async function loadEvaluationDatasets(
+export async function loadEvaluationDatasetBundle(
   directory = getDefaultDatasetDirectory(),
-): Promise<EvaluationDatasets> {
-  const files = (await readdir(directory)).filter((file) => file.endsWith('.json')).sort();
+): Promise<EvaluationDatasetBundle> {
+  const files = (await readdir(directory))
+    .filter((file) => file.endsWith('.json'))
+    .sort((left, right) => left.localeCompare(right));
   const datasets = createEmptyDatasets();
 
   for (const file of files) {
@@ -209,12 +217,23 @@ export async function loadEvaluationDatasets(
       throw new Error(`${file}: dataset invalido: ${parsedDataset.error.message}`);
     }
 
-    assignDatasetCases(datasets, parsedDataset.data as DatasetFile);
+    const dataset = parsedDataset.data as DatasetFile;
+    if (datasets[dataset.capability].length > 0) {
+      throw new Error(`${file}: capacidad duplicada: ${dataset.capability}.`);
+    }
+
+    assignDatasetCases(datasets, dataset);
   }
 
-  validateEvaluationDatasets(datasets);
+  const summary = validateEvaluationDatasets(datasets);
 
-  return datasets;
+  return { datasets, summary };
+}
+
+export async function loadEvaluationDatasets(
+  directory = getDefaultDatasetDirectory(),
+): Promise<EvaluationDatasets> {
+  return (await loadEvaluationDatasetBundle(directory)).datasets;
 }
 
 export function validateEvaluationDatasets(
@@ -283,31 +302,27 @@ function createEmptyDatasets(): MutableEvaluationDatasets {
 }
 
 function assignDatasetCases(datasets: MutableEvaluationDatasets, dataset: DatasetFile): void {
-  if (dataset.capability === 'actas') {
-    datasets.actas = (dataset as DatasetFileFor<'actas'>).cases;
-  }
-  if (dataset.capability === 'comunicados') {
-    datasets.comunicados = (dataset as DatasetFileFor<'comunicados'>).cases;
-  }
-  if (dataset.capability === 'coordinacion') {
-    datasets.coordinacion = (dataset as DatasetFileFor<'coordinacion'>).cases;
-  }
-  if (dataset.capability === 'incidencias') {
-    datasets.incidencias = (dataset as DatasetFileFor<'incidencias'>).cases;
-  }
-  if (dataset.capability === 'juntas') {
-    datasets.juntas = (dataset as DatasetFileFor<'juntas'>).cases;
-  }
-  if (dataset.capability === 'rag') {
-    datasets.rag = (dataset as DatasetFileFor<'rag'>).cases;
+  switch (dataset.capability) {
+    case 'actas':
+      datasets.actas = dataset.cases;
+      return;
+    case 'comunicados':
+      datasets.comunicados = dataset.cases;
+      return;
+    case 'coordinacion':
+      datasets.coordinacion = dataset.cases;
+      return;
+    case 'incidencias':
+      datasets.incidencias = dataset.cases;
+      return;
+    case 'juntas':
+      datasets.juntas = dataset.cases;
+      return;
+    case 'rag':
+      datasets.rag = dataset.cases;
   }
 }
 
 type MutableEvaluationDatasets = {
   -readonly [Capability in keyof EvaluationDatasets]: EvaluationDatasets[Capability];
 };
-
-type DatasetFileFor<Capability extends EvaluationCapability> = Extract<
-  DatasetFile,
-  { capability: Capability }
->;

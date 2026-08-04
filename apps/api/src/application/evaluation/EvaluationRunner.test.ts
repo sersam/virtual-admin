@@ -15,6 +15,7 @@ describe('EvaluationRunner', () => {
     const result = await runEvaluation({
       commit: 'abc123',
       datasets: createDatasets(),
+      datasetVersion: '2026-08-04',
       generatedAt: new Date('2026-08-04T10:00:00.000Z'),
       mode: 'demo',
       ports: createPorts(),
@@ -37,6 +38,7 @@ describe('EvaluationRunner', () => {
     const result = await runEvaluation({
       commit: 'abc123',
       datasets: createDatasets(),
+      datasetVersion: '2026-08-04',
       generatedAt: new Date('2026-08-04T10:00:00.000Z'),
       mode: 'openai',
       ports: createPorts({
@@ -52,15 +54,92 @@ describe('EvaluationRunner', () => {
     expect(JSON.stringify(result)).not.toContain('sk-secret');
     expect(JSON.stringify(result)).not.toContain('texto sensible de entrada');
   });
+
+  it('evalua evidencia insuficiente y agendas vacias sin penalizar casos correctos', async () => {
+    const result = await runEvaluation({
+      commit: 'abc123',
+      datasets: createDatasets({
+        juntas: [
+          {
+            emptyExpected: true,
+            expectedBodyConcepts: ['no hay asuntos pendientes'],
+            expectedItems: [],
+            forbiddenClaims: ['aprobada'],
+            id: 'agenda-empty-test',
+            meetingId: 'meeting-1',
+            seed: { incidents: [], pendingAgreements: [], proposals: [] },
+          },
+        ],
+        rag: [
+          {
+            documents: [
+              {
+                content: 'La piscina abre de 10:00 a 21:00.',
+                documentUrl: '/documents/test.pdf',
+                id: 'doc-1',
+                section: 'Horario',
+                title: 'Piscina',
+                type: 'comunicado',
+              },
+            ],
+            expectedCitedSourceIds: [],
+            expectedFacts: ['No he encontrado fuentes suficientes'],
+            expectedSourceIds: [],
+            id: 'rag-insufficient-test',
+            insufficientEvidence: true,
+            question: 'texto sensible de entrada',
+          },
+        ],
+      }),
+      datasetVersion: '2026-08-04',
+      generatedAt: new Date('2026-08-04T10:00:00.000Z'),
+      mode: 'demo',
+      ports: createPorts(),
+    });
+
+    expect(result.cases.find(({ id }) => id === 'rag-insufficient-test')?.metrics).toMatchObject({
+      insufficientEvidenceAccuracy: 1,
+      reciprocalRank: 1,
+    });
+    expect(result.cases.find(({ id }) => id === 'agenda-empty-test')?.metrics).toMatchObject({
+      emptyAccuracy: 1,
+      sourceRecall: 1,
+    });
+  });
+
+  it('detecta afirmaciones prohibidas y normaliza tildes en responsables y tareas', async () => {
+    const result = await runEvaluation({
+      commit: 'abc123',
+      datasets: createDatasets(),
+      datasetVersion: '2026-08-04',
+      generatedAt: new Date('2026-08-04T10:00:00.000Z'),
+      mode: 'demo',
+      ports: createPorts({
+        draftCommunityNotice: async (): Promise<CommunityNoticeDraftResponse> => ({
+          draft: {
+            body: 'Informamos sobre Revision de garaje. No existe multa.',
+            subject: 'Revision de garaje',
+          },
+          mode: 'deterministic-demo',
+        }),
+      }),
+    });
+
+    expect(result.cases.find(({ id }) => id === 'minutes-test')?.metrics).toMatchObject({
+      assigneeDateAccuracy: 1,
+    });
+    expect(result.cases.find(({ id }) => id === 'notice-test')?.forbiddenClaims).toBe(1);
+    expect(result.cases.find(({ id }) => id === 'notice-test')?.passed).toBe(false);
+  });
 });
 
-function createDatasets(): EvaluationDatasets {
-  return {
+function createDatasets(overrides: Partial<EvaluationDatasets> = {}): EvaluationDatasets {
+  const datasets: EvaluationDatasets = {
     actas: [
       {
         expectedAgreements: ['aprobar limpieza'],
         expectedTasks: [
-          { assignee: 'Ana', description: 'Ana avisara el viernes', dueDate: 'viernes' },
+          { assignee: 'Ana', description: 'Ana avisará el viernes', dueDate: 'viernes' },
         ],
         forbiddenClaims: ['derrame'],
         id: 'minutes-test',
@@ -129,28 +208,38 @@ function createDatasets(): EvaluationDatasets {
       },
     ],
   };
+
+  return { ...datasets, ...overrides };
 }
 
 function createPorts(
   overrides: Partial<Parameters<typeof runEvaluation>[0]['ports']> = {},
 ): Parameters<typeof runEvaluation>[0]['ports'] {
   return {
-    answerDocumentQuestion: async (): Promise<DocumentQueryResponse> => ({
-      answer: 'La piscina abre de 10:00 a 21:00.',
-      generationMode: 'deterministic-demo',
-      mode: 'lexical-demo',
-      sources: [
-        {
-          documentUrl: '/documents/test.pdf',
-          excerpt: 'La piscina abre de 10:00 a 21:00.',
-          id: 'doc-1',
-          score: 1,
-          section: 'Horario',
-          title: 'Piscina',
-          type: 'comunicado',
-        },
-      ],
-    }),
+    answerDocumentQuestion: async (testCase): Promise<DocumentQueryResponse> =>
+      testCase.insufficientEvidence
+        ? {
+            answer: 'No he encontrado fuentes suficientes.',
+            generationMode: 'deterministic-demo',
+            mode: 'lexical-demo',
+            sources: [],
+          }
+        : {
+            answer: 'La piscina abre de 10:00 a 21:00.',
+            generationMode: 'deterministic-demo',
+            mode: 'lexical-demo',
+            sources: [
+              {
+                documentUrl: '/documents/test.pdf',
+                excerpt: 'La piscina abre de 10:00 a 21:00.',
+                id: 'doc-1',
+                score: 1,
+                section: 'Horario',
+                title: 'Piscina',
+                type: 'comunicado',
+              },
+            ],
+          },
     classifyChatIntent: async (): Promise<ChatAgent> => 'documentos',
     createIncident: async (): Promise<IncidentEvaluationOutput> => ({
       incident: {
@@ -163,17 +252,19 @@ function createPorts(
       draft: { body: 'Informamos sobre Revision de garaje.', subject: 'Revision de garaje' },
       mode: 'deterministic-demo',
     }),
-    draftMeetingAgenda: async (): Promise<MeetingAgendaDraftResponse> => ({
+    draftMeetingAgenda: async (testCase): Promise<MeetingAgendaDraftResponse> => ({
       draft: {
-        body: 'Orden del dia\nFuga de agua',
-        items: [
-          {
-            description: 'Fuga de agua',
-            priority: 'alta',
-            sourceId: 'agenda-inc',
-            sourceType: 'incident',
-          },
-        ],
+        body: testCase.emptyExpected ? 'No hay asuntos pendientes.' : 'Orden del dia\nFuga de agua',
+        items: testCase.emptyExpected
+          ? []
+          : [
+              {
+                description: 'Fuga de agua',
+                priority: 'alta',
+                sourceId: 'agenda-inc',
+                sourceType: 'incident',
+              },
+            ],
         title: 'Orden del dia',
       },
       meeting: {

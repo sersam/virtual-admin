@@ -6,13 +6,14 @@ import { promisify } from 'node:util';
 import {
   evaluateCapabilityGates,
   type EvaluationGateConfig,
+  type EvaluationGateResult,
 } from '../../application/evaluation/evaluationMetrics.js';
 import {
   runEvaluation,
   type EvaluationMode,
   type EvaluationRunResult,
 } from '../../application/evaluation/EvaluationRunner.js';
-import { loadEvaluationDatasets } from '../../infrastructure/evaluation/evaluationDatasets.js';
+import { loadEvaluationDatasetBundle } from '../../infrastructure/evaluation/evaluationDatasets.js';
 import { writeEvaluationReports } from '../../infrastructure/evaluation/EvaluationReportWriter.js';
 import { EvaluationTelemetryCollector } from '../../infrastructure/evaluation/EvaluationTelemetryCollector.js';
 import { createAiProviders } from '../../infrastructure/openai/createAiProviders.js';
@@ -21,12 +22,22 @@ import { createEvaluationPorts } from './evaluationComposition.js';
 const execFileAsync = promisify(execFile);
 
 interface RunEvaluationCliOptions {
+  readonly dependencies?: Partial<RunEvaluationCliDependencies>;
   readonly env?: NodeJS.ProcessEnv;
   readonly envFilePath?: string | false;
   readonly mode?: EvaluationMode;
   readonly outputDirectory?: string;
   readonly stderr?: (line: string) => void;
   readonly stdout?: (line: string) => void;
+}
+
+interface RunEvaluationCliDependencies {
+  readonly createPorts: typeof createEvaluationPorts;
+  readonly createProviders: typeof createAiProviders;
+  readonly loadDatasetBundle: typeof loadEvaluationDatasetBundle;
+  readonly resolveCommit: typeof resolveCommit;
+  readonly runEvaluation: typeof runEvaluation;
+  readonly writeReports: typeof writeEvaluationReports;
 }
 
 const demoGateConfig: EvaluationGateConfig = {
@@ -56,6 +67,7 @@ export async function runEvaluationCli(options: RunEvaluationCliOptions = {}): P
 }
 
 interface CliContext {
+  readonly dependencies: RunEvaluationCliDependencies;
   readonly env: NodeJS.ProcessEnv;
   readonly mode: EvaluationMode;
   readonly outputDirectory?: string;
@@ -65,6 +77,7 @@ interface CliContext {
 
 async function createCliContext(options: RunEvaluationCliOptions): Promise<CliContext> {
   return {
+    dependencies: createDependencies(options.dependencies),
     env: await loadEvaluationEnvironment({
       env: options.env ?? process.env,
       envFilePath: options.envFilePath,
@@ -73,6 +86,20 @@ async function createCliContext(options: RunEvaluationCliOptions): Promise<CliCo
     outputDirectory: options.outputDirectory,
     stderr: options.stderr ?? ((line: string) => process.stderr.write(`${line}\n`)),
     stdout: options.stdout ?? ((line: string) => process.stdout.write(`${line}\n`)),
+  };
+}
+
+function createDependencies(
+  overrides: Partial<RunEvaluationCliDependencies> | undefined,
+): RunEvaluationCliDependencies {
+  return {
+    createPorts: createEvaluationPorts,
+    createProviders: createAiProviders,
+    loadDatasetBundle: loadEvaluationDatasetBundle,
+    resolveCommit,
+    runEvaluation,
+    writeReports: writeEvaluationReports,
+    ...overrides,
   };
 }
 
@@ -148,33 +175,52 @@ function hasRequiredConfiguration(context: CliContext): boolean {
 
 async function runConfiguredEvaluation(context: CliContext): Promise<number> {
   const telemetry = new EvaluationTelemetryCollector(context.mode);
-  const datasets = await loadEvaluationDatasets();
-  const providers = createAiProviders({
+  const bundle = await context.dependencies.loadDatasetBundle();
+  const providers = context.dependencies.createProviders({
     openAiApiKey: context.mode === 'openai' ? context.env.OPENAI_API_KEY : undefined,
     telemetry,
   });
-  const result = await runEvaluation({
-    commit: await resolveCommit(),
-    datasets,
+  const result = await context.dependencies.runEvaluation({
+    commit: await context.dependencies.resolveCommit(),
+    datasets: bundle.datasets,
+    datasetVersion: bundle.summary.datasetVersion,
     mode: context.mode,
-    ports: createEvaluationPorts(providers),
+    ports: context.dependencies.createPorts(providers),
   });
   const resultWithTelemetry: EvaluationRunResult = {
     ...result,
     telemetry: telemetry.snapshot(),
   };
-  const paths = await writeEvaluationReports(resultWithTelemetry, context.outputDirectory);
+  const gate = evaluateGate(context, resultWithTelemetry);
+  const paths = await context.dependencies.writeReports(
+    resultWithTelemetry,
+    context.outputDirectory,
+    {
+      gateConfig: context.mode === 'demo' ? demoGateConfig : undefined,
+    },
+  );
 
   context.stdout(
     `Evaluacion ${context.mode} completada. Reportes: ${paths.jsonPath} y ${paths.markdownPath}.`,
   );
 
-  return evaluateExitCode(context, result);
+  return evaluateExitCode(context, resultWithTelemetry, gate);
 }
 
-function evaluateExitCode(context: CliContext, result: EvaluationRunResult): number {
-  const gate =
-    context.mode === 'demo' ? evaluateCapabilityGates(result.capabilities, demoGateConfig) : null;
+function evaluateGate(
+  context: CliContext,
+  result: EvaluationRunResult,
+): EvaluationGateResult | null {
+  return context.mode === 'demo'
+    ? evaluateCapabilityGates(result.capabilities, demoGateConfig)
+    : null;
+}
+
+function evaluateExitCode(
+  context: CliContext,
+  result: EvaluationRunResult,
+  gate: EvaluationGateResult | null,
+): number {
   if (gate && !gate.passed) {
     context.stderr(gate.failures.join('\n'));
     return 1;

@@ -102,6 +102,10 @@ export function calculateClassificationMetrics(input: {
   readonly expected: readonly string[];
   readonly labels: readonly string[];
 }): ClassificationMetrics {
+  if (input.actual.length !== input.expected.length) {
+    throw new Error('Las clasificaciones esperadas y reales deben tener la misma longitud.');
+  }
+
   const compared = input.expected.map((expected, index) => ({
     actual: input.actual[index],
     expected,

@@ -13,6 +13,7 @@ import {
   calculateMean,
   calculateSetMetrics,
   countConceptCoverage,
+  normalizeSpanishText,
   round,
   scoreOrderedIds,
 } from './evaluationMetrics.js';
@@ -56,6 +57,7 @@ export interface IncidentEvaluationOutput {
 export interface EvaluationRunInput {
   readonly commit: string;
   readonly datasets: EvaluationDatasets;
+  readonly datasetVersion: string;
   readonly generatedAt?: Date;
   readonly mode: EvaluationMode;
   readonly ports: EvaluationPorts;
@@ -110,8 +112,6 @@ export interface EvaluationRunResult {
   readonly totalCases: number;
 }
 
-const datasetVersion = '2026-08-04';
-
 export async function runEvaluation(input: EvaluationRunInput): Promise<EvaluationRunResult> {
   const generatedAt = input.generatedAt ?? new Date();
   const startedAt = Date.now();
@@ -134,7 +134,7 @@ export async function runEvaluation(input: EvaluationRunInput): Promise<Evaluati
     capabilities,
     cases,
     commit: input.commit,
-    datasetVersion,
+    datasetVersion: input.datasetVersion,
     durationMs: Math.max(Date.now() - startedAt, 0),
     forbiddenClaims: cases.reduce((total, testCase) => total + testCase.forbiddenClaims, 0),
     generatedAt: generatedAt.toISOString(),
@@ -192,17 +192,12 @@ async function evaluateRag(
     requiredConcepts: testCase.expectedFacts,
     text: response.answer,
   });
-  const reciprocalRank =
-    testCase.expectedSourceIds.length === 0
-      ? actualSourceIds.length === 0
-        ? 1
-        : 0
-      : calculateReciprocalRank(testCase.expectedSourceIds, actualSourceIds);
-  const insufficientEvidenceAccuracy = testCase.insufficientEvidence
-    ? actualSourceIds.length === 0 && concepts.requiredCoverage > 0
-      ? 1
-      : 0
-    : 1;
+  const reciprocalRank = calculateRagReciprocalRank(testCase.expectedSourceIds, actualSourceIds);
+  const insufficientEvidenceAccuracy = calculateInsufficientEvidenceAccuracy({
+    actualSourceIds,
+    factCoverage: concepts.requiredCoverage,
+    insufficientEvidence: testCase.insufficientEvidence,
+  });
   const metrics = {
     citationPrecision: citation.precision,
     citationRecall: citation.recall,
@@ -392,7 +387,9 @@ function aggregateCapability(
 }
 
 function aggregateMetrics(cases: readonly EvaluationCaseResult[]): Record<string, number> {
-  const metricNames = [...new Set(cases.flatMap(({ metrics }) => Object.keys(metrics)))].sort();
+  const metricNames = [...new Set(cases.flatMap(({ metrics }) => Object.keys(metrics)))].sort(
+    (left, right) => left.localeCompare(right),
+  );
 
   return Object.fromEntries(
     metricNames.map((metricName) => [
@@ -409,6 +406,27 @@ function calculateReciprocalRank(
   const rankIndex = actualSourceIds.findIndex((sourceId) => expectedSourceIds.includes(sourceId));
 
   return rankIndex < 0 ? 0 : round(1 / (rankIndex + 1));
+}
+
+function calculateRagReciprocalRank(
+  expectedSourceIds: readonly string[],
+  actualSourceIds: readonly string[],
+): number {
+  if (expectedSourceIds.length > 0) {
+    return calculateReciprocalRank(expectedSourceIds, actualSourceIds);
+  }
+
+  return actualSourceIds.length === 0 ? 1 : 0;
+}
+
+function calculateInsufficientEvidenceAccuracy(input: {
+  readonly actualSourceIds: readonly string[];
+  readonly factCoverage: number;
+  readonly insufficientEvidence: boolean;
+}): number {
+  if (!input.insufficientEvidence) return 1;
+
+  return input.actualSourceIds.length === 0 && input.factCoverage > 0 ? 1 : 0;
 }
 
 function calculateTaskDetailsAccuracy(
@@ -444,18 +462,16 @@ function calculateTaskDetailsAccuracy(
 }
 
 function descriptionsMatch(actual: string, expected: string): boolean {
-  const actualTerms = new Set(
-    actual
-      .toLocaleLowerCase('es')
-      .split(/[^a-z0-9]+/u)
-      .filter(Boolean),
-  );
-  const expectedTerms = expected
-    .toLocaleLowerCase('es')
-    .split(/[^a-z0-9]+/u)
-    .filter(Boolean);
+  const actualTerms = new Set(splitNormalizedTerms(actual));
+  const expectedTerms = splitNormalizedTerms(expected);
 
   return expectedTerms.length > 0 && expectedTerms.every((term) => actualTerms.has(term));
+}
+
+function splitNormalizedTerms(text: string): string[] {
+  return normalizeSpanishText(text)
+    .split(/[^a-z0-9]+/u)
+    .filter(Boolean);
 }
 
 function isPresentString(value: string | undefined): value is string {

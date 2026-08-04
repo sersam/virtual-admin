@@ -1,4 +1,4 @@
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
@@ -21,10 +21,87 @@ describe('EvaluationReportWriter', () => {
     expect(markdown).toContain('| Capacidad | Score | Casos | Errores |');
     expect(markdown).toContain('rag-case');
   });
+
+  it('incluye umbrales demo, telemetria y mensaje explicito cuando no hay casos fallidos', async () => {
+    const directory = join(tmpdir(), `admin-eval-report-full-${crypto.randomUUID()}`);
+    await mkdir(directory, { recursive: true });
+
+    const paths = await writeEvaluationReports(
+      createResult({
+        cases: [
+          {
+            capability: 'rag',
+            forbiddenClaims: 0,
+            id: 'rag-case',
+            metrics: { retrievalRecallAt3: 1 },
+            passed: true,
+            score: 1,
+            technicalError: false,
+          },
+        ],
+        telemetry: [
+          {
+            cachedInputTokens: 0,
+            estimatedCostUsd: 0.00012,
+            inputTokens: 100,
+            latencyMs: 321,
+            model: 'gpt-test',
+            operation: 'notice',
+            outputTokens: 40,
+            promptVersion: 'notice/v1',
+            result: 'success',
+          },
+        ],
+      }),
+      directory,
+      {
+        gateConfig: {
+          minimumScores: { rag: 0.85 },
+          requireNoForbiddenClaims: true,
+          requireNoTechnicalErrors: true,
+        },
+      },
+    );
+
+    const markdown = await readFile(paths.markdownPath, 'utf8');
+
+    expect(markdown).toContain('## Umbrales');
+    expect(markdown).toContain('| rag | 0.85 |');
+    expect(markdown).toContain('No hay casos fallidos.');
+    expect(markdown).toContain('## Telemetria OpenAI');
+    expect(markdown).toContain('gpt-test');
+  });
+
+  it('soporta escrituras concurrentes sin colisionar nombres temporales', async () => {
+    const directory = join(tmpdir(), `admin-eval-report-concurrent-${crypto.randomUUID()}`);
+    await mkdir(directory, { recursive: true });
+
+    await Promise.all([
+      writeEvaluationReports(createResult({ commit: 'first' }), directory),
+      writeEvaluationReports(createResult({ commit: 'second' }), directory),
+    ]);
+
+    const json = await readFile(join(directory, 'demo.json'), 'utf8');
+
+    expect(() => JSON.parse(json)).not.toThrow();
+  });
+
+  it('propaga errores de escritura del directorio de salida', async () => {
+    const blockedPath = join(tmpdir(), `admin-eval-report-blocked-${crypto.randomUUID()}`);
+    await writeFile(blockedPath, 'no es un directorio', 'utf8');
+
+    try {
+      await expect(
+        writeEvaluationReports(createResult(), join(blockedPath, 'nested')),
+      ).rejects.toThrow();
+    } finally {
+      await rm(blockedPath, { force: true });
+    }
+  });
 });
 
-function createResult(): EvaluationRunResult {
-  return {
+function createResult(overrides: Partial<EvaluationRunResult> = {}): EvaluationRunResult {
+  const result: EvaluationRunResult = {
     capabilities: [
       {
         capability: 'rag',
@@ -58,4 +135,6 @@ function createResult(): EvaluationRunResult {
     telemetry: [],
     totalCases: 1,
   };
+
+  return { ...result, ...overrides };
 }
