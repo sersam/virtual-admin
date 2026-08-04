@@ -7,7 +7,7 @@ Como tribunal, quiero evidencias cuantitativas de calidad para justificar el com
 ## Criterios de aceptacion verificables
 
 - La raiz expone `npm run eval:demo`, que ejecuta proveedores deterministas, no realiza llamadas externas y aplica umbrales bloqueantes.
-- La raiz expone `npm run eval:openai`, que exige `OPENAI_API_KEY`, usa recuperacion RAG lexica y generadores OpenAI reales, informa metricas sin bloquear por calidad estocastica y falla por configuracion, dataset invalido o errores tecnicos.
+- La raiz expone `npm run eval:openai`, que exige `OPENAI_API_KEY` desde el entorno o desde `.env` en la raiz, usa recuperacion RAG lexica y generadores OpenAI reales, informa metricas sin bloquear por calidad estocastica y falla por configuracion, dataset invalido o errores tecnicos.
 - Los datasets versionados se almacenan en `apps/api/evaluation/datasets/v1` y contienen 48 casos ficticios: RAG 8, coordinacion 12, incidencias 8, comunicados 8, actas 6 y juntas 6.
 - Los datasets se validan con Zod antes de ejecutar cualquier evaluacion.
 - La evaluacion reutiliza los casos de uso reales `AnswerDocumentQuestion`, `CreateIncident`, `DraftCommunityNotice`, `DraftMeetingMinutes` y `DraftMeetingAgenda`, ademas del puerto `ChatIntentClassifier`.
@@ -44,7 +44,7 @@ Como tribunal, quiero evidencias cuantitativas de calidad para justificar el com
 ## Casos de error esperados
 
 - Dataset inexistente, mal formado, con version no soportada, IDs duplicados, cobertura incompleta o expectativas incoherentes: el CLI falla antes de ejecutar casos y emite diagnostico saneado.
-- `eval:openai` sin `OPENAI_API_KEY`: el CLI falla con mensaje de configuracion, sin ejecutar casos.
+- `eval:openai` sin `OPENAI_API_KEY` en el entorno ni en `.env`: el CLI falla con mensaje de configuracion, sin ejecutar casos.
 - Error tecnico aislado en un caso: la ejecucion continua, el reporte incluye el fallo saneado y el codigo final es distinto de cero.
 - Error de escritura de reportes: el CLI falla con codigo distinto de cero.
 - Division vacia en metricas o capacidades sin casos: se normaliza a cero o se informa como invalido segun corresponda, sin `NaN`.

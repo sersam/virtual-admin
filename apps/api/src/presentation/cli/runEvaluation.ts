@@ -1,4 +1,6 @@
 import { execFile } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import {
@@ -20,6 +22,7 @@ const execFileAsync = promisify(execFile);
 
 interface RunEvaluationCliOptions {
   readonly env?: NodeJS.ProcessEnv;
+  readonly envFilePath?: string | false;
   readonly mode?: EvaluationMode;
   readonly outputDirectory?: string;
   readonly stderr?: (line: string) => void;
@@ -40,7 +43,7 @@ const demoGateConfig: EvaluationGateConfig = {
 };
 
 export async function runEvaluationCli(options: RunEvaluationCliOptions = {}): Promise<number> {
-  const context = createCliContext(options);
+  const context = await createCliContext(options);
 
   if (!hasRequiredConfiguration(context)) return 1;
 
@@ -60,14 +63,78 @@ interface CliContext {
   readonly stdout: (line: string) => void;
 }
 
-function createCliContext(options: RunEvaluationCliOptions): CliContext {
+async function createCliContext(options: RunEvaluationCliOptions): Promise<CliContext> {
   return {
-    env: options.env ?? process.env,
+    env: await loadEvaluationEnvironment({
+      env: options.env ?? process.env,
+      envFilePath: options.envFilePath,
+    }),
     mode: options.mode ?? parseMode(process.argv.slice(2)),
     outputDirectory: options.outputDirectory,
     stderr: options.stderr ?? ((line: string) => process.stderr.write(`${line}\n`)),
     stdout: options.stdout ?? ((line: string) => process.stdout.write(`${line}\n`)),
   };
+}
+
+export async function loadEvaluationEnvironment(input: {
+  readonly env: NodeJS.ProcessEnv;
+  readonly envFilePath?: string | false;
+}): Promise<NodeJS.ProcessEnv> {
+  if (input.envFilePath === false) return { ...input.env };
+
+  const envFile = input.envFilePath ?? resolve(process.cwd(), '.env');
+  const fileEnvironment = await readEnvFile(envFile);
+
+  return { ...fileEnvironment, ...input.env };
+}
+
+async function readEnvFile(path: string): Promise<NodeJS.ProcessEnv> {
+  try {
+    return parseEnvFile(await readFile(path, 'utf8'));
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+      return {};
+    }
+    throw error;
+  }
+}
+
+export function parseEnvFile(content: string): NodeJS.ProcessEnv {
+  const environment: NodeJS.ProcessEnv = {};
+
+  for (const line of content.split(/\r?\n/u)) {
+    const parsedLine = parseEnvLine(line);
+    if (!parsedLine) continue;
+
+    environment[parsedLine.key] = parsedLine.value;
+  }
+
+  return environment;
+}
+
+function parseEnvLine(line: string): { readonly key: string; readonly value: string } | undefined {
+  const trimmedLine = line.trim();
+  if (!trimmedLine || trimmedLine.startsWith('#')) return undefined;
+
+  const separatorIndex = trimmedLine.indexOf('=');
+  if (separatorIndex <= 0) return undefined;
+
+  const key = trimmedLine.slice(0, separatorIndex).trim();
+  const rawValue = trimmedLine.slice(separatorIndex + 1).trim();
+  if (!/^[A-Z_][A-Z0-9_]*$/u.test(key)) return undefined;
+
+  return { key, value: unquoteEnvValue(rawValue) };
+}
+
+function unquoteEnvValue(value: string): string {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1);
+  }
+
+  return value;
 }
 
 function hasRequiredConfiguration(context: CliContext): boolean {
