@@ -24,6 +24,7 @@
     "test:e2e": "node scripts/run-workspace-script.mjs test:e2e",
     "build": "npm run build:root && node scripts/run-workspace-script.mjs build",
     "build:root": "tsc -p tsconfig.json",
+    "smoke:public": "node scripts/public-smoke.mjs",
     "changes:validate": "node scripts/validate-changes.mjs",
     "changes:consume": "node scripts/consume-changes.mjs",
     "db:generate": "npm run db:generate --workspace @admin/api",

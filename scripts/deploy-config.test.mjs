@@ -88,3 +88,12 @@ test('valida el origen Railway requerido para Vercel', async () => {
     /RAILWAY_API_ORIGIN no debe incluir ruta/,
   );
 });
+
+test('publica un workflow manual para ejecutar el smoke postdespliegue', async () => {
+  const workflow = await readFile('.github/workflows/public-smoke.yml', 'utf8');
+
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /PUBLIC_API_URL: \$\{\{ vars\.PUBLIC_API_URL \}\}/);
+  assert.match(workflow, /PUBLIC_WEB_URL: \$\{\{ vars\.PUBLIC_WEB_URL \}\}/);
+  assert.match(workflow, /npm run smoke:public/);
+});
