@@ -76,9 +76,9 @@ Cada petición válida a documentos, chat, comunicados, actas, incidencias o jun
 
 La API expone `GET /api/observability` sin crear ni consumir sesión. Devuelve métricas agregadas del día UTC: ejecuciones, éxitos, fallos, fallbacks, tokens, coste estimado, latencia media, desgloses por operación/modelo y límites configurados. Inicio muestra ese panel; si la API no está disponible, indica que no hay métricas reales disponibles.
 
-### Despliegue publico
+### Despliegue público
 
-La demo publica se despliega con API Express y PostgreSQL pgvector en Railway, frontend Vite en Vercel y proxy same-origin de Vercel para `/api/*`. Railway ejecuta migraciones en predeploy, espera `/health` antes de activar la version y arranca la API con `npm run start --workspace @admin/api`. Vercel mantiene `VITE_API_BASE_URL` sin definir y usa `apps/web/vercel.mjs` para reenviar la API y resolver rutas profundas de la SPA.
+La demo pública se despliega con API Express y PostgreSQL pgvector en Railway, frontend Vite en Vercel y proxy same-origin de Vercel para `/api/*`. Railway ejecuta migraciones en predeploy, espera `/health` antes de activar la versión y arranca la API con `npm run start --workspace @admin/api`. Vercel mantiene `VITE_API_BASE_URL` sin definir y usa `apps/web/vercel.mjs` para reenviar la API y resolver rutas profundas de la SPA.
 
 El smoke postdespliegue se ejecuta con:
 
@@ -86,7 +86,7 @@ El smoke postdespliegue se ejecuta con:
 PUBLIC_WEB_URL=https://<frontend>.vercel.app PUBLIC_API_URL=https://<api>.up.railway.app npm run smoke:public
 ```
 
-La guia operativa completa esta en [docs/deployment.md](docs/deployment.md). Incluye aprovisionamiento, variables, rotacion de secretos, rollback, evidencia de PR y limitaciones.
+La guía operativa completa está en [docs/deployment.md](docs/deployment.md). Incluye aprovisionamiento, variables, rotación de secretos, rollback, evidencia de PR y limitaciones.
 
 ### Actas con OpenAI
 

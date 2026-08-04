@@ -191,10 +191,16 @@ function normalizeBaseUrl(value, name) {
     throw new PublicSmokeError('configuracion', `${name} debe usar HTTP o HTTPS.`);
   }
 
-  url.pathname = url.pathname.replace(/\/+$/, '');
+  url.pathname = removeTrailingSlashes(url.pathname);
   url.search = '';
   url.hash = '';
-  return url.toString().replace(/\/$/, '');
+  return removeTrailingSlashes(url.toString());
+}
+
+function removeTrailingSlashes(value) {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === '/') end -= 1;
+  return value.slice(0, end);
 }
 
 async function fetchJson(fetchFn, url, options) {
@@ -308,8 +314,8 @@ function assertStableDemoIncidents(firstIncidents, secondIncidents) {
     );
   }
 
-  const firstIds = firstIncidents.map((incident) => incident.id).sort();
-  const secondIds = secondIncidents.map((incident) => incident.id).sort();
+  const firstIds = firstIncidents.map((incident) => incident.id).sort(compareText);
+  const secondIds = secondIncidents.map((incident) => incident.id).sort(compareText);
   const uniqueIds = new Set(firstIds);
   if (
     firstIncidents.length !== 4 ||
@@ -324,6 +330,10 @@ function assertStableDemoIncidents(firstIncidents, secondIncidents) {
   }
 
   return true;
+}
+
+function compareText(left, right) {
+  return left.localeCompare(right);
 }
 
 function summarizeAgenda(body) {
