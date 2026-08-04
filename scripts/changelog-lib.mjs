@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 
 export const validTypes = ['Added', 'Changed', 'Fixed', 'Removed', 'Security'];
 export const unreleasedAnchor = '## [Unreleased]\n';
@@ -16,6 +16,15 @@ export function insertChangelogEntry(changelog, entry) {
     throw new Error('CHANGELOG.md no contiene la sección requerida "## [Unreleased]".');
   }
   return changelog.replace(unreleasedAnchor, `${unreleasedAnchor}\n${entry}`);
+}
+
+export async function listMarkdownFragments(directory) {
+  try {
+    return (await readdir(directory)).filter((file) => file.endsWith('.md'));
+  } catch (error) {
+    if (error?.code === 'ENOENT') return [];
+    throw error;
+  }
 }
 
 export function parseFragment(content, filename = 'fragmento') {

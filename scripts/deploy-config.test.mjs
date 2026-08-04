@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { pathToFileURL } from 'node:url';
 import test from 'node:test';
 
 async function readJson(path) {
@@ -36,57 +35,19 @@ test('la API expone un arranque de produccion disponible en Railway', async () =
   assert.match(main, /app\.listen\(port,\s*host,/);
 });
 
-async function importVercelConfig(origin, caseName) {
-  const previousOrigin = process.env.RAILWAY_API_ORIGIN;
-  if (origin === undefined) {
-    delete process.env.RAILWAY_API_ORIGIN;
-  } else {
-    process.env.RAILWAY_API_ORIGIN = origin;
-  }
-
-  try {
-    const url = pathToFileURL('apps/web/vercel.mjs');
-    return await import(`${url.href}?case=${caseName}`);
-  } finally {
-    if (previousOrigin === undefined) {
-      delete process.env.RAILWAY_API_ORIGIN;
-    } else {
-      process.env.RAILWAY_API_ORIGIN = previousOrigin;
-    }
-  }
-}
-
 test('configura Vercel con proxy API y fallback SPA en ese orden', async () => {
-  const { default: config } = await importVercelConfig(
-    'https://administrador-api.up.railway.app/',
-    'valid',
-  );
+  const config = await readJson('apps/web/vercel.json');
 
   assert.deepEqual(config.rewrites, [
     {
       source: '/api/:path*',
-      destination: 'https://administrador-api.up.railway.app/api/:path*',
+      destination: 'https://virtual-admin-production.up.railway.app/api/:path*',
     },
     {
       source: '/(.*)',
       destination: '/index.html',
     },
   ]);
-});
-
-test('valida el origen Railway requerido para Vercel', async () => {
-  await assert.rejects(
-    importVercelConfig(undefined, 'missing'),
-    /RAILWAY_API_ORIGIN es obligatoria/,
-  );
-  await assert.rejects(
-    importVercelConfig('http://administrador-api.up.railway.app', 'http'),
-    /RAILWAY_API_ORIGIN debe usar HTTPS/,
-  );
-  await assert.rejects(
-    importVercelConfig('https://administrador-api.up.railway.app/api', 'path'),
-    /RAILWAY_API_ORIGIN no debe incluir ruta/,
-  );
 });
 
 test('publica un workflow manual para ejecutar el smoke postdespliegue', async () => {
@@ -96,4 +57,10 @@ test('publica un workflow manual para ejecutar el smoke postdespliegue', async (
   assert.match(workflow, /PUBLIC_API_URL: \$\{\{ vars\.PUBLIC_API_URL \}\}/);
   assert.match(workflow, /PUBLIC_WEB_URL: \$\{\{ vars\.PUBLIC_WEB_URL \}\}/);
   assert.match(workflow, /npm run smoke:public/);
+});
+
+test('excluye los scripts raiz de la cobertura Sonar porque se prueban sin LCOV', async () => {
+  const sonarProperties = await readFile('sonar-project.properties', 'utf8');
+
+  assert.match(sonarProperties, /^sonar\.coverage\.exclusions=.*scripts\/\*\*\/\*\.mjs/m);
 });

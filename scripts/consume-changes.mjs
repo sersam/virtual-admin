@@ -1,6 +1,11 @@
-import { readdir, readFile, unlink, writeFile } from 'node:fs/promises';
+import { readFile, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { insertChangelogEntry, readFragment, validTypes } from './changelog-lib.mjs';
+import {
+  insertChangelogEntry,
+  listMarkdownFragments,
+  readFragment,
+  validTypes,
+} from './changelog-lib.mjs';
 
 const args = Object.fromEntries(
   process.argv.slice(2).map((arg) => {
@@ -14,7 +19,7 @@ const args = Object.fromEntries(
 const pr = args.pr ?? 'local';
 const url = args.url ?? '';
 const title = args.title ?? 'Cambios integrados';
-const files = (await readdir('.changes')).filter((file) => file.endsWith('.md'));
+const files = await listMarkdownFragments('.changes');
 const fragments = files.length
   ? await Promise.all(
       files.map(async (file) => ({ file, ...(await readFragment(join('.changes', file))) })),
