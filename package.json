@@ -13,7 +13,7 @@
     "dev:web": "npm run dev --workspace @admin/web",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky",
+    "prepare": "node scripts/install-husky.mjs",
     "precommit:check": "npm run format:check && npm run lint && npm run typecheck && npm run test:root && npm run changes:validate",
     "prepush:check": "npm run quality",
     "lint": "eslint . --max-warnings=0",
