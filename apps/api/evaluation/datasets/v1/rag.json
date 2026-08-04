@@ -64,7 +64,7 @@
           "title": "Normas de convivencia",
           "type": "normativa",
           "section": "Descanso",
-          "content": "Entre las 22:00 y las 08:00 se deben evitar ruidos, musica alta y taladros.",
+          "content": "La norma de ruido nocturno indica que entre las 22:00 y las 08:00 se deben evitar ruidos, musica alta y taladros.",
           "documentUrl": "/documents/eval-convivencia.pdf"
         },
         {
@@ -128,7 +128,7 @@
           "documentUrl": "/documents/eval-cubierta.pdf"
         }
       ],
-      "expectedSourceIds": ["rag-doc-cuota", "rag-doc-cubierta"],
+      "expectedSourceIds": ["rag-doc-cuota"],
       "expectedCitedSourceIds": ["rag-doc-cuota"],
       "expectedFacts": ["120 euros", "vivienda", "cubierta"],
       "insufficientEvidence": false
@@ -182,12 +182,12 @@
       "question": "Hay autorizacion para instalar placas solares individuales?",
       "documents": [
         {
-          "id": "rag-doc-antenas",
-          "title": "Normas de fachada",
+          "id": "rag-doc-mascotas",
+          "title": "Normas de mascotas",
           "type": "normativa",
-          "section": "Instalaciones",
-          "content": "Las antenas y aparatos visibles en fachada requieren autorizacion expresa de la junta.",
-          "documentUrl": "/documents/eval-fachada.pdf"
+          "section": "Convivencia",
+          "content": "Los perros deben ir atados en zonas comunes y los propietarios limpiaran cualquier suciedad.",
+          "documentUrl": "/documents/eval-mascotas.pdf"
         }
       ],
       "expectedSourceIds": [],
