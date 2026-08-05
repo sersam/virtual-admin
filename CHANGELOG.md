@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-08-05 · PR [#31](https://github.com/sersam/virtual-admin/pull/31)
+
+### Added
+
+- Añade evaluacion automatica demo y OpenAI con datasets versionados, metricas y reportes reproducibles.
+
 ## 2026-08-04 · PR [#30](https://github.com/sersam/virtual-admin/pull/30)
 
 ### Fixed
