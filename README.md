@@ -1,39 +1,65 @@
 # Administrador Virtual Inteligente
 
-## Resumen
+## Descripción general
 
-**Administrador Virtual Inteligente para Comunidades de Propietarios** es un Trabajo Fin de Máster que explora cómo los LLM, RAG y las arquitecturas multiagente pueden automatizar tareas administrativas reales.
+**Administrador Virtual Inteligente** es un MVP para la gestión de comunidades de propietarios. La aplicación simula la administración de la comunidad ficticia **Residencial Sierra Nevada** y explora cómo los modelos de lenguaje, la generación aumentada por recuperación (RAG) y la coordinación de agentes especializados pueden asistir en tareas administrativas reales.
 
-La aplicación simula la gestión de la comunidad ficticia **Residencial Sierra Nevada** y permitirá:
+El sistema ofrece una aplicación web responsive y una API HTTP. Puede ejecutarse completamente en modo demo, sin servicios externos, o conectarse de forma opcional a OpenAI y PostgreSQL con pgvector. No incluye autenticación ni gestión de roles; cada visitante trabaja en una sesión demo aislada mediante una cookie firmada.
 
-- Consultar estatutos, normas, actas y contratos mediante lenguaje natural.
-- Generar comunicados, convocatorias y actas.
-- Clasificar incidencias y sugerir su prioridad y responsable.
-- Preparar órdenes del día a partir de incidencias y acuerdos pendientes.
-- Coordinar agentes especializados desde una interfaz de chat.
-
-Será una demo pública sin autenticación, con datos precargados y un modo local capaz de funcionar sin servicios externos. El MVP se desarrolla mediante historias de usuario independientes para que cada incremento pueda revisarse e integrarse por separado.
-
-## Estado del proyecto
-
-Actualmente están implementadas las historias de la **US-001** a la **US-025**. La aplicación incluye shell responsive, API Express con sesiones demo aisladas, estado persistente opcional en PostgreSQL, documentos PDF subidos por sesión, consulta documental RAG con respuestas generadas desde fuentes trazables, recuperación semántica con pgvector cuando el backend está configurado para ello, un coordinador IA que enruta el chat hacia agentes especializados con traza visible, generación de actas con acuerdos y tareas estructurados, preparación de órdenes del día con redacción OpenAI o demo determinista, límites diarios para acciones IA, observabilidad pública agregada, benchmark técnico reproducible y protocolo de estudio anónimo para la defensa.
+Documentación relacionada:
 
 - [Backlog del MVP](docs/backlog.md)
 - [Arquitectura detallada](docs/architecture.md)
-- [Matriz de trazabilidad para la defensa](docs/defense-traceability.md)
-- [Métricas y limitaciones finales](docs/final-metrics-limitations.md)
+- [Guía de despliegue](docs/deployment.md)
+- [Matriz de trazabilidad](docs/defense-traceability.md)
+- [Métricas y limitaciones](docs/final-metrics-limitations.md)
 - [Guía de contribución](CONTRIBUTING.md)
 
-## Cómo arrancar el proyecto
+## Funcionalidades de la aplicación
+
+| Área             | Funcionalidad                                                                                                                                                                     |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Inicio           | Resume el estado de la comunidad y muestra métricas agregadas de uso de IA, tokens, coste, latencia y fallbacks.                                                                  |
+| Chat inteligente | Clasifica cada petición y la dirige a uno de los agentes de documentos, comunicados, actas, incidencias, juntas o consulta general. La interfaz muestra la traza de enrutamiento. |
+| Documentos       | Permite consultar estatutos, normas, actas y contratos mediante lenguaje natural, subir archivos PDF de hasta 5 MB y abrir las fuentes reales utilizadas en cada respuesta.       |
+| Comunicados      | Genera borradores de avisos para la comunidad a partir de un tema y un contexto.                                                                                                  |
+| Actas            | Convierte notas de una reunión en un acta editable con acuerdos y tareas estructuradas; las tareas pueden incorporarse como asuntos pendientes de futuras juntas.                 |
+| Incidencias      | Registra incidencias, sugiere categoría, prioridad y responsable, y permite consultar su estado.                                                                                  |
+| Juntas           | Prepara órdenes del día con incidencias pendientes, acuerdos y propuestas vecinales, y permite seleccionar reuniones próximas.                                                    |
+
+Además, el MVP incorpora:
+
+- Datos precargados de la comunidad ficticia y fallbacks deterministas para trabajar sin OpenAI.
+- Recuperación documental léxica en modo local y recuperación semántica con embeddings y pgvector cuando OpenAI y PostgreSQL están configurados.
+- Persistencia opcional de sesiones, incidencias, propuestas, acuerdos, documentos, cuotas y telemetría.
+- Límites diarios configurables para acciones de IA y fallback explícito cuando se agota la cuota o falla el proveedor.
+- Evaluaciones automáticas reproducibles para los principales flujos del sistema.
+
+## Stack tecnológico
+
+| Capa                    | Tecnologías principales                                                      |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| Lenguaje y monorepo     | TypeScript 5, Node.js 20+, npm workspaces                                    |
+| Frontend                | React 19, Vite 6, React Router 7, Tailwind CSS 4, Lucide React               |
+| Backend                 | Express 5, Zod 4, Multer, pdf-parse                                          |
+| Inteligencia artificial | OpenAI Responses API, `gpt-5-nano`, `text-embedding-3-small`, LangGraph      |
+| Persistencia            | PostgreSQL, pgvector, Drizzle ORM; repositorios en memoria para el modo demo |
+| Pruebas                 | Vitest, Testing Library, Supertest, Testcontainers y Playwright              |
+| Calidad                 | TypeScript estricto, ESLint, Prettier, Husky y SonarCloud opcional           |
+| Despliegue              | Vercel para el frontend y Railway para la API y PostgreSQL                   |
+
+Los contratos de transporte se comparten entre frontend y backend y se validan con esquemas Zod. OpenAI se consume exclusivamente desde la API; ninguna credencial se expone en el navegador.
+
+## Instalación y ejecución
 
 ### Requisitos
 
 - Node.js 20 o superior.
 - npm 10 o superior.
 - Git.
-- Docker Desktop activo para ejecutar las pruebas de integracion PostgreSQL.
+- Docker Desktop, solo si se van a ejecutar las pruebas de integración con PostgreSQL incluidas en la quality gate.
 
-### Preparación local
+### Instalación
 
 ```bash
 git clone <URL_DEL_REPOSITORIO>
@@ -41,232 +67,126 @@ cd administrador-virtual-inteligente
 npm install
 ```
 
-Arranca el frontend en modo desarrollo:
+### Ejecución local en modo demo
 
-```bash
-npm run dev
-```
-
-La aplicación estará disponible en [http://localhost:5173](http://localhost:5173). Para verificar que el entorno está correctamente preparado, ejecuta:
-
-En otra terminal puedes arrancar la API:
+No es necesario configurar OpenAI ni una base de datos. Arranca la API en una terminal:
 
 ```bash
 npm run dev:api
 ```
 
-La API quedará disponible en [http://localhost:3000](http://localhost:3000), con healthcheck en `/health`, sesión demo en `/api/session` y consulta documental en `/api/documents/query`. Si la API no está levantada, el frontend usa fallbacks locales deterministas.
-
-### Configuración OpenAI
-
-La API puede generar comunicados, clasificar incidencias, clasificar intenciones de chat, redactar respuestas documentales RAG, generar actas, redactar órdenes del día y generar embeddings documentales con OpenAI desde backend. Para activar los proveedores OpenAI en local, define `OPENAI_API_KEY` al arrancar la API:
+En otra terminal, arranca el frontend:
 
 ```bash
-COOKIE_SECRET=local-demo-cookie-secret OPENAI_API_KEY=<TU_API_KEY> npm run dev:api
+npm run dev:web
 ```
 
-El modelo fijado para texto es `gpt-5-nano`. La recuperación semántica documental usa `text-embedding-3-small` con 1536 dimensiones. Si `OPENAI_API_KEY` no está definida, la API usa los adaptadores demo deterministas y la recuperación documental léxica, sin llamadas externas. Si `OPENAI_API_KEY` está definida, el chat clasifica la ruta con OpenAI, las respuestas documentales se redactan con OpenAI sobre las evidencias recuperadas, las actas se generan con salida estructurada OpenAI y los órdenes del día delegan en OpenAI solo la redacción del cuerpo, aunque la recuperación siga siendo léxica por falta de PostgreSQL. Las pruebas y CI no necesitan API key ni ejecutan llamadas reales a OpenAI.
+`npm run dev` es un alias de `npm run dev:web`.
 
-Cada operación OpenAI registra modelo, versión, tokens, coste estimado, latencia y resultado. Con `DATABASE_URL`, la telemetría se persiste en PostgreSQL; sin base de datos se conserva en memoria para la demo local. La telemetría no registra preguntas, notas, prompts, respuestas, documentos, IP ni sesiones.
+- Aplicación web: [http://localhost:5173](http://localhost:5173)
+- API: [http://localhost:3000](http://localhost:3000)
+- Healthcheck: [http://localhost:3000/health](http://localhost:3000/health)
 
-Cuando `OPENAI_API_KEY` está definida, las acciones IA tienen dos límites diarios UTC configurables:
+Vite reenvía las peticiones `/api` a la API local. Si la API no está disponible, el frontend mantiene fallbacks locales para los flujos compatibles.
 
-- `AI_ACTION_SESSION_DAILY_LIMIT`, por defecto `20` acciones por sesión.
-- `AI_ACTION_IP_DAILY_LIMIT`, por defecto `100` acciones por IP.
+### Configuración opcional
 
-Cada petición válida a documentos, chat, comunicados, actas, incidencias o juntas consume una unidad aunque internamente use varias llamadas a OpenAI. Las peticiones inválidas, endpoints sin IA y el modo sin API key no consumen esta cuota. Si la cuota se agota, OpenAI falla o el control de cuota no está disponible, la API ejecuta el flujo determinista completo y devuelve `fallbackReason` visible (`session-quota`, `ip-quota`, `provider-error` o `quota-unavailable`). Los fallos OpenAI quedan trazados como fallo del proveedor y el fallback como ejecución determinista separada con coste y tokens cero.
+La API carga automáticamente el archivo `.env` situado en la raíz al ejecutar `npm run dev:api` o `npm run db:migrate`. Variables disponibles:
 
-La API expone `GET /api/observability` sin crear ni consumir sesión. Devuelve métricas agregadas del día UTC: ejecuciones, éxitos, fallos, fallbacks, tokens, coste estimado, latencia media, desgloses por operación/modelo y límites configurados. Inicio muestra ese panel; si la API no está disponible, indica que no hay métricas reales disponibles.
+```dotenv
+# Activa los proveedores OpenAI del backend.
+OPENAI_API_KEY=<TU_API_KEY>
 
-### Despliegue público
+# Activa la persistencia y, junto con OPENAI_API_KEY, el RAG semántico.
+DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual
 
-La demo pública se despliega con API Express y PostgreSQL pgvector en Railway, frontend Vite en Vercel y proxy same-origin de Vercel para `/api/*`. Railway ejecuta migraciones en predeploy, espera `/health` antes de activar la versión y arranca la API con `npm run start --workspace @admin/api`. Vercel mantiene `VITE_API_BASE_URL` sin definir y usa `apps/web/vercel.mjs` para reenviar la API y resolver rutas profundas de la SPA.
+# En desarrollo se usa un valor local por defecto; define secretos propios fuera de local.
+COOKIE_SECRET=<SECRETO_DE_COOKIES>
+AI_ACTION_QUOTA_SECRET=<SECRETO_PARA_HASHES_DE_CUOTA>
 
-El smoke postdespliegue se ejecuta con:
+# Valores opcionales; sus valores predeterminados son 20 y 100.
+AI_ACTION_SESSION_DAILY_LIMIT=20
+AI_ACTION_IP_DAILY_LIMIT=100
+```
+
+Con `DATABASE_URL` configurada, aplica las migraciones antes de arrancar la API:
 
 ```bash
-PUBLIC_WEB_URL=https://<frontend>.vercel.app PUBLIC_API_URL=https://<api>.up.railway.app npm run smoke:public
+npm run db:migrate
+npm run dev:api
 ```
 
-La guía operativa completa está en [docs/deployment.md](docs/deployment.md). Incluye aprovisionamiento, variables, rotación de secretos, rollback, evidencia de PR y limitaciones.
+La base de datos debe disponer de la extensión pgvector y el usuario de migración debe poder habilitarla. Si `DATABASE_URL` no está definida, se utilizan repositorios en memoria. Si `OPENAI_API_KEY` no está definida, se utilizan generadores deterministas y recuperación léxica sin llamadas externas.
 
-### Evaluación, estudio y defensa
-
-La US-024 aporta benchmarks reproducibles para RAG, coordinación, incidencias, comunicados, actas y juntas:
+### Comprobaciones y comandos útiles
 
 ```bash
-npm run eval:demo
-npm run eval:openai
+npm run quality          # Quality gate completa
+npm run precommit:check  # Formato, lint, tipos, tests raíz y changelog
+npm test                 # Pruebas unitarias y de integración
+npm run test:e2e         # Pruebas end-to-end con Playwright
+npm run test:coverage    # Pruebas con cobertura
+npm run build            # Compilación de todos los workspaces
+npm run eval:demo        # Evaluación determinista sin servicios externos
+npm run eval:openai      # Evaluación con OpenAI; requiere OPENAI_API_KEY
 ```
 
-`eval:demo` es bloqueante y no realiza llamadas externas. `eval:openai` requiere `OPENAI_API_KEY`, genera evidencia descriptiva y puede variar por disponibilidad, latencia o salida del proveedor.
+`npm run quality` ejecuta formato, lint, comprobación de tipos, pruebas, compilación, E2E, evaluación demo, validación del estudio y validación del fragmento de changelog. Consulta [CONTRIBUTING.md](CONTRIBUTING.md) para conocer el flujo de desarrollo completo.
 
-La US-025 añade el protocolo de estudio de usabilidad y la matriz de defensa:
+## Estructura del código
 
-- [Protocolo del estudio](docs/study/protocol.md)
-- [Dataset anónimo planificado](docs/study/responses.json)
-- [Resultados agregados generados](docs/study/results.md)
-- [Matriz objetivo-implementación-prueba](docs/defense-traceability.md)
+El repositorio es un monorepo organizado con npm workspaces:
 
-El dataset documenta que el estudio humano no se ha ejecutado por falta de participantes reales, mediante `status: not-conducted`. El repositorio no contiene resultados humanos ni cifras inventadas. Si en el futuro se incorporan 10 sesiones reales `P01`-`P10`, con reparto 5/5 entre perfiles con experiencia administrativa y propietarios o usuarios finales, cambia el estado a `final` y ejecuta:
-
-```bash
-npm run study:report
-npm run study:check
+```text
+.
+├── apps/
+│   ├── api/                    # API Express
+│   │   ├── drizzle/            # Migraciones PostgreSQL
+│   │   ├── evaluation/         # Datasets de evaluación
+│   │   └── src/
+│   │       ├── domain/         # Entidades y reglas de negocio puras
+│   │       ├── application/    # Casos de uso y puertos
+│   │       ├── infrastructure/ # Adaptadores de BD, OpenAI, RAG y telemetría
+│   │       └── presentation/   # API HTTP y CLI de evaluación
+│   └── web/                    # SPA React
+│       ├── e2e/                # Pruebas Playwright
+│       └── src/
+│           ├── app/            # Arranque, rutas y layout global
+│           ├── pages/          # Composición de pantallas
+│           ├── features/       # Flujos funcionales por área
+│           └── shared/         # UI, configuración, hooks y cliente HTTP
+├── packages/
+│   ├── community-notices/      # Reglas compartidas de comunicados
+│   ├── contracts/              # DTOs y esquemas Zod compartidos
+│   ├── incidents/              # Clasificación de incidencias
+│   └── meeting-minutes/        # Modelo compartido de actas
+├── docs/                       # Arquitectura, especificaciones y operación
+├── scripts/                    # Automatización de calidad, estudio y despliegue
+└── tooling/                    # Quality gate del repositorio
 ```
 
-`study:check` valida anonimato, reparto de perfiles, seis tareas por persona, respuestas SUS, resultados agregados y sincronización del informe.
+### Arquitectura backend
 
-### Actas con OpenAI
-
-La pantalla `/actas` y el agente de chat de actas consumen el puerto backend `MeetingMinutesGenerator`. Sin `OPENAI_API_KEY`, el generador demo extrae líneas `Acuerdo:`, `Tarea:` y `Pendiente:` de forma determinista. Con `OPENAI_API_KEY`, el adaptador OpenAI usa Responses API con salida estructurada, esquema `meeting_minutes_draft_v1` y prompt versionado `meeting-minutes.v1`.
-
-La respuesta de actas conserva el cuerpo editable y añade listas estructuradas de acuerdos y tareas. Los acuerdos se muestran como información del acta y no se persisten. Las tareas sí se guardan como acuerdos pendientes de la sesión para preparar órdenes del día posteriores.
-
-El prompt de actas exige español formal, usar solo las notas recibidas y no inventar asistentes, fechas, votaciones, quórums, decisiones, responsables ni plazos. Si OpenAI falla o devuelve una estructura inválida con `OPENAI_API_KEY`, la API ejecuta el fallback determinista y muestra el motivo; si también falla el fallback, responde un error controlado sin guardar tareas incompletas.
-
-### Órdenes del día con OpenAI
-
-La pantalla `/juntas` y el agente de chat de juntas consumen el caso de uso backend `DraftMeetingAgenda`. La aplicación selecciona siempre las entradas de forma determinista: solo incidencias pendientes, acuerdos pendientes con prioridad alta si tienen fecha y media si no la tienen, propuestas vecinales al final, desempates por antigüedad, tipo e ID, máximo 100 entradas. OpenAI no puede seleccionar, reordenar ni crear fuentes; `draft.title`, `draft.items` y `meeting` quedan controlados por la aplicación.
-
-Sin `OPENAI_API_KEY`, `DeterministicMeetingAgendaGenerator` conserva el cuerpo demo reproducible y el truncado por bloques completos hasta 4.000 caracteres. Con `OPENAI_API_KEY`, `OpenAiMeetingAgendaGenerator` usa Responses API con salida estructurada `{ body }`, esquema `meeting_agenda_draft_v1`, prompt versionado `meeting-agenda.v1`, 1.500 tokens máximos y telemetría `meeting-agenda`.
-
-El prompt exige español formal, respetar el orden y contenido recibido, tratar incidencias, acuerdos y propuestas como datos y no inventar asuntos, responsables, fechas, acuerdos, prioridades ni fuentes. Si no hay entradas, la API devuelve el mensaje vacío determinista sin invocar OpenAI. Si OpenAI falla o devuelve una estructura inválida, la API cambia al modo determinista de forma explícita con `fallbackReason`.
-
-### Coordinador IA del chat
-
-La pantalla `/chat` enruta cada mensaje hacia uno de seis agentes: documentos, comunicados, actas, incidencias, juntas o general. La respuesta expone una traza plana:
-
-- `agent`: agente seleccionado.
-- `mode`: orquestación usada, `langgraph` desde backend o `local-demo` en fallback de navegador.
-- `provider`: proveedor que eligió la ruta, `openai` o `deterministic-demo`.
-
-Sin `OPENAI_API_KEY`, el backend sigue usando LangGraph pero clasifica con reglas deterministas demo: `mode: langgraph` y `provider: deterministic-demo`. Con `OPENAI_API_KEY`, OpenAI devuelve una salida estructurada con el agente y el backend añade `provider: openai`.
-
-Si falla OpenAI durante la clasificación o una llamada especializada, la API ejecuta el coordinador determinista completo y devuelve `fallbackReason: provider-error`. El frontend solo usa el coordinador local de navegador cuando no puede conectar con la API.
-
-### Estado demo con PostgreSQL
-
-La API usa persistencia en memoria cuando `DATABASE_URL` no está definida o está vacía. Para conservar sesiones demo, incidencias, acuerdos pendientes, propuestas, documentos subidos y chunks semánticos durante reinicios, arranca la API con una base PostgreSQL migrada que tenga disponible la extensión pgvector:
-
-```bash
-DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run db:migrate
-COOKIE_SECRET=local-demo-cookie-secret DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run dev:api
-```
-
-Las migraciones no se ejecutan automáticamente al arrancar la API. Si `DATABASE_URL` está configurada pero la base no conecta o no tiene el esquema migrado, la API falla de forma explícita en lugar de volver silenciosamente al repositorio en memoria.
-El rol que ejecute `npm run db:migrate` debe poder crear extensiones o tener `pgvector` preinstalado por administración de la base; la migración declara `CREATE EXTENSION IF NOT EXISTS vector`.
-
-Con PostgreSQL configurado, la API selecciona todos los repositorios persistentes a la vez y comparte un único pool para sesiones, incidencias, acuerdos pendientes, propuestas, documentos subidos, chunks vectoriales, cuotas IA y eventos técnicos. El estado queda aislado por sesión y se elimina en cascada cuando una sesión expirada se descarta. Las cuotas guardan hashes HMAC diarios con `COOKIE_SECRET`, nunca IP ni sesión en claro. Las juntas demo se calculan desde la fecha actual del backend, con una junta a un mes y otra a dos meses; borradores y comunicaciones siguen siendo locales a esta historia.
-
-Los documentos subidos persisten sus metadatos, texto extraído y binario PDF. La subida conserva las validaciones actuales de formato PDF y límite de 5 MB; el listado, la descarga y la recuperación documental usan el mismo repositorio, por lo que las fuentes mostradas tras un reinicio son documentos reales de la sesión.
-
-### RAG semántico con pgvector
-
-La recuperación semántica se activa únicamente cuando existen `DATABASE_URL` y `OPENAI_API_KEY`. En ese modo, la primera consulta reconcilia de forma lazy el corpus demo y los PDFs subidos en la sesión: calcula chunks deterministas, genera embeddings para la pregunta y los chunks pendientes en una sola llamada, persiste los vectores en `document_chunks` y busca los vecinos más próximos con similitud coseno. La respuesta muestra hasta tres documentos distintos con fuentes reales.
-
-Si falta `DATABASE_URL` o `OPENAI_API_KEY`, el backend conserva la recuperación léxica anterior. Si ambas variables existen y falla OpenAI durante una acción visible, la API usa fallback determinista explícito; si falla PostgreSQL o el índice vectorial antes de poder recuperar evidencias, devuelve un error controlado.
-
-### Respuestas RAG con OpenAI
-
-La consulta documental separa el modo de recuperación (`mode`) del modo de redacción (`generationMode`). El backend recupera como máximo tres documentos reales y los pasa a un generador documental. Sin API key, el generador demo determinista redacta una respuesta reproducible. Con API key, OpenAI genera una salida estructurada con `answer` y `sourceIds`; la API valida que cada fuente citada exista entre los documentos recuperados antes de exponerla al frontend.
-
-Si no se recupera ninguna evidencia por encima del umbral, la API devuelve un mensaje de evidencia insuficiente, `sources: []` y `generationMode: deterministic-demo`, sin invocar OpenAI. Si OpenAI está configurado y falla o devuelve fuentes desconocidas, la API ejecuta fallback determinista con fuentes reales recuperadas, expone `fallbackReason` y nunca inventa referencias.
-
-Para probarlo en local:
-
-```bash
-DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run db:migrate
-COOKIE_SECRET=local-demo-cookie-secret DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual OPENAI_API_KEY=<TU_API_KEY> npm run dev:api
-```
-
-Abre `/documentos`, realiza una pregunta documental y comprueba que la etiqueta de la respuesta combine redacción y recuperación, por ejemplo `OpenAI · API RAG semántica` o `Demo determinista · API RAG léxica`. Puedes subir un PDF y preguntar de nuevo: si contiene texto relevante, aparecerá como fuente real con enlace de descarga.
-
-Para demostrar la recuperación tras reinicio:
-
-```bash
-DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run db:migrate
-COOKIE_SECRET=local-demo-cookie-secret DATABASE_URL=postgres://usuario:password@localhost:5432/admin_virtual npm run dev:api
-```
-
-Registra una incidencia, una propuesta o genera un acta con tareas pendientes desde la interfaz. El acta no se persiste en esta historia, pero sus tareas se guardan como acuerdos pendientes. También puedes subir un PDF desde `/documentos`, detener la API y volver a ejecutar el segundo comando: con la misma cookie de navegador, los listados, el preparador de orden del día, la descarga del PDF y las consultas documentales recuperan el estado persistido.
-
-Para verificar que el entorno está correctamente preparado, ejecuta:
-
-```bash
-npm run quality
-```
-
-Este comando comprueba formato, lint, tipos, pruebas unitarias y de integración, compilación, pruebas end-to-end con Playwright y el fragmento de changelog.
-
-El repositorio instala hooks de Git con Husky mediante `npm install`. Antes de cada commit se ejecuta `npm run precommit:check`; antes de cada push se ejecuta `npm run prepush:check`, que delega en la quality gate completa.
-
-Comandos disponibles actualmente:
-
-```bash
-npm run format        # Aplica Prettier
-npm run dev:api       # Arranca la API Express
-npm run dev:web       # Arranca el frontend Vite
-npm run db:generate   # Genera migraciones Drizzle desde el schema
-npm run db:migrate    # Aplica migraciones PostgreSQL usando DATABASE_URL
-npm run precommit:check # Ejecuta los controles rápidos del pre-commit
-npm run prepush:check # Ejecuta la quality gate del pre-push
-npm run lint          # Ejecuta ESLint
-npm run typecheck     # Comprueba TypeScript
-npm test              # Ejecuta las pruebas
-npm run build         # Verifica la compilación
-npm run smoke:public  # Ejecuta el smoke contra la demo publica desplegada
-npm run study:report  # Regenera resultados agregados del estudio US25
-npm run study:check   # Valida anonimato, SUS, matriz e informe del estudio
-npm run test:e2e      # Ejecuta los flujos end-to-end en Chromium
-npm run quality       # Ejecuta el conjunto completo de controles
-```
-
-## Arquitectura
-
-El proyecto sigue **Clean Architecture** y los principios **SOLID**. Las reglas de negocio permanecen independientes de frameworks, bases de datos y proveedores de inteligencia artificial.
+La API aplica Clean Architecture. Las dependencias apuntan hacia el dominio:
 
 ```mermaid
 flowchart LR
-    UI["Frontend · React"] --> HTTP["Presentación · Express"]
-    HTTP --> APP["Aplicación · Casos de uso y puertos"]
-    APP --> DOMAIN["Dominio · Entidades y reglas"]
-    INFRA["Infraestructura · OpenAI, PostgreSQL y pgvector"] -. "implementa puertos" .-> APP
+    UI["Frontend React"] --> P["Presentation · Express"]
+    P --> A["Application · Casos de uso y puertos"]
+    A --> D["Domain · Entidades y reglas"]
+    I["Infrastructure · PostgreSQL, OpenAI y modo demo"] -. "implementa puertos" .-> A
 ```
 
-### Backend
+- `domain` no conoce frameworks ni infraestructura.
+- `application` coordina los casos de uso y define los puertos externos.
+- `infrastructure` implementa persistencia, IA, recuperación documental y telemetría.
+- `presentation` adapta HTTP o CLI a los casos de uso.
 
-- `domain`: entidades y reglas puras del negocio.
-- `application`: casos de uso y contratos para servicios externos.
-- `infrastructure`: adaptadores para PostgreSQL, pgvector, OpenAI y el modo local.
-- `presentation`: API Express, controladores y validación HTTP.
+### Arquitectura frontend
 
-### Frontend
+- `app` configura el enrutamiento y el layout principal.
+- `pages` compone las pantallas asociadas a cada ruta.
+- `features` encapsula los flujos de chat, documentos, comunicados, actas, incidencias, juntas, propuestas, sesión y observabilidad.
+- `shared` contiene piezas reutilizables sin lógica específica de una funcionalidad.
 
-- `app`: arranque, rutas y proveedores globales.
-- `pages`: composición de pantallas.
-- `features`: flujos funcionales organizados por historia de usuario.
-- `shared`: componentes UI, cliente HTTP, hooks y utilidades reutilizables.
-
-La aplicación web se encuentra en `apps/web`. La composición y el enrutamiento viven en `app`, la portada en `pages`, los datos y componentes de comunidad en `features/community`, el estado de sesión en `features/session`, y los elementos reutilizables en `shared`.
-
-La consulta documental vive en `features/documents`: la pantalla `/documentos` permite preguntar por estatutos, normas, actas y contratos ficticios, muestra la respuesta redactada con su modo de generación, lista solo los fragmentos recuperados y citados como fuentes, permite abrir el PDF completo de cada documento en una pestaña nueva y ofrece una biblioteca directa de PDFs sin consulta previa.
-
-La API se encuentra en `apps/api` y separa las capas en:
-
-- `domain/session`: reglas puras de sesión demo.
-- `application`: caso de uso `EnsureDemoSession` y puertos.
-- `infrastructure`: reloj del sistema, generador UUID y repositorio en memoria.
-- `presentation/http`: Express, cookies firmadas, controladores y presentadores.
-
-La consulta documental usa `AnswerDocumentQuestion` y los puertos `DocumentRetriever` y `DocumentAnswerGenerator`. En modo local o sin configuración completa se emplea recuperación léxica y generación determinista; con PostgreSQL migrado y `OPENAI_API_KEY`, la infraestructura usa embeddings OpenAI, pgvector y generación documental OpenAI sin exponer llamadas IA en frontend.
-
-### Paquetes compartidos
-
-Los contratos TypeScript y esquemas Zod comunes al frontend y al backend residen en `packages/contracts`. Las dependencias apuntan hacia el dominio; Express, OpenAI y PostgreSQL se consideran detalles reemplazables.
-
-## Calidad y análisis estático
-
-SonarLint se recomienda en VS Code para obtener feedback inmediato. Cada PR ejecuta ESLint, Prettier, comprobación de tipos, pruebas, compilación, validación del changelog y, cuando se configura `SONAR_TOKEN`, SonarCloud.
-
-Para activar SonarCloud en GitHub hay que definir el secreto `SONAR_TOKEN` y las variables `SONAR_PROJECT_KEY` y `SONAR_ORGANIZATION`. Sin ellas, el análisis Sonar se omite sin bloquear los demás controles.
+Las especificaciones versionadas de cada historia están en [`docs/specs`](docs/specs), que actúa como fuente de verdad del comportamiento implementado.
