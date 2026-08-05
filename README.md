@@ -108,7 +108,7 @@ La US-025 añade el protocolo de estudio de usabilidad y la matriz de defensa:
 - [Resultados agregados generados](docs/study/results.md)
 - [Matriz objetivo-implementación-prueba](docs/defense-traceability.md)
 
-El dataset está preparado para 10 participantes reales `P01`-`P10`, con reparto 5/5 entre perfiles con experiencia administrativa y propietarios o usuarios finales. Mientras `docs/study/responses.json` siga en `status: planned`, el repositorio no contiene resultados humanos ni cifras inventadas. Al incorporar las 10 sesiones reales, ejecuta:
+El dataset documenta que el estudio humano no se ha ejecutado por falta de participantes reales, mediante `status: not-conducted`. El repositorio no contiene resultados humanos ni cifras inventadas. Si en el futuro se incorporan 10 sesiones reales `P01`-`P10`, con reparto 5/5 entre perfiles con experiencia administrativa y propietarios o usuarios finales, cambia el estado a `final` y ejecuta:
 
 ```bash
 npm run study:report

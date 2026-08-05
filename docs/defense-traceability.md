@@ -1,6 +1,6 @@
 # Matriz de trazabilidad para la defensa
 
-Esta matriz conecta los objetivos defendibles del TFM con implementacion, pruebas automatizadas y evidencias de estudio. La columna de estudio quedara cerrada cuando `docs/study/responses.json` pase a `status: final` con 10 participantes reales.
+Esta matriz conecta los objetivos defendibles del TFM con implementacion, pruebas automatizadas y evidencias de estudio. En el estado actual, `docs/study/responses.json` esta en `status: not-conducted`, por lo que la columna humana se conserva como protocolo no ejecutado y no como resultado empirico.
 
 | Objetivo                                    | Implementacion                                                                                    | Pruebas automatizadas                                                              | Benchmark US24                                         | Tarea humana US25                                           |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------- |
@@ -14,5 +14,5 @@ Esta matriz conecta los objetivos defendibles del TFM con implementacion, prueba
 ## Lectura para defensa
 
 - La evidencia tecnica muestra correctitud reproducible sobre casos ficticios controlados.
-- La evidencia humana muestra utilidad percibida, friccion, necesidad de ayuda y comprension de trazabilidad en una muestra pequena.
+- La evidencia humana queda limitada al diseno del protocolo porque no se ejecutaron sesiones con usuarios reales.
 - La matriz evita afirmar que el sistema esta listo para produccion: cada objetivo se defiende con su implementacion, su prueba y su limitacion observable.

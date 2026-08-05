@@ -86,20 +86,21 @@ test('valida privacidad, reparto de perfiles e IDs anonimos', async () => {
   );
 });
 
-test('renderiza un informe estable y marca el estudio planificado como pendiente', async () => {
+test('renderiza un informe estable y marca el estudio no ejecutado sin resultados humanos', async () => {
   const { renderStudyReport, summarizeStudy } = await loadStudyModule();
-  const plannedSummary = summarizeStudy({
+  const notConductedSummary = summarizeStudy({
     ...createBaseDataset(),
-    status: 'planned',
+    status: 'not-conducted',
     participants: [],
   });
   const finalReport = renderStudyReport(summarizeStudy(createFinalDataset()));
-  const plannedReport = renderStudyReport(plannedSummary);
+  const notConductedReport = renderStudyReport(notConductedSummary);
 
   assert.match(finalReport, /# Resultados del estudio de usabilidad/);
   assert.match(finalReport, /SUS medio \| 72,5/);
   assert.match(finalReport, /Tarea 1: Chat y coordinacion/);
-  assert.match(plannedReport, /Estado: pendiente de recogida/);
+  assert.match(notConductedReport, /Estado: estudio no ejecutado/);
+  assert.match(notConductedReport, /no contiene resultados SUS/);
 });
 
 function createFinalDataset() {

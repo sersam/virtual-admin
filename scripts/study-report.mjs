@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { format } from 'prettier';
 
 const schemaVersion = 'study-responses/v1';
-const allowedStatuses = new Set(['planned', 'final']);
+const allowedStatuses = new Set(['not-conducted', 'final']);
 const allowedProfiles = new Set(['administrator-experience', 'owner-or-end-user']);
 const allowedOutcomes = new Set(['completed', 'partial', 'failed']);
 const allowedAssistance = new Set(['none', 'minor', 'blocking']);
@@ -52,7 +52,7 @@ export function summarizeStudy(dataset) {
   const baseSummary = {
     status: dataset.status,
     study: dataset.study,
-    tasks: dataset.status === 'planned' ? dataset.tasks : [],
+    tasks: dataset.status === 'not-conducted' ? dataset.tasks : [],
     participants: {
       total: dataset.participants.length,
       byProfile: {
@@ -68,7 +68,7 @@ export function summarizeStudy(dataset) {
     sus: null,
   };
 
-  if (dataset.status === 'planned') return baseSummary;
+  if (dataset.status === 'not-conducted') return baseSummary;
 
   const susScores = dataset.participants.map(({ susResponses }) => scoreSus(susResponses));
 
@@ -89,7 +89,7 @@ export function renderStudyReport(summary) {
   const lines = [
     '# Resultados del estudio de usabilidad',
     '',
-    `- Estado: ${summary.status === 'final' ? 'final' : 'pendiente de recogida'}`,
+    `- Estado: ${summary.status === 'final' ? 'final' : 'estudio no ejecutado'}`,
     `- Commit evaluado: ${summary.study.evaluatedCommit}`,
     `- Demo publica: ${summary.study.publicDemoUrl}`,
     `- Protocolo: ${summary.study.protocolVersion}`,
@@ -99,7 +99,9 @@ export function renderStudyReport(summary) {
 
   if (summary.status !== 'final') {
     lines.push(
-      'El dataset esta preparado para recoger 10 sesiones reales anonimas. Este informe no contiene resultados agregados porque aun no se han incorporado participantes validos.',
+      'El estudio humano no se ejecuto por falta de disponibilidad de participantes reales. Este informe no contiene resultados SUS, tiempos observados ni conclusiones de usabilidad basadas en usuarios.',
+      '',
+      'La evidencia disponible para la defensa queda limitada al protocolo versionado, la matriz de trazabilidad, los benchmarks tecnicos reproducibles y la explicacion explicita de esta limitacion.',
       '',
       '## Tareas previstas',
       '',
@@ -178,7 +180,7 @@ export function validateStudyDataset(dataset) {
   }
 
   if (!allowedStatuses.has(dataset.status)) {
-    throw new Error('El estado del estudio debe ser planned o final.');
+    throw new Error('El estado del estudio debe ser not-conducted o final.');
   }
 
   validateStudyMetadata(dataset.study);
@@ -188,9 +190,9 @@ export function validateStudyDataset(dataset) {
     throw new Error('participants debe ser un array.');
   }
 
-  if (dataset.status === 'planned') {
+  if (dataset.status === 'not-conducted') {
     if (dataset.participants.length !== 0) {
-      throw new Error('El estado planned no debe incluir participantes parciales.');
+      throw new Error('El estado not-conducted no debe incluir participantes parciales.');
     }
     return;
   }

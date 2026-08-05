@@ -9,7 +9,7 @@
 
 ## Metricas humanas
 
-Cuando el estudio pase a `status: final`, `docs/study/results.md` mostrara:
+El estado actual del estudio es `not-conducted`: no se realizaron sesiones con usuarios reales y, por tanto, no existen metricas humanas observadas. Si en el futuro el estudio pasa a `status: final`, `docs/study/results.md` mostrara:
 
 - Participantes validos y reparto 5/5 por perfil.
 - Finalizacion estricta, finalizacion sin ayuda y mediana de tiempo por tarea.
@@ -19,7 +19,7 @@ Cuando el estudio pase a `status: final`, `docs/study/results.md` mostrara:
 
 ## Estado actual
 
-El repositorio contiene el protocolo, el dataset planificado y los scripts de validacion. No contiene resultados humanos porque todavia no se han incorporado 10 sesiones reales anonimas.
+El repositorio contiene el protocolo, el dataset en estado `not-conducted` y los scripts de validacion. No contiene resultados humanos porque el estudio no pudo ejecutarse con usuarios reales.
 
 ## Limitaciones
 

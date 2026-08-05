@@ -88,7 +88,8 @@ Antes de reclutar participantes del estudio:
 3. Ejecutar `npm run smoke:public` contra las URLs publicas.
 4. Ejecutar `npm run eval:demo` y conservar el reporte local generado en `artifacts/evaluations` como evidencia tecnica saneada.
 5. Ejecutar `npm run eval:openai` solo si existe `OPENAI_API_KEY`; si no existe, documentar su ausencia como limitacion.
-6. Registrar URL, commit, navegador y fechas en `docs/study/responses.json`.
+6. Si no hay participantes reales, conservar `docs/study/responses.json` en `status: not-conducted` y no incorporar respuestas simuladas.
+7. Si se ejecuta el estudio en el futuro, registrar URL, commit, navegador y fechas en `docs/study/responses.json`.
 
 Durante la recogida no se debe cambiar codigo funcional, configuracion visible, prompt versionado ni datos demo. Si ocurre un cambio, las sesiones afectadas deben repetirse o separarse en otro bloque de evaluacion.
 

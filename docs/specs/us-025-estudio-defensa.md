@@ -15,11 +15,11 @@ Como autor del TFM, quiero preparar evidencias finales de utilidad, limitaciones
 - El cuestionario SUS usa los 10 items, escala 1-5 y formula de la version espanola validada; las preguntas abiertas se codifican solo como temas.
 - README, arquitectura, despliegue, metricas, limitaciones y matriz objetivo-implementacion-prueba quedan actualizados para la defensa.
 - No se modifican endpoints, DTOs HTTP, modelos de dominio, base de datos ni UI.
-- No se versionan resultados humanos ficticios. Hasta incorporar 10 sesiones reales, el dataset queda en estado `planned` y el informe declara que la recogida esta pendiente.
+- No se versionan resultados humanos ficticios. Como no se dispone de participantes reales, el dataset queda en estado `not-conducted` y el informe declara que el estudio humano no se ejecuto.
 
 ## Contratos, datos e interfaces afectadas
 
-- Nuevo contrato documental `docs/study/responses.json`, con `schemaVersion: study-responses/v1`, `status: planned|final`, metadatos del estudio, seis tareas y participantes anonimos.
+- Nuevo contrato documental `docs/study/responses.json`, con `schemaVersion: study-responses/v1`, `status: not-conducted|final`, metadatos del estudio, seis tareas y participantes anonimos.
 - Nuevo informe generado `docs/study/results.md`.
 - Nuevos scripts raiz `study:report` y `study:check`.
 - Nuevo script versionado `scripts/study-report.mjs` con funciones puras para validar, puntuar SUS, agregar tareas y renderizar Markdown.
@@ -30,7 +30,7 @@ Como autor del TFM, quiero preparar evidencias finales de utilidad, limitaciones
 ## Casos de error esperados
 
 - Dataset con version no soportada, estado invalido o metadatos incompletos: `study:check` falla.
-- Estado `planned` con participantes parciales: `study:check` falla para evitar datos incompletos ambiguos.
+- Estado `not-conducted` con participantes parciales: `study:check` falla para evitar datos incompletos ambiguos.
 - Estado `final` sin exactamente diez participantes `P01`-`P10`: `study:check` falla.
 - Reparto distinto de 5/5 perfiles: `study:check` falla.
 - Participante con campo prohibido, email, texto libre o posible identificador: `study:check` falla.
@@ -52,7 +52,7 @@ Como autor del TFM, quiero preparar evidencias finales de utilidad, limitaciones
 
 1. Especificacion y cambio: crear esta especificacion y `.changes/us-025.md`.
 2. Analizador del estudio: escribir pruebas rojas para SUS, validacion de participantes, privacidad, agregados y scripts raiz; despues implementar `scripts/study-report.mjs`.
-3. Protocolo y dataset: versionar protocolo, plantilla `planned`, catalogo de tareas y resultados Markdown generados.
+3. Protocolo y dataset: versionar protocolo, estado `not-conducted`, catalogo de tareas y resultados Markdown generados.
 4. Defensa: actualizar README, arquitectura, despliegue, metricas, limitaciones y matriz objetivo-implementacion-prueba.
 5. Cierre: ejecutar `npm run precommit:check` antes de cada commit y `npm run quality` al terminar la historia.
 
@@ -73,7 +73,7 @@ Como autor del TFM, quiero preparar evidencias finales de utilidad, limitaciones
 - `npm run study:check` pasa y detecta datasets finales incompletos o no anonimos.
 - `npm run study:report` regenera `docs/study/results.md` de forma estable.
 - README, arquitectura, despliegue, metricas, limitaciones y matriz enlazan las evidencias de US25.
-- El estado actual no contiene resultados humanos ficticios.
+- El estado actual declara explicitamente que el estudio humano no se ejecuto y no contiene resultados ficticios.
 - Cuando existan las 10 sesiones reales, el dataset final incluira exactamente P01-P10 y resultados agregados recalculables.
 - `npm run quality` pasa en verde.
 - Existe exactamente un archivo `.changes/us-025.md`.

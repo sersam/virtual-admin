@@ -1,12 +1,14 @@
 # Resultados del estudio de usabilidad
 
-- Estado: pendiente de recogida
+- Estado: estudio no ejecutado
 - Commit evaluado: 026d8ea
 - Demo publica: PENDIENTE_URL_PUBLICA_ESTABLE
 - Protocolo: us-025-study-protocol/v1
 - Navegador: Chrome estable de escritorio
 
-El dataset esta preparado para recoger 10 sesiones reales anonimas. Este informe no contiene resultados agregados porque aun no se han incorporado participantes validos.
+El estudio humano no se ejecuto por falta de disponibilidad de participantes reales. Este informe no contiene resultados SUS, tiempos observados ni conclusiones de usabilidad basadas en usuarios.
+
+La evidencia disponible para la defensa queda limitada al protocolo versionado, la matriz de trazabilidad, los benchmarks tecnicos reproducibles y la explicacion explicita de esta limitacion.
 
 ## Tareas previstas
 
