@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-08-05 · PR [#33](https://github.com/sersam/virtual-admin/pull/33)
+
+### Added
+
+- US-025 añade protocolo de estudio anonimo, scripts para validar y agregar resultados SUS, matriz objetivo-implementacion-prueba y documentacion de metricas y limitaciones para la defensa del TFM. La PR supera el objetivo de 500 lineas modificadas porque concentra evidencias documentales versionadas, dataset anonimo, generador determinista y pruebas del cierre academico sin cambiar la funcionalidad de producto.
+
 ## 2026-08-05 · PR [#32](https://github.com/sersam/virtual-admin/pull/32)
 
 ### Added
