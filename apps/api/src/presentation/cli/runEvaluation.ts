@@ -249,10 +249,6 @@ async function resolveCommit(): Promise<string> {
   }
 }
 
-async function main(): Promise<void> {
-  process.exitCode = await runEvaluationCli();
-}
-
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  void main();
+  process.exitCode = await runEvaluationCli();
 }

@@ -208,6 +208,7 @@ export async function loadEvaluationDatasetBundle(
     .filter((file) => file.endsWith('.json'))
     .sort((left, right) => left.localeCompare(right));
   const datasets = createEmptyDatasets();
+  const loadedCapabilities = new Set<EvaluationCapability>();
 
   for (const file of files) {
     const content = await readFile(join(directory, file), 'utf8');
@@ -218,10 +219,11 @@ export async function loadEvaluationDatasetBundle(
     }
 
     const dataset = parsedDataset.data as DatasetFile;
-    if (datasets[dataset.capability].length > 0) {
+    if (loadedCapabilities.has(dataset.capability)) {
       throw new Error(`${file}: capacidad duplicada: ${dataset.capability}.`);
     }
 
+    loadedCapabilities.add(dataset.capability);
     assignDatasetCases(datasets, dataset);
   }
 

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, rename, writeFile } from 'node:fs/promises';
+import { mkdir, rename, unlink, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import type { EvaluationRunResult } from '../../application/evaluation/EvaluationRunner.js';
 import type { EvaluationGateConfig } from '../../application/evaluation/evaluationMetrics.js';
@@ -120,8 +120,12 @@ function renderFailedCases(result: EvaluationRunResult): readonly string[] {
 
 async function writeAtomic(path: string, content: string): Promise<void> {
   const temporaryPath = `${path}.${process.pid}.${randomUUID()}.tmp`;
-  await writeFile(temporaryPath, content, 'utf8');
-  await rename(temporaryPath, path);
+  try {
+    await writeFile(temporaryPath, content, 'utf8');
+    await rename(temporaryPath, path);
+  } finally {
+    await unlink(temporaryPath).catch(() => undefined);
+  }
 }
 
 function formatScore(score: number): string {

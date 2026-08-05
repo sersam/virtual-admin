@@ -129,6 +129,37 @@ describe('evaluationDatasets', () => {
     }
   });
 
+  it('rechaza capacidades duplicadas aunque el primer archivo no tenga casos', async () => {
+    const directory = join(
+      tmpdir(),
+      `admin-eval-empty-duplicate-capability-${crypto.randomUUID()}`,
+    );
+    try {
+      await mkdir(directory, { recursive: true });
+      await writeFile(join(directory, 'a-rag.json'), JSON.stringify(createDatasetFile('rag', [])));
+      await writeFile(
+        join(directory, 'b-rag.json'),
+        JSON.stringify(
+          createDatasetFile('rag', [
+            {
+              documents: [createRagDocument('doc-2')],
+              expectedCitedSourceIds: ['doc-2'],
+              expectedFacts: ['socorrista'],
+              expectedSourceIds: ['doc-2'],
+              id: 'rag-2',
+              insufficientEvidence: false,
+              question: 'Hay socorrista?',
+            },
+          ]),
+        ),
+      );
+
+      await expect(loadEvaluationDatasets(directory)).rejects.toThrow(/capacidad duplicada/u);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it('rechaza colecciones con ids duplicados o capacidades incompletas', async () => {
     const datasets = await loadEvaluationDatasets();
     const duplicated = {

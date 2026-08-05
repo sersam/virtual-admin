@@ -89,16 +89,101 @@ describe('EvaluationRunner', () => {
             insufficientEvidence: true,
             question: 'texto sensible de entrada',
           },
+          {
+            documents: [
+              {
+                content: 'La piscina abre de 10:00 a 21:00.',
+                documentUrl: '/documents/test.pdf',
+                id: 'doc-1',
+                section: 'Horario',
+                title: 'Piscina',
+                type: 'comunicado',
+              },
+            ],
+            expectedCitedSourceIds: [],
+            expectedFacts: ['No he encontrado fuentes suficientes'],
+            expectedSourceIds: [],
+            id: 'rag-insufficient-with-source-test',
+            insufficientEvidence: true,
+            question: 'texto sensible de entrada',
+          },
+          {
+            documents: [
+              {
+                content: 'La piscina abre de 10:00 a 21:00.',
+                documentUrl: '/documents/test.pdf',
+                id: 'doc-1',
+                section: 'Horario',
+                title: 'Piscina',
+                type: 'comunicado',
+              },
+            ],
+            expectedCitedSourceIds: [],
+            expectedFacts: ['No he encontrado fuentes suficientes'],
+            expectedSourceIds: [],
+            id: 'rag-insufficient-without-concepts-test',
+            insufficientEvidence: true,
+            question: 'texto sensible de entrada',
+          },
         ],
       }),
       datasetVersion: '2026-08-04',
       generatedAt: new Date('2026-08-04T10:00:00.000Z'),
       mode: 'demo',
-      ports: createPorts(),
+      ports: createPorts({
+        answerDocumentQuestion: async (testCase): Promise<DocumentQueryResponse> => {
+          if (testCase.id === 'rag-insufficient-with-source-test') {
+            return {
+              answer: 'No he encontrado fuentes suficientes.',
+              generationMode: 'deterministic-demo',
+              mode: 'lexical-demo',
+              sources: [
+                {
+                  documentUrl: '/documents/test.pdf',
+                  excerpt: 'La piscina abre de 10:00 a 21:00.',
+                  id: 'doc-1',
+                  score: 1,
+                  section: 'Horario',
+                  title: 'Piscina',
+                  type: 'comunicado',
+                },
+              ],
+            };
+          }
+
+          if (testCase.id === 'rag-insufficient-without-concepts-test') {
+            return {
+              answer: 'La piscina abre de 10:00 a 21:00.',
+              generationMode: 'deterministic-demo',
+              mode: 'lexical-demo',
+              sources: [],
+            };
+          }
+
+          return {
+            answer: 'No he encontrado fuentes suficientes.',
+            generationMode: 'deterministic-demo',
+            mode: 'lexical-demo',
+            sources: [],
+          };
+        },
+      }),
     });
 
     expect(result.cases.find(({ id }) => id === 'rag-insufficient-test')?.metrics).toMatchObject({
       insufficientEvidenceAccuracy: 1,
+      reciprocalRank: 1,
+    });
+    expect(
+      result.cases.find(({ id }) => id === 'rag-insufficient-with-source-test')?.metrics,
+    ).toMatchObject({
+      insufficientEvidenceAccuracy: 0,
+      reciprocalRank: 0,
+    });
+    expect(
+      result.cases.find(({ id }) => id === 'rag-insufficient-without-concepts-test')?.metrics,
+    ).toMatchObject({
+      insufficientEvidenceAccuracy: 0,
       reciprocalRank: 1,
     });
     expect(result.cases.find(({ id }) => id === 'agenda-empty-test')?.metrics).toMatchObject({
