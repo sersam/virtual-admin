@@ -283,12 +283,20 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
           {
             id: 'meeting-ordinary-2026-09-18',
             kind: 'ordinaria',
+            reviewPeriod: {
+              endsAt: '2026-07-29T08:30:00.000Z',
+              startsAt: '2026-04-30T08:30:00.000Z',
+            },
             title: 'Junta ordinaria',
             scheduledAt: '2026-09-18T17:00:00.000Z',
           },
           {
             id: 'meeting-extraordinary-2026-10-15',
             kind: 'extraordinaria',
+            reviewPeriod: {
+              endsAt: '2026-07-29T08:30:00.000Z',
+              startsAt: '2026-06-29T08:30:00.000Z',
+            },
             title: 'Junta extraordinaria',
             scheduledAt: '2026-10-15T17:00:00.000Z',
           },
@@ -311,14 +319,17 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
             '',
             '1. Revisión prioritaria de la fuga de agua urgente en el garaje.',
             '2. Seguimiento del contrato de limpieza.',
-            '3. Valoración de la instalación de aparcabicis.',
+            '3. Repaso de la fuga resuelta en el portal.',
+            '4. Valoración de la instalación de aparcabicis.',
           ].join('\n'),
           items: [
             {
               description: 'Hay una fuga de agua urgente en el garaje.',
               priority: 'urgente',
+              resolvedAt: null,
               sourceType: 'incident',
               sourceId: 'inc-1',
+              status: 'pendiente',
             },
             {
               description: 'Revisar contrato de limpieza',
@@ -326,7 +337,16 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
               sourceType: 'pending-agreement',
               sourceId: 'pending-1',
               assignee: 'Ana',
+              dueOn: '2026-07-15',
               dueDate: '30 de junio',
+            },
+            {
+              description: 'Fuga resuelta en el portal.',
+              priority: 'media',
+              resolvedAt: '2026-07-20T09:00:00.000Z',
+              sourceType: 'incident',
+              sourceId: 'inc-resolved',
+              status: 'resuelta',
             },
             {
               description: 'Instalar aparcabicis en el patio interior.',
@@ -335,13 +355,26 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
             },
           ],
         },
+        filterExplanations: [
+          'Junta extraordinaria: se revisan los ultimos 30 dias hasta el momento de preparacion.',
+          'Incidencias: se incluyen pendientes disponibles antes de preparar la junta y resueltas dentro del periodo revisado.',
+          'Acuerdos pendientes: si tienen fecha limite estructurada se usa esa fecha; si no, se usa la fecha de creacion.',
+        ],
         meeting: {
           id: 'meeting-extraordinary-2026-10-15',
           kind: 'extraordinaria',
+          reviewPeriod: {
+            endsAt: '2026-07-29T08:30:00.000Z',
+            startsAt: '2026-06-29T08:30:00.000Z',
+          },
           title: 'Junta extraordinaria',
           scheduledAt: '2026-10-15T17:00:00.000Z',
         },
         mode: 'openai',
+        reviewPeriod: {
+          endsAt: '2026-07-29T08:30:00.000Z',
+          startsAt: '2026-06-29T08:30:00.000Z',
+        },
       },
       status: 200,
     });
@@ -356,6 +389,7 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
     page.getByRole('heading', { level: 1, name: 'Prepara el orden del día' }),
   ).toBeVisible();
   await page.getByLabel('Junta demo').selectOption('meeting-extraordinary-2026-10-15');
+  await expect(page.getByText(/29 jun 2026 - 29 jul 2026/)).toBeVisible();
   await page.getByRole('button', { name: 'Preparar orden del día' }).click();
 
   const draftRegion = page.getByLabel('Orden del día generado');
@@ -365,12 +399,18 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
   await editableDraft.fill('Orden del día revisado por administración.');
   await expect(editableDraft).toHaveValue('Orden del día revisado por administración.');
   await expect(draftRegion.getByText('OpenAI · GPT-5 nano')).toBeVisible();
+  await expect(draftRegion.getByText('Filtros aplicados')).toBeVisible();
+  await expect(draftRegion.getByText(/ultimos 30 dias/)).toBeVisible();
+  await expect(draftRegion.getByText(/29 jun 2026 - 29 jul 2026/)).toBeVisible();
   await expect(draftRegion.getByText('Entradas utilizadas')).toBeVisible();
-  await expect(draftRegion.getByText('Incidencia', { exact: true })).toBeVisible();
+  await expect(draftRegion.getByText(/Vence: 2026-07-15/)).toBeVisible();
+  await expect(draftRegion.getByText(/Resuelta el 20 jul 2026/)).toBeVisible();
+  await expect(draftRegion.getByText('Incidencia', { exact: true })).toHaveCount(2);
   await expect(draftRegion.getByText('Acuerdo pendiente', { exact: true })).toBeVisible();
   await expect(draftRegion.getByText('Revisar contrato de limpieza')).toBeVisible();
   await expect(draftRegion.getByText('Propuesta vecinal', { exact: true })).toBeVisible();
   await expect(draftRegion.getByText('Instalar aparcabicis en el patio interior.')).toBeVisible();
+  await expect(draftRegion.getByText('Acuerdo ordinario fuera de 30 dias')).toBeHidden();
 });
 
 test('registra propuestas vecinales y las incluye como fuente trazable de junta', async ({
@@ -386,6 +426,10 @@ test('registra propuestas vecinales y las incluye como fuente trazable de junta'
           {
             id: 'meeting-ordinary-2026-09-18',
             kind: 'ordinaria',
+            reviewPeriod: {
+              endsAt: '2026-07-29T08:30:00.000Z',
+              startsAt: '2026-04-30T08:30:00.000Z',
+            },
             title: 'Junta ordinaria',
             scheduledAt: '2026-09-18T17:00:00.000Z',
           },
@@ -433,13 +477,25 @@ test('registra propuestas vecinales y las incluye como fuente trazable de junta'
             sourceId: proposal.id,
           })),
         },
+        filterExplanations: [
+          'Junta ordinaria: se revisan los ultimos 90 dias hasta el momento de preparacion.',
+          'Propuestas: se incluyen las disponibles antes de preparar la junta, aunque sean anteriores al inicio del periodo.',
+        ],
         meeting: {
           id: 'meeting-ordinary-2026-09-18',
           kind: 'ordinaria',
+          reviewPeriod: {
+            endsAt: '2026-07-29T08:30:00.000Z',
+            startsAt: '2026-04-30T08:30:00.000Z',
+          },
           title: 'Junta ordinaria',
           scheduledAt: '2026-09-18T17:00:00.000Z',
         },
         mode: 'deterministic-demo',
+        reviewPeriod: {
+          endsAt: '2026-07-29T08:30:00.000Z',
+          startsAt: '2026-04-30T08:30:00.000Z',
+        },
       },
       status: 200,
     });
@@ -451,6 +507,7 @@ test('registra propuestas vecinales y las incluye como fuente trazable de junta'
   }
 
   await expect(page.getByText('Aún no hay propuestas registradas en esta sesión.')).toBeVisible();
+  await expect(page.getByText(/30 abr 2026 - 29 jul 2026/)).toBeVisible();
   await page.getByRole('button', { name: 'Preparar orden del día' }).click();
   await expect(page.getByLabel('Borrador editable del orden del día')).toBeVisible();
 
@@ -470,6 +527,7 @@ test('registra propuestas vecinales y las incluye como fuente trazable de junta'
   await expect(draftRegion.getByLabel('Borrador editable del orden del día')).toHaveValue(
     /Instalar aparcabicis en el patio interior\./,
   );
+  await expect(draftRegion.getByText(/ultimos 90 dias/)).toBeVisible();
   await expect(draftRegion.getByText('Propuesta vecinal')).toBeVisible();
   await expect(draftRegion.getByText('proposal-1')).toBeVisible();
 });
