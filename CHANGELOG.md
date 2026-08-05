@@ -4,6 +4,12 @@ Todos los cambios relevantes se documentan siguiendo [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## 2026-08-05 · PR [#32](https://github.com/sersam/virtual-admin/pull/32)
+
+### Added
+
+- US-026 añade filtros temporales trazables al preparador de juntas, con ventanas 90/30, acuerdos con fecha límite estructurada y explicación visible en `/juntas`.
+
 ## 2026-08-05 · PR [#31](https://github.com/sersam/virtual-admin/pull/31)
 
 ### Added
