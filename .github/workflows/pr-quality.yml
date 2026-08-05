@@ -33,6 +33,13 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run test:e2e
+      - run: npm run eval:demo
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: evaluation-demo-reports
+          path: artifacts/evaluations
+          if-no-files-found: ignore
       - run: npm run changes:validate
 
   sonar:

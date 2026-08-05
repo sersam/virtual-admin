@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "evaluation-dataset/v1",
+  "datasetVersion": "2026-08-04",
+  "capability": "actas",
+  "cases": [
+    {
+      "id": "minutes-001",
+      "notes": "Acta de junta.\nAcuerdo: aprobar la reparacion de la puerta del garaje\nTarea: pedir tres presupuestos; Responsable: Laura; Fecha: 30 de junio",
+      "expectedAgreements": ["aprobar la reparacion de la puerta del garaje"],
+      "expectedTasks": [
+        {
+          "description": "pedir tres presupuestos",
+          "assignee": "Laura",
+          "dueDate": "30 de junio"
+        }
+      ],
+      "forbiddenClaims": ["cubierta"]
+    },
+    {
+      "id": "minutes-002",
+      "notes": "Reunion extraordinaria.\nAcuerdo: renovar las luces LED del portal 1\nTarea: revisar ofertas; Responsable: Mario; Fecha: 12 de julio",
+      "expectedAgreements": ["renovar las luces LED del portal 1"],
+      "expectedTasks": [
+        {
+          "description": "revisar ofertas",
+          "assignee": "Mario",
+          "dueDate": "12 de julio"
+        }
+      ],
+      "forbiddenClaims": ["garaje"]
+    },
+    {
+      "id": "minutes-003",
+      "notes": "Junta ordinaria.\nAcuerdo: mantener la cuota mensual sin cambios\nNo se asignan tareas pendientes.",
+      "expectedAgreements": ["mantener la cuota mensual sin cambios"],
+      "expectedTasks": [],
+      "forbiddenClaims": ["derrama"]
+    },
+    {
+      "id": "minutes-004",
+      "notes": "Resumen.\nTarea: avisar del corte de agua; Responsable: Administracion\nTarea: colocar carteles; Responsable: Conserjeria",
+      "expectedAgreements": [],
+      "expectedTasks": [
+        {
+          "description": "avisar del corte de agua",
+          "assignee": "Administracion"
+        },
+        {
+          "description": "colocar carteles",
+          "assignee": "Conserjeria"
+        }
+      ],
+      "forbiddenClaims": ["fecha aprobada"]
+    },
+    {
+      "id": "minutes-005",
+      "notes": "Acta breve.\nAcuerdo: contratar limpieza de cristales\nTarea: confirmar disponibilidad; Responsable: Ana; Fecha: viernes",
+      "expectedAgreements": ["contratar limpieza de cristales"],
+      "expectedTasks": [
+        {
+          "description": "confirmar disponibilidad",
+          "assignee": "Ana",
+          "dueDate": "viernes"
+        }
+      ],
+      "forbiddenClaims": ["piscina"]
+    },
+    {
+      "id": "minutes-006",
+      "notes": "Notas sin decisiones formales. Se informa del estado de la cubierta y se ruega enviar dudas por correo.",
+      "expectedAgreements": [],
+      "expectedTasks": [],
+      "forbiddenClaims": ["se aprueba", "contratar"]
+    }
+  ]
+}

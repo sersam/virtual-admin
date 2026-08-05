@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "evaluation-dataset/v1",
+  "datasetVersion": "2026-08-04",
+  "capability": "coordinacion",
+  "cases": [
+    {
+      "id": "coord-001",
+      "message": "Busca en los documentos la norma sobre ruidos por la noche.",
+      "expectedAgent": "documentos"
+    },
+    {
+      "id": "coord-002",
+      "message": "Necesito consultar el contrato de jardines que esta en PDF.",
+      "expectedAgent": "documentos"
+    },
+    {
+      "id": "coord-003",
+      "message": "Redacta un comunicado para los vecinos sobre el corte de agua.",
+      "expectedAgent": "comunicados"
+    },
+    {
+      "id": "coord-004",
+      "message": "Prepara un aviso formal para propietarios por la revision del garaje.",
+      "expectedAgent": "comunicados"
+    },
+    {
+      "id": "coord-005",
+      "message": "Quiero registrar una incidencia urgente por fuga en el sotano.",
+      "expectedAgent": "incidencias"
+    },
+    {
+      "id": "coord-006",
+      "message": "Clasifica la prioridad de una averia del ascensor.",
+      "expectedAgent": "incidencias"
+    },
+    {
+      "id": "coord-007",
+      "message": "Genera el acta con acuerdos y tareas de la reunion.",
+      "expectedAgent": "actas"
+    },
+    {
+      "id": "coord-008",
+      "message": "Soy secretario y necesito un borrador de acta.",
+      "expectedAgent": "actas"
+    },
+    {
+      "id": "coord-009",
+      "message": "Prepara el orden del dia de la proxima junta.",
+      "expectedAgent": "juntas"
+    },
+    {
+      "id": "coord-010",
+      "message": "Necesito revisar la convocatoria de la reunion ordinaria.",
+      "expectedAgent": "juntas"
+    },
+    {
+      "id": "coord-011",
+      "message": "Hola, que puedes hacer por la comunidad?",
+      "expectedAgent": "general"
+    },
+    {
+      "id": "coord-012",
+      "message": "Ayudame a organizar la administracion virtual.",
+      "expectedAgent": "general"
+    }
+  ]
+}

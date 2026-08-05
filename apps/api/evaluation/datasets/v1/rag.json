@@ -1,0 +1,199 @@
+{
+  "schemaVersion": "evaluation-dataset/v1",
+  "datasetVersion": "2026-08-04",
+  "capability": "rag",
+  "cases": [
+    {
+      "id": "rag-001",
+      "question": "Que horario tiene la piscina en julio?",
+      "documents": [
+        {
+          "id": "rag-doc-piscina",
+          "title": "Comunicado piscina julio",
+          "type": "comunicado",
+          "section": "Horarios",
+          "content": "La piscina abre en julio de 10:00 a 21:00. Los menores de 12 años deben entrar acompañados.",
+          "documentUrl": "/documents/eval-piscina.pdf"
+        },
+        {
+          "id": "rag-doc-garaje",
+          "title": "Revision garaje",
+          "type": "comunicado",
+          "section": "Mantenimiento",
+          "content": "La revision del garaje se realizara el 14 de julio de 08:00 a 12:00.",
+          "documentUrl": "/documents/eval-garaje.pdf"
+        }
+      ],
+      "expectedSourceIds": ["rag-doc-piscina"],
+      "expectedCitedSourceIds": ["rag-doc-piscina"],
+      "expectedFacts": ["julio", "10:00", "21:00"],
+      "insufficientEvidence": false
+    },
+    {
+      "id": "rag-002",
+      "question": "Quien debe mantener los jardines?",
+      "documents": [
+        {
+          "id": "rag-doc-jardines",
+          "title": "Contrato de jardines",
+          "type": "contrato",
+          "section": "Obligaciones",
+          "content": "Jardines del Norte SL mantiene cesped, setos y riego dos veces por semana.",
+          "documentUrl": "/documents/eval-jardines.pdf"
+        },
+        {
+          "id": "rag-doc-presupuesto",
+          "title": "Presupuesto anual",
+          "type": "presupuesto",
+          "section": "Gastos",
+          "content": "El presupuesto reserva 3800 euros para mantenimiento vegetal y pequeñas reparaciones.",
+          "documentUrl": "/documents/eval-presupuesto.pdf"
+        }
+      ],
+      "expectedSourceIds": ["rag-doc-jardines"],
+      "expectedCitedSourceIds": ["rag-doc-jardines"],
+      "expectedFacts": ["Jardines del Norte", "cesped", "riego"],
+      "insufficientEvidence": false
+    },
+    {
+      "id": "rag-003",
+      "question": "Que norma limita el ruido nocturno?",
+      "documents": [
+        {
+          "id": "rag-doc-ruido",
+          "title": "Normas de convivencia",
+          "type": "normas",
+          "section": "Descanso",
+          "content": "La norma de ruido nocturno indica que entre las 22:00 y las 08:00 se deben evitar ruidos, musica alta y taladros.",
+          "documentUrl": "/documents/eval-convivencia.pdf"
+        },
+        {
+          "id": "rag-doc-zonas",
+          "title": "Normas de zonas comunes",
+          "type": "normas",
+          "section": "Uso",
+          "content": "Las zonas comunes deben quedar limpias tras su uso y no pueden reservarse sin autorizacion.",
+          "documentUrl": "/documents/eval-zonas.pdf"
+        }
+      ],
+      "expectedSourceIds": ["rag-doc-ruido"],
+      "expectedCitedSourceIds": ["rag-doc-ruido"],
+      "expectedFacts": ["22:00", "08:00", "ruidos"],
+      "insufficientEvidence": false
+    },
+    {
+      "id": "rag-004",
+      "question": "Que acuerdo se aprobo sobre la puerta del garaje?",
+      "documents": [
+        {
+          "id": "rag-doc-acta-mayo",
+          "title": "Acta mayo 2026",
+          "type": "acta",
+          "section": "Acuerdos",
+          "content": "Se aprueba sustituir el motor de la puerta del garaje y pedir tres presupuestos antes del 30 de junio.",
+          "documentUrl": "/documents/eval-acta-mayo.pdf"
+        },
+        {
+          "id": "rag-doc-acta-marzo",
+          "title": "Acta marzo 2026",
+          "type": "acta",
+          "section": "Ruegos",
+          "content": "Se revisara la iluminacion de los trasteros durante el segundo trimestre.",
+          "documentUrl": "/documents/eval-acta-marzo.pdf"
+        }
+      ],
+      "expectedSourceIds": ["rag-doc-acta-mayo"],
+      "expectedCitedSourceIds": ["rag-doc-acta-mayo"],
+      "expectedFacts": ["motor", "puerta del garaje", "tres presupuestos"],
+      "insufficientEvidence": false
+    },
+    {
+      "id": "rag-005",
+      "question": "Cual es la cuota extraordinaria aprobada?",
+      "documents": [
+        {
+          "id": "rag-doc-cuota",
+          "title": "Acta extraordinaria",
+          "type": "acta",
+          "section": "Derrama",
+          "content": "La junta aprueba una cuota extraordinaria de 120 euros por vivienda para reparar la cubierta.",
+          "documentUrl": "/documents/eval-derrama.pdf"
+        },
+        {
+          "id": "rag-doc-cubierta",
+          "title": "Informe cubierta",
+          "type": "adjunto",
+          "section": "Resumen",
+          "content": "La cubierta presenta filtraciones en el bloque B y requiere reparacion antes del invierno.",
+          "documentUrl": "/documents/eval-cubierta.pdf"
+        }
+      ],
+      "expectedSourceIds": ["rag-doc-cuota"],
+      "expectedCitedSourceIds": ["rag-doc-cuota"],
+      "expectedFacts": ["120 euros", "vivienda", "cubierta"],
+      "insufficientEvidence": false
+    },
+    {
+      "id": "rag-006",
+      "question": "Cuando se revisan los extintores?",
+      "documents": [
+        {
+          "id": "rag-doc-extintores",
+          "title": "Plan de seguridad",
+          "type": "normas",
+          "section": "Extintores",
+          "content": "La revision de extintores sera el 3 de septiembre y afectara a portales y garaje.",
+          "documentUrl": "/documents/eval-extintores.pdf"
+        },
+        {
+          "id": "rag-doc-seguridad",
+          "title": "Parte de seguridad",
+          "type": "comunicado",
+          "section": "Avisos",
+          "content": "La puerta peatonal quedara bloqueada el 4 de septiembre entre las 09:00 y las 10:00.",
+          "documentUrl": "/documents/eval-seguridad.pdf"
+        }
+      ],
+      "expectedSourceIds": ["rag-doc-extintores"],
+      "expectedCitedSourceIds": ["rag-doc-extintores"],
+      "expectedFacts": ["3 de septiembre", "extintores", "garaje"],
+      "insufficientEvidence": false
+    },
+    {
+      "id": "rag-007",
+      "question": "Cual es el proveedor de conserjeria nocturna?",
+      "documents": [
+        {
+          "id": "rag-doc-limpieza",
+          "title": "Contrato limpieza",
+          "type": "contrato",
+          "section": "Servicio",
+          "content": "Limpiezas Centro SL presta servicio de lunes a viernes en portales y escaleras.",
+          "documentUrl": "/documents/eval-limpieza.pdf"
+        }
+      ],
+      "expectedSourceIds": [],
+      "expectedCitedSourceIds": [],
+      "expectedFacts": ["No he encontrado fuentes suficientes"],
+      "insufficientEvidence": true
+    },
+    {
+      "id": "rag-008",
+      "question": "Hay autorizacion para instalar placas solares individuales?",
+      "documents": [
+        {
+          "id": "rag-doc-mascotas",
+          "title": "Normas de mascotas",
+          "type": "normas",
+          "section": "Convivencia",
+          "content": "Los perros deben ir atados en zonas comunes y los propietarios limpiaran cualquier suciedad.",
+          "documentUrl": "/documents/eval-mascotas.pdf"
+        }
+      ],
+      "expectedSourceIds": [],
+      "expectedCitedSourceIds": [],
+      "expectedFacts": ["No he encontrado fuentes suficientes"],
+      "insufficientEvidence": true
+    }
+  ]
+}

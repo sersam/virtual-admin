@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "evaluation-dataset/v1",
+  "datasetVersion": "2026-08-04",
+  "capability": "incidencias",
+  "cases": [
+    {
+      "id": "inc-001",
+      "description": "Hay una fuga de agua urgente en el sotano y la zona esta inundada.",
+      "expectedType": "agua",
+      "expectedPriority": "urgente",
+      "requiredNoticeConcepts": ["fuga de agua urgente", "sotano"],
+      "forbiddenClaims": ["reparacion completada"]
+    },
+    {
+      "id": "inc-002",
+      "description": "El ascensor del portal 2 esta parado desde ayer por la tarde.",
+      "expectedType": "ascensor",
+      "expectedPriority": "alta",
+      "requiredNoticeConcepts": ["ascensor", "portal 2"],
+      "forbiddenClaims": ["personas atrapadas"]
+    },
+    {
+      "id": "inc-003",
+      "description": "La luz del rellano del cuarto no funciona y hay un enchufe suelto.",
+      "expectedType": "electricidad",
+      "expectedPriority": "media",
+      "requiredNoticeConcepts": ["luz", "enchufe suelto"],
+      "forbiddenClaims": ["chispas"]
+    },
+    {
+      "id": "inc-004",
+      "description": "Hay basura acumulada y una mancha grande en el portal principal.",
+      "expectedType": "limpieza",
+      "expectedPriority": "baja",
+      "requiredNoticeConcepts": ["basura acumulada", "portal principal"],
+      "forbiddenClaims": ["sancion"]
+    },
+    {
+      "id": "inc-005",
+      "description": "La puerta de entrada esta forzada y la cerradura no cierra bien.",
+      "expectedType": "seguridad",
+      "expectedPriority": "urgente",
+      "requiredNoticeConcepts": ["puerta de entrada", "cerradura"],
+      "forbiddenClaims": ["robo confirmado"]
+    },
+    {
+      "id": "inc-006",
+      "description": "Un vecino provoca ruido y molestias en horario de descanso.",
+      "expectedType": "convivencia",
+      "expectedPriority": "media",
+      "requiredNoticeConcepts": ["ruido", "horario de descanso"],
+      "forbiddenClaims": ["expulsion"]
+    },
+    {
+      "id": "inc-007",
+      "description": "El pomo del trastero comunitario esta roto y no encaja en otra categoria.",
+      "expectedType": "otro",
+      "expectedPriority": "media",
+      "requiredNoticeConcepts": ["pomo", "trastero comunitario"],
+      "forbiddenClaims": ["reparado"]
+    },
+    {
+      "id": "inc-008",
+      "description": "El cuadro electrico hace chispas y el portal se ha quedado sin luz.",
+      "expectedType": "electricidad",
+      "expectedPriority": "urgente",
+      "requiredNoticeConcepts": ["cuadro electrico", "sin luz"],
+      "forbiddenClaims": ["sin riesgo"]
+    }
+  ]
+}
