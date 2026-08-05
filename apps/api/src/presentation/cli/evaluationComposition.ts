@@ -73,7 +73,6 @@ async function createAgendaUseCase(testCase: AgendaEvaluationCase, providers: Ai
     await pendingAgreementRepository.saveIfAbsent({
       ...agreement,
       createdAt: new Date(agreement.createdAt),
-      dueOn: agreement.dueOn,
       sessionId,
     });
   }

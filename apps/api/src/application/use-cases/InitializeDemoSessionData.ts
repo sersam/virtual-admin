@@ -81,7 +81,7 @@ const demoIncidentSeeds: readonly DemoIncidentSeed[] = [
   },
   {
     id: 'demo-luz-resuelta-antigua',
-    description: 'Sustitución de luminarias del trastero cerrada antes del periodo revisado.',
+    description: 'Sustitución de luminarias del trastero cerrada antes del período revisado.',
     type: 'electricidad',
     priority: 'baja',
     suggestedResponsible: 'Electricista',
@@ -95,10 +95,9 @@ function buildDemoIncidents(sessionId: string, now: Date): CommunityIncident[] {
 }
 
 interface DemoPendingAgreementSeed {
-  readonly assignee?: PendingAgreement['assignee'];
+  readonly assignee?: string;
   readonly createdDaysAgo: number;
   readonly description: PendingAgreement['description'];
-  readonly dueDate?: PendingAgreement['dueDate'];
   readonly dueOnDaysAgo?: number;
   readonly id: PendingAgreement['id'];
 }
@@ -109,7 +108,6 @@ const demoPendingAgreementSeeds: readonly DemoPendingAgreementSeed[] = [
     description:
       'Comparar presupuestos para renovar el cuadro de maniobra del ascensor del portal B.',
     assignee: 'Administrador',
-    dueDate: '15 de julio de 2026',
     dueOnDaysAgo: 14,
     createdDaysAgo: 20,
   },
@@ -117,7 +115,6 @@ const demoPendingAgreementSeeds: readonly DemoPendingAgreementSeed[] = [
     id: 'demo-acuerdo-placas-solares',
     description: 'Revisar subvenciones disponibles para instalar placas solares en zonas comunes.',
     assignee: 'Administrador',
-    dueDate: '14 de junio de 2026',
     dueOnDaysAgo: 45,
     createdDaysAgo: 50,
   },
@@ -165,24 +162,35 @@ function createDemoPendingAgreement(
   seed: DemoPendingAgreementSeed,
   now: Date,
 ): PendingAgreement {
+  const dueOnDate =
+    seed.dueOnDaysAgo !== undefined ? subtractDays(now, seed.dueOnDaysAgo) : undefined;
+
   return {
     id: seed.id,
     sessionId,
     description: seed.description,
     ...(seed.assignee ? { assignee: seed.assignee } : {}),
-    ...(seed.dueDate ? { dueDate: seed.dueDate } : {}),
-    ...(seed.dueOnDaysAgo !== undefined
-      ? { dueOn: formatIsoDate(subtractDays(now, seed.dueOnDaysAgo)) }
+    ...(dueOnDate
+      ? { dueDate: formatDisplayDate(dueOnDate), dueOn: formatIsoDate(dueOnDate) }
       : {}),
     createdAt: subtractDays(now, seed.createdDaysAgo),
   };
 }
 
 function subtractDays(date: Date, days: number): Date {
-  const copy = new Date(date.getTime());
+  const copy = new Date(date);
   copy.setUTCDate(copy.getUTCDate() - days);
 
   return copy;
+}
+
+function formatDisplayDate(date: Date): string {
+  return new Intl.DateTimeFormat('es-ES', {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'Europe/Madrid',
+    year: 'numeric',
+  }).format(date);
 }
 
 function formatIsoDate(date: Date): string {

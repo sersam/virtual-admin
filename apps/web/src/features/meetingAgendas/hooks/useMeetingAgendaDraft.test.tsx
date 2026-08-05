@@ -90,7 +90,7 @@ function createAgendaResponse(title: string): Response {
         ],
       },
       filterExplanations: [
-        'Junta ordinaria: se revisan los ultimos 90 dias hasta el momento de preparacion.',
+        'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
       ],
       meeting: {
         id: 'meeting-ordinary-2026-09-18',

@@ -58,7 +58,7 @@ describe('DeterministicMeetingAgendaGenerator', () => {
         '1. [Urgente] Fuga de agua urgente en el garaje',
         '   Origen: incidencia inc-urgent.',
         '2. [Alta] Revisar contrato de limpieza',
-        '   Origen: acuerdo pendiente pending-with-date. Responsable: Ana. Fecha: 30 de junio. Fecha limite estructurada: 2026-06-30.',
+        '   Origen: acuerdo pendiente pending-with-date. Responsable: Ana. Fecha: 30 de junio. Fecha límite estructurada: 2026-06-30.',
         '3. [Media] Fuga de agua ya reparada',
         '   Origen: incidencia inc-resolved. Resuelta el 24 de junio de 2026.',
         '4. Instalar aparcabicis en el patio interior.',

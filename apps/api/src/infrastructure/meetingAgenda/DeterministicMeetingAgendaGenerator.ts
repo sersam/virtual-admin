@@ -77,7 +77,7 @@ function formatSourceDetails(item: PrioritizedAgendaItem): string {
   if (item.sourceType === 'pending-agreement') {
     if (item.assignee) details.push(`Responsable: ${item.assignee}.`);
     if (item.dueDate) details.push(`Fecha: ${item.dueDate}.`);
-    if (item.dueOn) details.push(`Fecha limite estructurada: ${item.dueOn}.`);
+    if (item.dueOn) details.push(`Fecha límite estructurada: ${item.dueOn}.`);
   } else if (item.status === 'resuelta' && item.resolvedAt) {
     details.push(`Resuelta el ${formatResolvedDate(item.resolvedAt)}.`);
   }

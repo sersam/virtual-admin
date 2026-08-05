@@ -82,8 +82,8 @@ describe('MeetingAgendaPanel', () => {
           ],
         },
         filterExplanations: [
-          'Junta ordinaria: se revisan los ultimos 90 dias hasta el momento de preparacion.',
-          'Acuerdos pendientes: si tienen fecha limite estructurada se usa esa fecha; si no, se usa la fecha de creacion.',
+          'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
+          'Acuerdos pendientes: si tienen fecha límite estructurada se usa esa fecha; si no, se usa la fecha de creación.',
         ],
         meeting: demoMeetings[0]!,
         mode: 'openai',
@@ -111,12 +111,12 @@ describe('MeetingAgendaPanel', () => {
     expect(screen.getByText('Revisar contrato de limpieza')).toBeInTheDocument();
     expect(screen.getByText('Fuga de agua ya reparada')).toBeInTheDocument();
     expect(screen.getByText('Instalar aparcabicis en el patio interior.')).toBeInTheDocument();
-    expect(screen.getByText(/fecha limite estructurada/i)).toBeInTheDocument();
+    expect(screen.getByText(/fecha límite estructurada/i)).toBeInTheDocument();
     expect(screen.getByText(/Vence: 2026-06-30/)).toBeInTheDocument();
     expect(screen.getByText(/Resuelta/)).toBeInTheDocument();
     expect(screen.getByText(/24 jun/)).toBeInTheDocument();
     expect(screen.getByText('Filtros aplicados')).toBeInTheDocument();
-    expect(screen.getByText(/ultimos 90 dias/)).toBeInTheDocument();
+    expect(screen.getByText(/últimos 90 días/)).toBeInTheDocument();
     expect(screen.getAllByText('Incidencia')).toHaveLength(2);
     expect(screen.getByText('Acuerdo pendiente')).toBeInTheDocument();
     expect(screen.getByText('Propuesta vecinal')).toBeInTheDocument();
@@ -155,7 +155,7 @@ describe('MeetingAgendaPanel', () => {
           ],
         },
         filterExplanations: [
-          'Junta ordinaria: se revisan los ultimos 90 dias hasta el momento de preparacion.',
+          'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
         ],
         meeting: demoMeetings[0]!,
         mode: 'deterministic-demo',
@@ -217,7 +217,7 @@ describe('MeetingAgendaPanel', () => {
           items: [],
         },
         filterExplanations: [
-          'Junta ordinaria: se revisan los ultimos 90 dias hasta el momento de preparacion.',
+          'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
         ],
         meeting: demoMeetings[0]!,
         mode: 'deterministic-demo',
@@ -340,7 +340,7 @@ describe('MeetingAgendaPanel', () => {
           items: [],
         },
         filterExplanations: [
-          'Junta ordinaria: se revisan los ultimos 90 dias hasta el momento de preparacion.',
+          'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
         ],
         meeting: demoMeetings[0]!,
         mode: 'deterministic-demo',

@@ -27,10 +27,31 @@ describe('meeting contracts', () => {
   });
 
   it('rechaza periodos de revision no ISO o invertidos', () => {
+    expect(
+      MeetingSchema.parse({
+        ...validMeeting,
+        reviewPeriod: {
+          startsAt: '2026-07-29T08:30:00.000Z',
+          endsAt: '2026-07-29T08:30:00.000Z',
+        },
+      }),
+    ).toEqual({
+      ...validMeeting,
+      reviewPeriod: {
+        startsAt: '2026-07-29T08:30:00.000Z',
+        endsAt: '2026-07-29T08:30:00.000Z',
+      },
+    });
     expect(() =>
       MeetingSchema.parse({
         ...validMeeting,
         reviewPeriod: { startsAt: '30/04/2026', endsAt: '2026-07-29T08:30:00.000Z' },
+      }),
+    ).toThrow();
+    expect(() =>
+      MeetingSchema.parse({
+        ...validMeeting,
+        reviewPeriod: { startsAt: '2026-04-30T08:30:00.000Z', endsAt: '29/07/2026' },
       }),
     ).toThrow();
     expect(() =>

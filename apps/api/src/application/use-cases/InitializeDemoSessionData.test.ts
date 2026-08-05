@@ -36,8 +36,42 @@ describe('InitializeDemoSessionData', () => {
       expect.objectContaining({ id: 'demo-luz-resuelta-antigua', status: 'resuelta' }),
     ]);
     await expect(pendingAgreementRepository.listBySession('session-a')).resolves.toEqual([
-      expect.objectContaining({ id: 'demo-acuerdo-ascensor', dueOn: '2026-07-15' }),
-      expect.objectContaining({ id: 'demo-acuerdo-placas-solares', dueOn: '2026-06-14' }),
+      expect.objectContaining({
+        id: 'demo-acuerdo-ascensor',
+        dueDate: '15 de julio de 2026',
+        dueOn: '2026-07-15',
+      }),
+      expect.objectContaining({
+        id: 'demo-acuerdo-placas-solares',
+        dueDate: '14 de junio de 2026',
+        dueOn: '2026-06-14',
+      }),
+      expect.objectContaining({ id: 'demo-acuerdo-limpieza' }),
+      expect.objectContaining({ id: 'demo-acuerdo-antiguo' }),
+    ]);
+  });
+
+  it('deriva el texto visible de fecha límite desde dueOn según el reloj demo', async () => {
+    const pendingAgreementRepository = new InMemoryPendingAgreementRepository();
+    const useCase = new InitializeDemoSessionData({
+      clock: { now: () => new Date('2026-08-05T08:30:00.000Z') },
+      incidentRepository: new InMemoryIncidentRepository(),
+      pendingAgreementRepository,
+    });
+
+    await useCase.execute('session-a');
+
+    await expect(pendingAgreementRepository.listBySession('session-a')).resolves.toEqual([
+      expect.objectContaining({
+        id: 'demo-acuerdo-ascensor',
+        dueDate: '22 de julio de 2026',
+        dueOn: '2026-07-22',
+      }),
+      expect.objectContaining({
+        id: 'demo-acuerdo-placas-solares',
+        dueDate: '21 de junio de 2026',
+        dueOn: '2026-06-21',
+      }),
       expect.objectContaining({ id: 'demo-acuerdo-limpieza' }),
       expect.objectContaining({ id: 'demo-acuerdo-antiguo' }),
     ]);

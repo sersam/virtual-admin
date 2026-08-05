@@ -356,9 +356,9 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
           ],
         },
         filterExplanations: [
-          'Junta extraordinaria: se revisan los ultimos 30 dias hasta el momento de preparacion.',
-          'Incidencias: se incluyen pendientes disponibles antes de preparar la junta y resueltas dentro del periodo revisado.',
-          'Acuerdos pendientes: si tienen fecha limite estructurada se usa esa fecha; si no, se usa la fecha de creacion.',
+          'Junta extraordinaria: se revisan los últimos 30 días hasta el momento de preparación.',
+          'Incidencias: se incluyen pendientes disponibles antes de preparar la junta y resueltas dentro del período revisado.',
+          'Acuerdos pendientes: si tienen fecha límite estructurada se usa esa fecha; si no, se usa la fecha de creación.',
         ],
         meeting: {
           id: 'meeting-extraordinary-2026-10-15',
@@ -400,7 +400,7 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
   await expect(editableDraft).toHaveValue('Orden del día revisado por administración.');
   await expect(draftRegion.getByText('OpenAI · GPT-5 nano')).toBeVisible();
   await expect(draftRegion.getByText('Filtros aplicados')).toBeVisible();
-  await expect(draftRegion.getByText(/ultimos 30 dias/)).toBeVisible();
+  await expect(draftRegion.getByText(/últimos 30 días/)).toBeVisible();
   await expect(draftRegion.getByText(/29 jun 2026 - 29 jul 2026/)).toBeVisible();
   await expect(draftRegion.getByText('Entradas utilizadas')).toBeVisible();
   await expect(draftRegion.getByText(/Vence: 2026-07-15/)).toBeVisible();
@@ -410,7 +410,7 @@ test('prepara juntas con entradas trazables y borrador editable', async ({ page 
   await expect(draftRegion.getByText('Revisar contrato de limpieza')).toBeVisible();
   await expect(draftRegion.getByText('Propuesta vecinal', { exact: true })).toBeVisible();
   await expect(draftRegion.getByText('Instalar aparcabicis en el patio interior.')).toBeVisible();
-  await expect(draftRegion.getByText('Acuerdo ordinario fuera de 30 dias')).toBeHidden();
+  await expect(draftRegion.getByText('Acuerdo ordinario fuera de 30 días')).toBeHidden();
 });
 
 test('registra propuestas vecinales y las incluye como fuente trazable de junta', async ({
@@ -478,8 +478,8 @@ test('registra propuestas vecinales y las incluye como fuente trazable de junta'
           })),
         },
         filterExplanations: [
-          'Junta ordinaria: se revisan los ultimos 90 dias hasta el momento de preparacion.',
-          'Propuestas: se incluyen las disponibles antes de preparar la junta, aunque sean anteriores al inicio del periodo.',
+          'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
+          'Propuestas: se incluyen las disponibles antes de preparar la junta, aunque sean anteriores al inicio del período.',
         ],
         meeting: {
           id: 'meeting-ordinary-2026-09-18',
@@ -527,7 +527,7 @@ test('registra propuestas vecinales y las incluye como fuente trazable de junta'
   await expect(draftRegion.getByLabel('Borrador editable del orden del día')).toHaveValue(
     /Instalar aparcabicis en el patio interior\./,
   );
-  await expect(draftRegion.getByText(/ultimos 90 dias/)).toBeVisible();
+  await expect(draftRegion.getByText(/últimos 90 días/)).toBeVisible();
   await expect(draftRegion.getByText('Propuesta vecinal')).toBeVisible();
   await expect(draftRegion.getByText('proposal-1')).toBeVisible();
 });

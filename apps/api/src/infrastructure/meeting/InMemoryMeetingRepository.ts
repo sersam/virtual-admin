@@ -59,7 +59,7 @@ export class InMemoryMeetingRepository implements MeetingRepository {
 }
 
 function buildReviewPeriod(currentDate: Date, days: number): CommunityMeeting['reviewPeriod'] {
-  const endsAt = new Date(currentDate.getTime());
+  const endsAt = new Date(currentDate);
   const startsAt = new Date(endsAt.getTime() - days * MILLISECONDS_PER_DAY);
 
   return { startsAt, endsAt };

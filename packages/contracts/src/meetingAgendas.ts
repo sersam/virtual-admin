@@ -58,14 +58,24 @@ export const MeetingAgendaDraftSchema = z.object({
   items: z.array(MeetingAgendaItemSchema).max(100),
 });
 
-export const MeetingAgendaDraftResponseSchema = z.object({
-  draft: MeetingAgendaDraftSchema,
-  fallbackReason: AiFallbackReasonSchema.optional(),
-  filterExplanations: z.array(z.string().trim().min(1).max(240)).min(1).max(10),
-  meeting: MeetingSchema,
-  mode: AiProviderModeSchema,
-  reviewPeriod: MeetingReviewPeriodSchema,
-});
+export const MeetingAgendaDraftResponseSchema = z
+  .object({
+    draft: MeetingAgendaDraftSchema,
+    fallbackReason: AiFallbackReasonSchema.optional(),
+    filterExplanations: z.array(z.string().trim().min(1).max(240)).min(1).max(10),
+    meeting: MeetingSchema,
+    mode: AiProviderModeSchema,
+    reviewPeriod: MeetingReviewPeriodSchema,
+  })
+  .refine(
+    (response) =>
+      response.meeting.reviewPeriod.startsAt === response.reviewPeriod.startsAt &&
+      response.meeting.reviewPeriod.endsAt === response.reviewPeriod.endsAt,
+    {
+      message: 'El periodo de revision debe coincidir con el periodo de la junta.',
+      path: ['reviewPeriod'],
+    },
+  );
 
 export type MeetingAgendaDraftRequest = z.infer<typeof MeetingAgendaDraftRequestSchema>;
 export type MeetingAgendaItemSourceType = z.infer<typeof MeetingAgendaItemSourceTypeSchema>;

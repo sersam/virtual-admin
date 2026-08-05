@@ -32,10 +32,10 @@ const reviewPeriod = {
 };
 
 const filterExplanations = [
-  'Junta ordinaria: se revisan los ultimos 90 dias hasta el momento de preparacion.',
-  'Incidencias: se incluyen pendientes disponibles antes de preparar la junta y resueltas dentro del periodo revisado.',
-  'Acuerdos pendientes: si tienen fecha limite estructurada se usa esa fecha; si no, se usa la fecha de creacion.',
-  'Propuestas: se incluyen las disponibles antes de preparar la junta, aunque sean anteriores al inicio del periodo.',
+  'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
+  'Incidencias: se incluyen pendientes disponibles antes de preparar la junta y resueltas dentro del período revisado.',
+  'Acuerdos pendientes: si tienen fecha límite estructurada se usa esa fecha; si no, se usa la fecha de creación.',
+  'Propuestas: se incluyen las disponibles antes de preparar la junta, aunque sean anteriores al inicio del período.',
 ];
 
 describe('DraftMeetingAgenda', () => {
@@ -914,7 +914,9 @@ function createIncident(overrides: PendingIncidentOverrides = {}): CommunityInci
   };
 }
 
-function createResolvedIncident(overrides: Partial<CommunityIncident> = {}): CommunityIncident {
+function createResolvedIncident(
+  overrides: Partial<Omit<CommunityIncident, 'status'>> = {},
+): CommunityIncident {
   const description = overrides.description ?? 'Incidencia resuelta';
 
   return {

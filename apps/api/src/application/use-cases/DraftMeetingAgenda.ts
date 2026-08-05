@@ -109,13 +109,13 @@ export class DraftMeetingAgenda {
 
 function buildFilterExplanations(meeting: CommunityMeeting): string[] {
   const days = meeting.kind === 'ordinaria' ? 90 : 30;
-  const meetingKind = meeting.kind === 'ordinaria' ? 'ordinaria' : 'extraordinaria';
+  const meetingKind = meeting.kind;
 
   return [
-    `Junta ${meetingKind}: se revisan los ultimos ${days} dias hasta el momento de preparacion.`,
-    'Incidencias: se incluyen pendientes disponibles antes de preparar la junta y resueltas dentro del periodo revisado.',
-    'Acuerdos pendientes: si tienen fecha limite estructurada se usa esa fecha; si no, se usa la fecha de creacion.',
-    'Propuestas: se incluyen las disponibles antes de preparar la junta, aunque sean anteriores al inicio del periodo.',
+    `Junta ${meetingKind}: se revisan los últimos ${days} días hasta el momento de preparación.`,
+    'Incidencias: se incluyen pendientes disponibles antes de preparar la junta y resueltas dentro del período revisado.',
+    'Acuerdos pendientes: si tienen fecha límite estructurada se usa esa fecha; si no, se usa la fecha de creación.',
+    'Propuestas: se incluyen las disponibles antes de preparar la junta, aunque sean anteriores al inicio del período.',
   ];
 }
 

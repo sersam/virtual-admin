@@ -118,6 +118,20 @@ describe('PostgresPendingAgreementRepository', () => {
     ]);
   });
 
+  it('trata como distintos dos acuerdos que solo difieren en dueOn', async () => {
+    await repository.save(
+      agreement({ id: 'pending-a', dueDate: '30 de junio', dueOn: '2026-06-30' }),
+    );
+    await repository.save(
+      agreement({ id: 'pending-b', dueDate: '30 de junio', dueOn: '2026-07-31' }),
+    );
+
+    await expect(repository.listBySession(sessionA)).resolves.toEqual([
+      agreement({ id: 'pending-a', dueDate: '30 de junio', dueOn: '2026-06-30' }),
+      agreement({ id: 'pending-b', dueDate: '30 de junio', dueOn: '2026-07-31' }),
+    ]);
+  });
+
   it('saveIfAbsent protege solo la identidad y permite firmas repetidas con otro id', async () => {
     await repository.saveIfAbsent(agreement({ id: 'pending-1', description: 'Revisar contrato' }));
     await repository.saveIfAbsent(agreement({ id: 'pending-1', description: 'No reemplaza' }));

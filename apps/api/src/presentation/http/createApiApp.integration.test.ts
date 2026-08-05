@@ -910,7 +910,7 @@ describe('createApiApp', () => {
         ]),
       },
       filterExplanations: expect.arrayContaining([
-        'Junta ordinaria: se revisan los ultimos 90 dias hasta el momento de preparacion.',
+        'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
       ]),
       mode: 'deterministic-demo',
       reviewPeriod: {
@@ -919,7 +919,7 @@ describe('createApiApp', () => {
       },
     });
     expect(extraordinary.body.filterExplanations).toContain(
-      'Junta extraordinaria: se revisan los ultimos 30 dias hasta el momento de preparacion.',
+      'Junta extraordinaria: se revisan los últimos 30 días hasta el momento de preparación.',
     );
     expect(ordinary.body.draft.items).toHaveLength(8);
     expect(extraordinary.body.draft.items).toHaveLength(6);
