@@ -1,9 +1,11 @@
 import type { CommunityIncident } from '../../domain/incident/CommunityIncident.js';
 import type { PendingAgreement } from '../../domain/meetingAgenda/PendingAgreement.js';
+import type { Clock } from '../ports/Clock.js';
 import type { IncidentRepository } from '../ports/IncidentRepository.js';
 import type { PendingAgreementRepository } from '../ports/PendingAgreementRepository.js';
 
 interface InitializeDemoSessionDataDependencies {
+  readonly clock?: Clock;
   readonly incidentRepository: IncidentRepository;
   readonly pendingAgreementRepository: PendingAgreementRepository;
 }
@@ -12,124 +14,179 @@ export class InitializeDemoSessionData {
   constructor(private readonly dependencies: InitializeDemoSessionDataDependencies) {}
 
   async execute(sessionId: string): Promise<void> {
-    for (const incident of buildDemoIncidents(sessionId)) {
+    const now = this.dependencies.clock?.now() ?? new Date();
+
+    for (const incident of buildDemoIncidents(sessionId, now)) {
       await this.dependencies.incidentRepository.saveIfAbsent(incident);
     }
 
-    for (const agreement of buildDemoPendingAgreements(sessionId)) {
+    for (const agreement of buildDemoPendingAgreements(sessionId, now)) {
       await this.dependencies.pendingAgreementRepository.saveIfAbsent(agreement);
     }
   }
 }
 
-type DemoIncidentSeed = readonly [
-  id: CommunityIncident['id'],
-  description: CommunityIncident['description'],
-  type: CommunityIncident['type'],
-  priority: CommunityIncident['priority'],
-  suggestedResponsible: CommunityIncident['suggestedResponsible'],
-  createdAt: string,
-];
+interface DemoIncidentSeed {
+  readonly createdDaysAgo: number;
+  readonly description: CommunityIncident['description'];
+  readonly id: CommunityIncident['id'];
+  readonly priority: CommunityIncident['priority'];
+  readonly resolvedDaysAgo?: number;
+  readonly suggestedResponsible: CommunityIncident['suggestedResponsible'];
+  readonly type: CommunityIncident['type'];
+}
 
 const demoIncidentSeeds: readonly DemoIncidentSeed[] = [
-  [
-    'demo-fuga-agua-urgente',
-    'Fuga de agua urgente en el garaje junto al cuarto de contadores.',
-    'agua',
-    'urgente',
-    'Fontanería',
-    '2026-07-18T08:15:00.000Z',
-  ],
-  [
-    'demo-averia-ascensor',
-    'El ascensor del portal B se queda detenido entre plantas.',
-    'ascensor',
-    'alta',
-    'Mantenimiento de ascensores',
-    '2026-07-19T10:30:00.000Z',
-  ],
-  [
-    'demo-basura-portal',
-    'Hay bolsas de basura acumuladas en la entrada del portal A.',
-    'limpieza',
-    'media',
-    'Servicio de limpieza',
-    '2026-07-20T17:45:00.000Z',
-  ],
-  [
-    'demo-ruidos-descanso',
-    'Se escuchan ruidos en terrazas fuera del horario permitido.',
-    'convivencia',
-    'media',
-    'Administrador',
-    '2026-07-21T22:20:00.000Z',
-  ],
+  {
+    id: 'demo-fuga-agua-urgente',
+    description: 'Fuga de agua urgente en el garaje junto al cuarto de contadores.',
+    type: 'agua',
+    priority: 'urgente',
+    suggestedResponsible: 'Fontanería',
+    createdDaysAgo: 7,
+  },
+  {
+    id: 'demo-averia-ascensor',
+    description: 'El ascensor del portal B se queda detenido entre plantas.',
+    type: 'ascensor',
+    priority: 'alta',
+    suggestedResponsible: 'Mantenimiento de ascensores',
+    createdDaysAgo: 20,
+  },
+  {
+    id: 'demo-basura-portal',
+    description: 'Hay bolsas de basura acumuladas en la entrada del portal A.',
+    type: 'limpieza',
+    priority: 'media',
+    suggestedResponsible: 'Servicio de limpieza',
+    createdDaysAgo: 95,
+  },
+  {
+    id: 'demo-fuga-resuelta-reciente',
+    description: 'Fuga de agua en el cuarto de bombas reparada esta semana.',
+    type: 'agua',
+    priority: 'media',
+    suggestedResponsible: 'Fontanería',
+    createdDaysAgo: 14,
+    resolvedDaysAgo: 10,
+  },
+  {
+    id: 'demo-ascensor-resuelto-ordinaria',
+    description: 'Avería del ascensor del portal A resuelta tras sustituir el sensor de puertas.',
+    type: 'ascensor',
+    priority: 'alta',
+    suggestedResponsible: 'Mantenimiento de ascensores',
+    createdDaysAgo: 50,
+    resolvedDaysAgo: 45,
+  },
+  {
+    id: 'demo-luz-resuelta-antigua',
+    description: 'Sustitución de luminarias del trastero cerrada antes del periodo revisado.',
+    type: 'electricidad',
+    priority: 'baja',
+    suggestedResponsible: 'Electricista',
+    createdDaysAgo: 130,
+    resolvedDaysAgo: 120,
+  },
 ];
 
-function buildDemoIncidents(sessionId: string): CommunityIncident[] {
-  return demoIncidentSeeds.map((seed) => createDemoIncident(sessionId, seed));
+function buildDemoIncidents(sessionId: string, now: Date): CommunityIncident[] {
+  return demoIncidentSeeds.map((seed) => createDemoIncident(sessionId, seed, now));
 }
 
-type DemoPendingAgreementSeed = readonly [
-  id: PendingAgreement['id'],
-  description: PendingAgreement['description'],
-  assignee: PendingAgreement['assignee'],
-  dueDate: PendingAgreement['dueDate'],
-  createdAt: string,
-];
+interface DemoPendingAgreementSeed {
+  readonly assignee?: PendingAgreement['assignee'];
+  readonly createdDaysAgo: number;
+  readonly description: PendingAgreement['description'];
+  readonly dueDate?: PendingAgreement['dueDate'];
+  readonly dueOnDaysAgo?: number;
+  readonly id: PendingAgreement['id'];
+}
 
 const demoPendingAgreementSeeds: readonly DemoPendingAgreementSeed[] = [
-  [
-    'demo-acuerdo-ascensor',
-    'Comparar presupuestos para renovar el cuadro de maniobra del ascensor del portal B.',
-    'Administrador',
-    '15 de septiembre de 2026',
-    '2026-07-22T09:00:00.000Z',
-  ],
-  [
-    'demo-acuerdo-placas-solares',
-    'Revisar subvenciones disponibles para instalar placas solares en zonas comunes.',
-    'Administrador',
-    '30 de septiembre de 2026',
-    '2026-07-22T09:05:00.000Z',
-  ],
+  {
+    id: 'demo-acuerdo-ascensor',
+    description:
+      'Comparar presupuestos para renovar el cuadro de maniobra del ascensor del portal B.',
+    assignee: 'Administrador',
+    dueDate: '15 de julio de 2026',
+    dueOnDaysAgo: 14,
+    createdDaysAgo: 20,
+  },
+  {
+    id: 'demo-acuerdo-placas-solares',
+    description: 'Revisar subvenciones disponibles para instalar placas solares en zonas comunes.',
+    assignee: 'Administrador',
+    dueDate: '14 de junio de 2026',
+    dueOnDaysAgo: 45,
+    createdDaysAgo: 50,
+  },
+  {
+    id: 'demo-acuerdo-limpieza',
+    description: 'Confirmar refuerzo de limpieza de portales tras las obras.',
+    assignee: 'Administrador',
+    createdDaysAgo: 18,
+  },
+  {
+    id: 'demo-acuerdo-antiguo',
+    description: 'Revisar presupuesto antiguo de pintura exterior pendiente desde primavera.',
+    assignee: 'Administrador',
+    createdDaysAgo: 100,
+  },
 ];
 
-function buildDemoPendingAgreements(sessionId: string): PendingAgreement[] {
-  return demoPendingAgreementSeeds.map((seed) => createDemoPendingAgreement(sessionId, seed));
+function buildDemoPendingAgreements(sessionId: string, now: Date): PendingAgreement[] {
+  return demoPendingAgreementSeeds.map((seed) => createDemoPendingAgreement(sessionId, seed, now));
 }
 
-function createDemoIncident(sessionId: string, seed: DemoIncidentSeed): CommunityIncident {
-  const [id, description, type, priority, suggestedResponsible, createdAt] = seed;
-
-  return {
-    id,
+function createDemoIncident(
+  sessionId: string,
+  seed: DemoIncidentSeed,
+  now: Date,
+): CommunityIncident {
+  const base = {
+    id: seed.id,
     sessionId,
-    description,
-    type,
-    priority,
-    suggestedResponsible,
-    suggestedNotice: createSuggestedNotice(description),
-    createdAt: new Date(createdAt),
-    status: 'pendiente',
-    resolvedAt: null,
+    description: seed.description,
+    type: seed.type,
+    priority: seed.priority,
+    suggestedResponsible: seed.suggestedResponsible,
+    suggestedNotice: createSuggestedNotice(seed.description),
+    createdAt: subtractDays(now, seed.createdDaysAgo),
   };
+
+  return seed.resolvedDaysAgo === undefined
+    ? { ...base, status: 'pendiente', resolvedAt: null }
+    : { ...base, status: 'resuelta', resolvedAt: subtractDays(now, seed.resolvedDaysAgo) };
 }
 
 function createDemoPendingAgreement(
   sessionId: string,
   seed: DemoPendingAgreementSeed,
+  now: Date,
 ): PendingAgreement {
-  const [id, description, assignee, dueDate, createdAt] = seed;
-
   return {
-    id,
+    id: seed.id,
     sessionId,
-    description,
-    ...(assignee ? { assignee } : {}),
-    ...(dueDate ? { dueDate } : {}),
-    createdAt: new Date(createdAt),
+    description: seed.description,
+    ...(seed.assignee ? { assignee: seed.assignee } : {}),
+    ...(seed.dueDate ? { dueDate: seed.dueDate } : {}),
+    ...(seed.dueOnDaysAgo !== undefined
+      ? { dueOn: formatIsoDate(subtractDays(now, seed.dueOnDaysAgo)) }
+      : {}),
+    createdAt: subtractDays(now, seed.createdDaysAgo),
   };
+}
+
+function subtractDays(date: Date, days: number): Date {
+  const copy = new Date(date.getTime());
+  copy.setUTCDate(copy.getUTCDate() - days);
+
+  return copy;
+}
+
+function formatIsoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }
 
 function createSuggestedNotice(description: string): string {

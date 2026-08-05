@@ -248,6 +248,7 @@ export function createApiApp(options: ApiAppOptions) {
   const ensureSession = new EnsureDemoSession({
     clock: options.clock,
     demoDataInitializer: new InitializeDemoSessionData({
+      clock: options.clock,
       incidentRepository: options.incidentRepository,
       pendingAgreementRepository: options.pendingAgreementRepository,
     }),

@@ -85,6 +85,7 @@ export interface AgendaSeedPendingAgreement {
   readonly createdAt: string;
   readonly description: string;
   readonly dueDate?: string;
+  readonly dueOn?: string;
   readonly id: string;
 }
 

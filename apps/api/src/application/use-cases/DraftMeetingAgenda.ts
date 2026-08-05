@@ -71,10 +71,17 @@ export class DraftMeetingAgenda {
       this.dependencies.proposalRepository.listBySession(input.sessionId),
     ]);
     const prioritizedItems = [
-      ...incidents.filter((incident) => incident.status === 'pendiente').map(presentIncidentItem),
-      ...pendingAgreements.map(presentPendingAgreementItem),
+      ...incidents
+        .filter((incident) => shouldIncludeIncident(incident, meeting))
+        .map(presentIncidentItem),
+      ...pendingAgreements
+        .filter((agreement) => shouldIncludePendingAgreement(agreement, meeting))
+        .map(presentPendingAgreementItem),
     ].sort(compareAgendaItems);
-    const proposalItems = proposals.map(presentProposalItem).sort(compareProposalItems);
+    const proposalItems = proposals
+      .filter((proposal) => shouldIncludeProposal(proposal, meeting))
+      .map(presentProposalItem)
+      .sort(compareProposalItems);
     const items = [...prioritizedItems, ...proposalItems]
       .slice(0, MAX_AGENDA_ITEMS)
       .map(presentTransportItem);
@@ -106,7 +113,72 @@ function buildFilterExplanations(meeting: CommunityMeeting): string[] {
 
   return [
     `Junta ${meetingKind}: se revisan los ultimos ${days} dias hasta el momento de preparacion.`,
+    'Incidencias: se incluyen pendientes disponibles antes de preparar la junta y resueltas dentro del periodo revisado.',
+    'Acuerdos pendientes: si tienen fecha limite estructurada se usa esa fecha; si no, se usa la fecha de creacion.',
+    'Propuestas: se incluyen las disponibles antes de preparar la junta, aunque sean anteriores al inicio del periodo.',
   ];
+}
+
+function shouldIncludeIncident(incident: CommunityIncident, meeting: CommunityMeeting): boolean {
+  if (incident.status === 'pendiente') {
+    return isInstantInPastForMeeting(incident.createdAt, meeting);
+  }
+
+  return isInstantWithinPeriod(incident.resolvedAt, meeting.reviewPeriod);
+}
+
+function shouldIncludePendingAgreement(
+  agreement: PendingAgreement,
+  meeting: CommunityMeeting,
+): boolean {
+  if (!isInstantInPastForMeeting(agreement.createdAt, meeting)) return false;
+
+  if (agreement.dueOn) {
+    return isCalendarDateWithinPeriodInMadrid(agreement.dueOn, meeting.reviewPeriod);
+  }
+
+  return isInstantWithinPeriod(agreement.createdAt, meeting.reviewPeriod);
+}
+
+function shouldIncludeProposal(proposal: CommunityProposal, meeting: CommunityMeeting): boolean {
+  return isInstantInPastForMeeting(proposal.createdAt, meeting);
+}
+
+function isInstantInPastForMeeting(date: Date, meeting: CommunityMeeting): boolean {
+  return (
+    date.getTime() <= meeting.reviewPeriod.endsAt.getTime() &&
+    date.getTime() <= meeting.scheduledAt.getTime()
+  );
+}
+
+function isInstantWithinPeriod(date: Date, period: CommunityMeeting['reviewPeriod']): boolean {
+  const time = date.getTime();
+
+  return time >= period.startsAt.getTime() && time <= period.endsAt.getTime();
+}
+
+function isCalendarDateWithinPeriodInMadrid(
+  dueOn: string,
+  period: CommunityMeeting['reviewPeriod'],
+): boolean {
+  const startsOn = formatMadridCalendarDate(period.startsAt);
+  const endsOn = formatMadridCalendarDate(period.endsAt);
+
+  return dueOn >= startsOn && dueOn <= endsOn;
+}
+
+function formatMadridCalendarDate(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: 'Europe/Madrid',
+    year: 'numeric',
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+
+  return `${year}-${month}-${day}`;
 }
 
 function buildTitle(meeting: CommunityMeeting): string {
@@ -137,7 +209,7 @@ function presentIncidentItem(incident: CommunityIncident): PrioritizedAgendaItem
 function presentPendingAgreementItem(agreement: PendingAgreement): PrioritizedAgendaItem {
   return {
     description: agreement.description,
-    priority: agreement.dueDate ? 'alta' : 'media',
+    priority: agreement.dueDate || agreement.dueOn ? 'alta' : 'media',
     sourceType: 'pending-agreement',
     sourceId: agreement.id,
     ...(agreement.assignee ? { assignee: agreement.assignee } : {}),

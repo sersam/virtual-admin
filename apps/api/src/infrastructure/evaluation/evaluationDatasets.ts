@@ -111,10 +111,17 @@ const agendaSeedIncidentSchema = z
     description: z.string().trim().min(10),
     id: z.string().trim().min(1),
     priority: IncidentPrioritySchema,
+    resolvedAt: z.iso.datetime().optional(),
     status: IncidentStatusSchema,
     type: IncidentTypeSchema,
   })
-  .strict();
+  .strict()
+  .refine(
+    (incident) =>
+      (incident.status === 'pendiente' && incident.resolvedAt === undefined) ||
+      (incident.status === 'resuelta' && incident.resolvedAt !== undefined),
+    'Las incidencias resueltas de evaluacion deben incluir resolvedAt.',
+  );
 
 const agendaSeedPendingAgreementSchema = z
   .object({
@@ -122,6 +129,7 @@ const agendaSeedPendingAgreementSchema = z
     createdAt: z.iso.datetime(),
     description: z.string().trim().min(1),
     dueDate: z.string().trim().min(1).optional(),
+    dueOn: z.iso.date().optional(),
     id: z.string().trim().min(1),
   })
   .strict();

@@ -8,10 +8,11 @@ import { InMemoryPendingAgreementRepository } from '../../infrastructure/meeting
 import { InitializeDemoSessionData } from './InitializeDemoSessionData.js';
 
 describe('InitializeDemoSessionData', () => {
-  it('inicializa cuatro incidencias abiertas y dos acuerdos pendientes por sesion', async () => {
+  it('inicializa incidencias y acuerdos relativos al reloj por sesion', async () => {
     const incidentRepository = new InMemoryIncidentRepository();
     const pendingAgreementRepository = new InMemoryPendingAgreementRepository();
     const useCase = new InitializeDemoSessionData({
+      clock: { now: () => new Date('2026-07-29T08:30:00.000Z') },
       incidentRepository,
       pendingAgreementRepository,
     });
@@ -19,14 +20,26 @@ describe('InitializeDemoSessionData', () => {
     await useCase.execute('session-a');
 
     await expect(incidentRepository.listBySession('session-a')).resolves.toEqual([
-      expect.objectContaining({ id: 'demo-fuga-agua-urgente', status: 'pendiente' }),
+      expect.objectContaining({
+        id: 'demo-fuga-agua-urgente',
+        status: 'pendiente',
+        createdAt: new Date('2026-07-22T08:30:00.000Z'),
+      }),
       expect.objectContaining({ id: 'demo-averia-ascensor', status: 'pendiente' }),
       expect.objectContaining({ id: 'demo-basura-portal', status: 'pendiente' }),
-      expect.objectContaining({ id: 'demo-ruidos-descanso', status: 'pendiente' }),
+      expect.objectContaining({
+        id: 'demo-fuga-resuelta-reciente',
+        status: 'resuelta',
+        resolvedAt: new Date('2026-07-19T08:30:00.000Z'),
+      }),
+      expect.objectContaining({ id: 'demo-ascensor-resuelto-ordinaria', status: 'resuelta' }),
+      expect.objectContaining({ id: 'demo-luz-resuelta-antigua', status: 'resuelta' }),
     ]);
     await expect(pendingAgreementRepository.listBySession('session-a')).resolves.toEqual([
-      expect.objectContaining({ id: 'demo-acuerdo-ascensor' }),
-      expect.objectContaining({ id: 'demo-acuerdo-placas-solares' }),
+      expect.objectContaining({ id: 'demo-acuerdo-ascensor', dueOn: '2026-07-15' }),
+      expect.objectContaining({ id: 'demo-acuerdo-placas-solares', dueOn: '2026-06-14' }),
+      expect.objectContaining({ id: 'demo-acuerdo-limpieza' }),
+      expect.objectContaining({ id: 'demo-acuerdo-antiguo' }),
     ]);
   });
 
@@ -60,8 +73,8 @@ describe('InitializeDemoSessionData', () => {
 
     await useCase.execute('session-a');
 
-    await expect(incidentRepository.listBySession('session-a')).resolves.toHaveLength(5);
-    await expect(pendingAgreementRepository.listBySession('session-a')).resolves.toHaveLength(3);
+    await expect(incidentRepository.listBySession('session-a')).resolves.toHaveLength(7);
+    await expect(pendingAgreementRepository.listBySession('session-a')).resolves.toHaveLength(5);
     expect(incidentRepository.saveCalls).toHaveLength(1);
     expect(pendingAgreementRepository.saveCalls).toHaveLength(1);
   });
@@ -77,10 +90,10 @@ describe('InitializeDemoSessionData', () => {
     await useCase.execute('session-a');
     await useCase.execute('session-b');
 
-    await expect(incidentRepository.listBySession('session-a')).resolves.toHaveLength(4);
-    await expect(incidentRepository.listBySession('session-b')).resolves.toHaveLength(4);
-    await expect(pendingAgreementRepository.listBySession('session-a')).resolves.toHaveLength(2);
-    await expect(pendingAgreementRepository.listBySession('session-b')).resolves.toHaveLength(2);
+    await expect(incidentRepository.listBySession('session-a')).resolves.toHaveLength(6);
+    await expect(incidentRepository.listBySession('session-b')).resolves.toHaveLength(6);
+    await expect(pendingAgreementRepository.listBySession('session-a')).resolves.toHaveLength(4);
+    await expect(pendingAgreementRepository.listBySession('session-b')).resolves.toHaveLength(4);
   });
 });
 

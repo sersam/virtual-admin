@@ -73,6 +73,7 @@ async function createAgendaUseCase(testCase: AgendaEvaluationCase, providers: Ai
     await pendingAgreementRepository.saveIfAbsent({
       ...agreement,
       createdAt: new Date(agreement.createdAt),
+      dueOn: agreement.dueOn,
       sessionId,
     });
   }
@@ -104,7 +105,7 @@ function toCommunityIncident(
   return incident.status === 'resuelta'
     ? {
         ...incidentBase,
-        resolvedAt: new Date('2026-08-01T10:00:00.000Z'),
+        resolvedAt: new Date(incident.resolvedAt),
         status: 'resuelta',
       }
     : {
