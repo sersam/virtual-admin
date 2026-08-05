@@ -262,13 +262,24 @@ function createWorkflowDependencies(
             body: 'Orden del día\n\n1. [Alta] Revisar contrato de limpieza.',
             items: [],
           },
+          filterExplanations: [
+            'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
+          ],
           meeting: {
             id: 'meeting-ordinary-2026-09-18',
             kind: 'ordinaria',
+            reviewPeriod: {
+              startsAt: '2026-04-30T10:00:00.000Z',
+              endsAt: '2026-07-29T10:00:00.000Z',
+            },
             title: 'Junta ordinaria',
             scheduledAt: '2026-09-18T17:00:00.000Z',
           },
           mode: 'deterministic-demo',
+          reviewPeriod: {
+            startsAt: '2026-04-30T10:00:00.000Z',
+            endsAt: '2026-07-29T10:00:00.000Z',
+          },
         };
       },
     },

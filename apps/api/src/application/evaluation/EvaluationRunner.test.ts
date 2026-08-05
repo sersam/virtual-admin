@@ -346,19 +346,30 @@ function createPorts(
               {
                 description: 'Fuga de agua',
                 priority: 'alta',
+                resolvedAt: null,
                 sourceId: 'agenda-inc',
                 sourceType: 'incident',
+                status: 'pendiente',
               },
             ],
         title: 'Orden del dia',
       },
+      filterExplanations: ['Filtros temporales aplicados.'],
       meeting: {
         id: 'meeting-1',
         kind: 'ordinaria',
+        reviewPeriod: {
+          startsAt: '2026-06-20T10:00:00.000Z',
+          endsAt: '2026-08-04T10:00:00.000Z',
+        },
         scheduledAt: '2026-09-18T17:00:00.000Z',
         title: 'Junta ordinaria',
       },
       mode: 'deterministic-demo',
+      reviewPeriod: {
+        startsAt: '2026-06-20T10:00:00.000Z',
+        endsAt: '2026-08-04T10:00:00.000Z',
+      },
     }),
     draftMeetingMinutes: async (): Promise<MeetingMinutesDraftResponse> => ({
       draft: {

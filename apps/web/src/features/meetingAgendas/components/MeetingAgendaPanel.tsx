@@ -179,6 +179,18 @@ export function MeetingAgendaPanel() {
                 />
               </div>
 
+              <div className="rounded-2xl border border-sky-100 bg-sky-50 p-4">
+                <h3 className="text-sm font-extrabold text-navy-950">Filtros aplicados</h3>
+                <p className="mt-2 text-sm font-semibold text-sky-900">
+                  Periodo revisado: {formatReviewPeriod(visibleDraft.reviewPeriod)}
+                </p>
+                <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
+                  {visibleDraft.filterExplanations.map((explanation) => (
+                    <li key={explanation}>{explanation}</li>
+                  ))}
+                </ul>
+              </div>
+
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <h3 className="text-sm font-extrabold text-navy-950">Entradas utilizadas</h3>
                 {visibleDraft.draft.items.length === 0 ? (
@@ -259,9 +271,13 @@ function MeetingSelector({
         </p>
       )}
       {selectedMeeting && (
-        <p className="rounded-2xl bg-sky-50 p-4 text-sm font-semibold text-sky-900">
-          Seleccionada: {formatMeetingOption(selectedMeeting)}
-        </p>
+        <div className="rounded-2xl bg-sky-50 p-4 text-sm font-semibold text-sky-900">
+          <p>Seleccionada: {formatMeetingOption(selectedMeeting)}</p>
+          <p className="mt-2 text-xs font-bold uppercase tracking-[0.12em] text-sky-700">
+            Periodo revisado
+          </p>
+          <p className="mt-1">{formatReviewPeriod(selectedMeeting.reviewPeriod)}</p>
+        </div>
       )}
     </>
   );
@@ -283,12 +299,34 @@ function AgendaInputItem({ item }: { readonly item: MeetingAgendaItem }) {
       </div>
       <p className="mt-3 font-semibold leading-6 text-navy-950">{item.description}</p>
       <p className="mt-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-        {item.sourceType === 'pending-agreement'
-          ? [item.assignee, item.dueDate, item.sourceId].filter(Boolean).join(' · ')
-          : item.sourceId}
+        {formatAgendaItemDetails(item)}
       </p>
     </li>
   );
+}
+
+function formatAgendaItemDetails(item: MeetingAgendaItem): string {
+  if (item.sourceType === 'pending-agreement') {
+    return [
+      item.assignee,
+      item.dueDate,
+      item.dueOn ? `Vence: ${item.dueOn}` : undefined,
+      item.sourceId,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  }
+
+  if (item.sourceType === 'incident') {
+    const status = item.status === 'resuelta' ? 'Resuelta' : 'Pendiente';
+    const resolvedAt = item.resolvedAt
+      ? `Resuelta el ${formatShortDate(item.resolvedAt)}`
+      : undefined;
+
+    return [status, resolvedAt, item.sourceId].filter(Boolean).join(' · ');
+  }
+
+  return item.sourceId;
 }
 
 function ProposalsSection({
@@ -410,6 +448,19 @@ function formatMeetingDate(scheduledAt: string): string {
     timeZone: 'Europe/Madrid',
     year: 'numeric',
   }).format(new Date(scheduledAt));
+}
+
+function formatReviewPeriod(period: Meeting['reviewPeriod']): string {
+  return `${formatShortDate(period.startsAt)} - ${formatShortDate(period.endsAt)}`;
+}
+
+function formatShortDate(date: string): string {
+  return new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit',
+    month: 'short',
+    timeZone: 'Europe/Madrid',
+    year: 'numeric',
+  }).format(new Date(date));
 }
 
 function formatProposalDate(createdAt: string): string {

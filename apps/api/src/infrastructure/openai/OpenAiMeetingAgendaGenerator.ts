@@ -28,7 +28,7 @@ export class OpenAiMeetingAgendaGenerator implements MeetingAgendaGenerator {
       operation: 'meeting-agenda',
       promptVersion: meetingAgendaPrompt.version,
       schema: MeetingAgendaDraftOutputSchema,
-      schemaName: 'meeting_agenda_draft_v1',
+      schemaName: 'meeting_agenda_draft_v2',
     });
 
     return { body: output.body, mode: 'openai' };
@@ -44,6 +44,10 @@ function presentOpenAiInput(input: MeetingAgendaGeneratorInput): {
   readonly meeting: {
     readonly id: string;
     readonly kind: string;
+    readonly reviewPeriod: {
+      readonly startsAt: string;
+      readonly endsAt: string;
+    };
     readonly scheduledAt: string;
     readonly title: string;
   };
@@ -52,6 +56,10 @@ function presentOpenAiInput(input: MeetingAgendaGeneratorInput): {
     meeting: {
       id: input.meeting.id,
       kind: input.meeting.kind,
+      reviewPeriod: {
+        startsAt: input.meeting.reviewPeriod.startsAt.toISOString(),
+        endsAt: input.meeting.reviewPeriod.endsAt.toISOString(),
+      },
       scheduledAt: input.meeting.scheduledAt.toISOString(),
       title: input.meeting.title,
     },

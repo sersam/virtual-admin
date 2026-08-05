@@ -185,6 +185,7 @@ describe('migrateDatabase', () => {
           ['normalized_signature', 'text'],
           ['created_at', 'timestamp with time zone'],
           ['inserted_order', 'integer'],
+          ['due_on', 'date'],
         ],
       });
       expect(constraints.rows).toEqual([

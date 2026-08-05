@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   check,
   customType,
+  date,
   doublePrecision,
   index,
   integer,
@@ -95,6 +96,7 @@ export const pendingAgreements = pgTable(
     description: varchar('description', { length: 240 }).notNull(),
     assignee: varchar('assignee', { length: 120 }),
     dueDate: varchar('due_date', { length: 80 }),
+    dueOn: date('due_on'),
     normalizedSignature: text('normalized_signature').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     insertedOrder: serial('inserted_order').notNull(),

@@ -70,6 +70,7 @@ describe('PostgresPendingAgreementRepository', () => {
           description: ' Revisar contrato ',
           assignee: 'ANA',
           dueDate: '30 DE JUNIO',
+          dueOn: '2026-06-30',
         }),
       ),
       repository.save(
@@ -78,6 +79,7 @@ describe('PostgresPendingAgreementRepository', () => {
           description: 'revisar contrato',
           assignee: 'Ana',
           dueDate: '30 de junio',
+          dueOn: '2026-06-30',
         }),
       ),
     ]);
@@ -92,9 +94,42 @@ describe('PostgresPendingAgreementRepository', () => {
           description: 'revisar contrato',
           assignee: 'ana',
           dueDate: '30 de junio',
+          dueOn: '2026-06-30',
         }),
       ),
     );
+  });
+
+  it('conserva dueOn estructurado al persistir y listar', async () => {
+    await repository.save(
+      agreement({
+        id: 'pending-structured-date',
+        dueDate: '30 de junio',
+        dueOn: '2026-06-30',
+      }),
+    );
+
+    await expect(repository.listBySession(sessionA)).resolves.toEqual([
+      agreement({
+        id: 'pending-structured-date',
+        dueDate: '30 de junio',
+        dueOn: '2026-06-30',
+      }),
+    ]);
+  });
+
+  it('trata como distintos dos acuerdos que solo difieren en dueOn', async () => {
+    await repository.save(
+      agreement({ id: 'pending-a', dueDate: '30 de junio', dueOn: '2026-06-30' }),
+    );
+    await repository.save(
+      agreement({ id: 'pending-b', dueDate: '30 de junio', dueOn: '2026-07-31' }),
+    );
+
+    await expect(repository.listBySession(sessionA)).resolves.toEqual([
+      agreement({ id: 'pending-a', dueDate: '30 de junio', dueOn: '2026-06-30' }),
+      agreement({ id: 'pending-b', dueDate: '30 de junio', dueOn: '2026-07-31' }),
+    ]);
   });
 
   it('saveIfAbsent protege solo la identidad y permite firmas repetidas con otro id', async () => {
@@ -135,6 +170,7 @@ function agreement(
     description: overrides.description ?? 'Revisar contrato',
     assignee: overrides.assignee,
     dueDate: overrides.dueDate,
+    dueOn: overrides.dueOn,
     createdAt: overrides.createdAt ?? createdAt,
   };
 }

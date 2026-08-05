@@ -45,12 +45,20 @@ function validMeetingsResponse(): Response {
           kind: 'ordinaria',
           title: 'Junta ordinaria',
           scheduledAt: '2026-09-18T17:00:00.000Z',
+          reviewPeriod: {
+            startsAt: '2026-04-30T08:30:00.000Z',
+            endsAt: '2026-07-29T08:30:00.000Z',
+          },
         },
         {
           id: 'meeting-extraordinary-2026-10-15',
           kind: 'extraordinaria',
           title: 'Junta extraordinaria',
           scheduledAt: '2026-10-15T17:00:00.000Z',
+          reviewPeriod: {
+            startsAt: '2026-06-29T08:30:00.000Z',
+            endsAt: '2026-07-29T08:30:00.000Z',
+          },
         },
       ],
     }),

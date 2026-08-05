@@ -10,6 +10,7 @@ describe('InMemoryPendingAgreementRepository', () => {
       description: 'Revisar contrato',
       assignee: 'Ana',
       dueDate: '30 de junio',
+      dueOn: '2026-06-30',
       createdAt: new Date('2026-06-23T08:00:00.000Z'),
     });
     await repository.save({
@@ -18,6 +19,7 @@ describe('InMemoryPendingAgreementRepository', () => {
       description: ' revisar contrato ',
       assignee: 'ana',
       dueDate: '30 DE JUNIO',
+      dueOn: '2026-06-30',
       createdAt: new Date('2026-06-23T08:05:00.000Z'),
     });
     await repository.save({
@@ -26,11 +28,12 @@ describe('InMemoryPendingAgreementRepository', () => {
       description: 'Revisar contrato',
       assignee: 'Ana',
       dueDate: '30 de junio',
+      dueOn: '2026-06-30',
       createdAt: new Date('2026-06-23T08:10:00.000Z'),
     });
 
     await expect(repository.listBySession('session-a')).resolves.toEqual([
-      expect.objectContaining({ id: 'pending-1' }),
+      expect.objectContaining({ id: 'pending-1', dueOn: '2026-06-30' }),
     ]);
     await expect(repository.listBySession('session-b')).resolves.toEqual([
       expect.objectContaining({ id: 'pending-3' }),

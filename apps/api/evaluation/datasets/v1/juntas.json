@@ -35,14 +35,15 @@
             "id": "agenda-agreement-led",
             "description": "Pedir presupuesto para luces LED",
             "assignee": "Marta",
-            "dueDate": "15 de agosto",
+            "dueDate": "15 de julio",
+            "dueOn": "2026-07-15",
             "createdAt": "2026-07-03T10:00:00.000Z"
           }
         ],
         "proposals": []
       },
       "expectedItems": [{ "sourceType": "pending-agreement", "sourceId": "agenda-agreement-led" }],
-      "expectedBodyConcepts": ["luces LED", "Marta", "15 de agosto"],
+      "expectedBodyConcepts": ["luces LED", "Marta", "15 de julio"],
       "forbiddenClaims": ["incidencia urgente"],
       "emptyExpected": false
     },
@@ -123,6 +124,7 @@
             "type": "seguridad",
             "priority": "alta",
             "status": "resuelta",
+            "resolvedAt": "2026-08-01T10:00:00.000Z",
             "createdAt": "2026-07-04T10:00:00.000Z"
           }
         ],
@@ -135,9 +137,12 @@
           }
         ]
       },
-      "expectedItems": [{ "sourceType": "proposal", "sourceId": "agenda-proposal-camaras" }],
-      "expectedBodyConcepts": ["camaras", "acceso principal"],
-      "forbiddenClaims": ["Cerradura reparada"],
+      "expectedItems": [
+        { "sourceType": "incident", "sourceId": "agenda-inc-resuelta" },
+        { "sourceType": "proposal", "sourceId": "agenda-proposal-camaras" }
+      ],
+      "expectedBodyConcepts": ["Cerradura reparada", "camaras", "acceso principal"],
+      "forbiddenClaims": ["pendiente la cerradura"],
       "emptyExpected": false
     },
     {

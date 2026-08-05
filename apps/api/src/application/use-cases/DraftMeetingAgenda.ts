@@ -71,10 +71,17 @@ export class DraftMeetingAgenda {
       this.dependencies.proposalRepository.listBySession(input.sessionId),
     ]);
     const prioritizedItems = [
-      ...incidents.filter((incident) => incident.status === 'pendiente').map(presentIncidentItem),
-      ...pendingAgreements.map(presentPendingAgreementItem),
+      ...incidents
+        .filter((incident) => shouldIncludeIncident(incident, meeting))
+        .map(presentIncidentItem),
+      ...pendingAgreements
+        .filter((agreement) => shouldIncludePendingAgreement(agreement, meeting))
+        .map(presentPendingAgreementItem),
     ].sort(compareAgendaItems);
-    const proposalItems = proposals.map(presentProposalItem).sort(compareProposalItems);
+    const proposalItems = proposals
+      .filter((proposal) => shouldIncludeProposal(proposal, meeting))
+      .map(presentProposalItem)
+      .sort(compareProposalItems);
     const items = [...prioritizedItems, ...proposalItems]
       .slice(0, MAX_AGENDA_ITEMS)
       .map(presentTransportItem);
@@ -89,10 +96,89 @@ export class DraftMeetingAgenda {
         body: generatedDraft.body,
         items,
       },
+      filterExplanations: buildFilterExplanations(meeting),
       meeting: presentMeeting(meeting),
       mode: generatedDraft.mode,
+      reviewPeriod: {
+        startsAt: meeting.reviewPeriod.startsAt.toISOString(),
+        endsAt: meeting.reviewPeriod.endsAt.toISOString(),
+      },
     };
   }
+}
+
+function buildFilterExplanations(meeting: CommunityMeeting): string[] {
+  const days = meeting.kind === 'ordinaria' ? 90 : 30;
+  const meetingKind = meeting.kind;
+
+  return [
+    `Junta ${meetingKind}: se revisan los últimos ${days} días hasta el momento de preparación.`,
+    'Incidencias: se incluyen pendientes disponibles antes de preparar la junta y resueltas dentro del período revisado.',
+    'Acuerdos pendientes: si tienen fecha límite estructurada se usa esa fecha; si no, se usa la fecha de creación.',
+    'Propuestas: se incluyen las disponibles antes de preparar la junta, aunque sean anteriores al inicio del período.',
+  ];
+}
+
+function shouldIncludeIncident(incident: CommunityIncident, meeting: CommunityMeeting): boolean {
+  if (incident.status === 'pendiente') {
+    return isInstantInPastForMeeting(incident.createdAt, meeting);
+  }
+
+  return isInstantWithinPeriod(incident.resolvedAt, meeting.reviewPeriod);
+}
+
+function shouldIncludePendingAgreement(
+  agreement: PendingAgreement,
+  meeting: CommunityMeeting,
+): boolean {
+  if (!isInstantInPastForMeeting(agreement.createdAt, meeting)) return false;
+
+  if (agreement.dueOn) {
+    return isCalendarDateWithinPeriodInMadrid(agreement.dueOn, meeting.reviewPeriod);
+  }
+
+  return isInstantWithinPeriod(agreement.createdAt, meeting.reviewPeriod);
+}
+
+function shouldIncludeProposal(proposal: CommunityProposal, meeting: CommunityMeeting): boolean {
+  return isInstantInPastForMeeting(proposal.createdAt, meeting);
+}
+
+function isInstantInPastForMeeting(date: Date, meeting: CommunityMeeting): boolean {
+  return (
+    date.getTime() <= meeting.reviewPeriod.endsAt.getTime() &&
+    date.getTime() <= meeting.scheduledAt.getTime()
+  );
+}
+
+function isInstantWithinPeriod(date: Date, period: CommunityMeeting['reviewPeriod']): boolean {
+  const time = date.getTime();
+
+  return time >= period.startsAt.getTime() && time <= period.endsAt.getTime();
+}
+
+function isCalendarDateWithinPeriodInMadrid(
+  dueOn: string,
+  period: CommunityMeeting['reviewPeriod'],
+): boolean {
+  const startsOn = formatMadridCalendarDate(period.startsAt);
+  const endsOn = formatMadridCalendarDate(period.endsAt);
+
+  return dueOn >= startsOn && dueOn <= endsOn;
+}
+
+function formatMadridCalendarDate(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: 'Europe/Madrid',
+    year: 'numeric',
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+
+  return `${year}-${month}-${day}`;
 }
 
 function buildTitle(meeting: CommunityMeeting): string {
@@ -114,6 +200,8 @@ function presentIncidentItem(incident: CommunityIncident): PrioritizedAgendaItem
     priority: incident.priority,
     sourceType: 'incident',
     sourceId: incident.id,
+    status: incident.status,
+    resolvedAt: incident.resolvedAt ? incident.resolvedAt.toISOString() : null,
     createdAt: incident.createdAt,
   };
 }
@@ -121,11 +209,12 @@ function presentIncidentItem(incident: CommunityIncident): PrioritizedAgendaItem
 function presentPendingAgreementItem(agreement: PendingAgreement): PrioritizedAgendaItem {
   return {
     description: agreement.description,
-    priority: agreement.dueDate ? 'alta' : 'media',
+    priority: agreement.dueDate || agreement.dueOn ? 'alta' : 'media',
     sourceType: 'pending-agreement',
     sourceId: agreement.id,
     ...(agreement.assignee ? { assignee: agreement.assignee } : {}),
     ...(agreement.dueDate ? { dueDate: agreement.dueDate } : {}),
+    ...(agreement.dueOn ? { dueOn: agreement.dueOn } : {}),
     createdAt: agreement.createdAt,
   };
 }
@@ -176,11 +265,14 @@ function presentTransportItem(item: AgendaItemWithCreatedAt): MeetingAgendaItem 
         sourceId: item.sourceId,
         ...(item.assignee ? { assignee: item.assignee } : {}),
         ...(item.dueDate ? { dueDate: item.dueDate } : {}),
+        ...(item.dueOn ? { dueOn: item.dueOn } : {}),
       }
     : {
         description: item.description,
         priority: item.priority,
         sourceType: item.sourceType,
         sourceId: item.sourceId,
+        status: item.status,
+        resolvedAt: item.resolvedAt,
       };
 }

@@ -13,12 +13,20 @@ describe('InMemoryMeetingRepository', () => {
         sessionId: 'session-a',
         kind: 'ordinaria',
         scheduledAt: new Date('2026-08-29T17:00:00.000Z'),
+        reviewPeriod: {
+          startsAt: new Date('2026-04-30T08:30:00.000Z'),
+          endsAt: new Date('2026-07-29T08:30:00.000Z'),
+        },
       }),
       expect.objectContaining({
         id: 'meeting-extraordinary-2026-10-15',
         sessionId: 'session-a',
         kind: 'extraordinaria',
         scheduledAt: new Date('2026-09-29T17:00:00.000Z'),
+        reviewPeriod: {
+          startsAt: new Date('2026-06-29T08:30:00.000Z'),
+          endsAt: new Date('2026-07-29T08:30:00.000Z'),
+        },
       }),
     ]);
   });

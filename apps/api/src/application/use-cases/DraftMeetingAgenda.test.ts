@@ -26,6 +26,18 @@ function suggestedNoticeFor(description: string): string {
   ].join('\n');
 }
 
+const reviewPeriod = {
+  startsAt: '2026-04-30T08:30:00.000Z',
+  endsAt: '2026-07-29T08:30:00.000Z',
+};
+
+const filterExplanations = [
+  'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
+  'Incidencias: se incluyen pendientes disponibles antes de preparar la junta y resueltas dentro del período revisado.',
+  'Acuerdos pendientes: si tienen fecha límite estructurada se usa esa fecha; si no, se usa la fecha de creación.',
+  'Propuestas: se incluyen las disponibles antes de preparar la junta, aunque sean anteriores al inicio del período.',
+];
+
 describe('DraftMeetingAgenda', () => {
   it('combina incidencias y acuerdos pendientes priorizados para la sesión', async () => {
     const useCase = new DraftMeetingAgenda({
@@ -116,6 +128,8 @@ describe('DraftMeetingAgenda', () => {
             priority: 'urgente',
             sourceType: 'incident',
             sourceId: 'inc-urgent',
+            status: 'pendiente',
+            resolvedAt: null,
           },
           {
             description: 'Revisar contrato de limpieza',
@@ -136,16 +150,21 @@ describe('DraftMeetingAgenda', () => {
             priority: 'baja',
             sourceType: 'incident',
             sourceId: 'inc-low',
+            status: 'pendiente',
+            resolvedAt: null,
           },
         ],
       },
+      filterExplanations,
       meeting: {
         id: 'meeting-ordinary-2026-09-18',
         kind: 'ordinaria',
         title: 'Junta ordinaria',
         scheduledAt: '2026-09-18T17:00:00.000Z',
+        reviewPeriod,
       },
       mode: 'deterministic-demo',
+      reviewPeriod,
     });
   });
 
@@ -187,10 +206,12 @@ describe('DraftMeetingAgenda', () => {
         body: 'No hay asuntos pendientes para incluir en el orden del día.',
         items: [],
       },
+      filterExplanations,
       meeting: expect.objectContaining({
         id: 'meeting-ordinary-2026-09-18',
       }),
       mode: 'deterministic-demo',
+      reviewPeriod,
     });
     expect(generator.inputs).toEqual([]);
   });
@@ -246,6 +267,8 @@ describe('DraftMeetingAgenda', () => {
             priority: 'urgente',
             sourceType: 'incident',
             sourceId: 'inc-urgent',
+            status: 'pendiente',
+            resolvedAt: null,
           },
           {
             description: 'Revisar contrato de limpieza',
@@ -269,13 +292,16 @@ describe('DraftMeetingAgenda', () => {
         body: 'Texto redactado por OpenAI sin capacidad de alterar fuentes.',
         items: generator.inputs[0]!.items,
       },
+      filterExplanations,
       meeting: {
         id: 'meeting-ordinary-2026-09-18',
         kind: 'ordinaria',
         title: 'Junta ordinaria',
         scheduledAt: '2026-09-18T17:00:00.000Z',
+        reviewPeriod,
       },
       mode: 'openai',
+      reviewPeriod,
     });
   });
 
@@ -293,7 +319,7 @@ describe('DraftMeetingAgenda', () => {
     ).rejects.toThrow('No se ha encontrado la junta seleccionada.');
   });
 
-  it('ignora incidencias resueltas al preparar el orden del día', async () => {
+  it('incluye incidencias resueltas dentro del periodo y excluye las resueltas fuera', async () => {
     const useCase = new DraftMeetingAgenda({
       generator: new DeterministicMeetingAgendaGenerator(),
       incidentRepository: createIncidentRepository([
@@ -302,8 +328,14 @@ describe('DraftMeetingAgenda', () => {
           description: 'Revisar puerta del garaje',
         }),
         createResolvedIncident({
-          id: 'inc-resolved',
+          id: 'inc-resolved-inside',
           description: 'Fuga de agua ya reparada',
+          resolvedAt: new Date('2026-06-24T10:00:00.000Z'),
+        }),
+        createResolvedIncident({
+          id: 'inc-resolved-before-period',
+          description: 'Luz del trastero ya reparada',
+          resolvedAt: new Date('2026-04-30T08:29:59.999Z'),
         }),
       ]),
       pendingAgreementRepository: createPendingAgreementRepository([]),
@@ -321,8 +353,133 @@ describe('DraftMeetingAgenda', () => {
         description: 'Revisar puerta del garaje',
         sourceId: 'inc-pending',
       }),
+      expect.objectContaining({
+        description: 'Fuga de agua ya reparada',
+        resolvedAt: '2026-06-24T10:00:00.000Z',
+        sourceId: 'inc-resolved-inside',
+        status: 'resuelta',
+      }),
     ]);
-    expect(response.draft.body).not.toContain('Fuga de agua ya reparada');
+    expect(response.draft.body).toContain('Resuelta el 24 de junio de 2026');
+    expect(response.draft.body).not.toContain('Luz del trastero ya reparada');
+  });
+
+  it('aplica limites temporales inclusivos para incidencias pendientes y resueltas', async () => {
+    const useCase = new DraftMeetingAgenda({
+      generator: new DeterministicMeetingAgendaGenerator(),
+      incidentRepository: createIncidentRepository([
+        createIncident({
+          id: 'inc-created-at-start',
+          createdAt: new Date('2026-04-30T08:30:00.000Z'),
+        }),
+        createIncident({
+          id: 'inc-created-after-preparation',
+          createdAt: new Date('2026-07-29T08:30:00.001Z'),
+        }),
+        createResolvedIncident({
+          id: 'inc-resolved-at-end',
+          resolvedAt: new Date('2026-07-29T08:30:00.000Z'),
+        }),
+        createResolvedIncident({
+          id: 'inc-resolved-after-end',
+          resolvedAt: new Date('2026-07-29T08:30:00.001Z'),
+        }),
+      ]),
+      pendingAgreementRepository: createPendingAgreementRepository([]),
+      proposalRepository: createProposalRepository([]),
+      meetingRepository: createMeetingRepository(),
+    });
+
+    const response = await useCase.execute({
+      sessionId: 'session-a',
+      meetingId: 'meeting-ordinary-2026-09-18',
+    });
+
+    expect(response.draft.items.map((item) => item.sourceId)).toEqual([
+      'inc-created-at-start',
+      'inc-resolved-at-end',
+    ]);
+  });
+
+  it('filtra acuerdos por dueOn en calendario Madrid o por createdAt cuando no hay dueOn', async () => {
+    const useCase = new DraftMeetingAgenda({
+      generator: new DeterministicMeetingAgendaGenerator(),
+      incidentRepository: createIncidentRepository([]),
+      pendingAgreementRepository: createPendingAgreementRepository([
+        createPendingAgreement({
+          id: 'pending-due-on-start',
+          dueDate: '30 de abril',
+          dueOn: '2026-04-30',
+          createdAt: new Date('2026-04-01T10:00:00.000Z'),
+        }),
+        createPendingAgreement({
+          id: 'pending-due-on-before',
+          dueDate: '29 de abril',
+          dueOn: '2026-04-29',
+          createdAt: new Date('2026-04-01T10:00:00.000Z'),
+        }),
+        createPendingAgreement({
+          id: 'pending-created-inside',
+          createdAt: new Date('2026-05-01T10:00:00.000Z'),
+        }),
+        createPendingAgreement({
+          id: 'pending-created-before',
+          createdAt: new Date('2026-04-30T08:29:59.999Z'),
+        }),
+        createPendingAgreement({
+          id: 'pending-created-future',
+          dueOn: '2026-05-10',
+          createdAt: new Date('2026-07-29T08:30:00.001Z'),
+        }),
+      ]),
+      proposalRepository: createProposalRepository([]),
+      meetingRepository: createMeetingRepository(),
+    });
+
+    const response = await useCase.execute({
+      sessionId: 'session-a',
+      meetingId: 'meeting-ordinary-2026-09-18',
+    });
+
+    expect(response.draft.items.map((item) => item.sourceId)).toEqual([
+      'pending-due-on-start',
+      'pending-created-inside',
+    ]);
+  });
+
+  it('compara dueOn con el dia civil de Europe/Madrid', async () => {
+    const useCase = new DraftMeetingAgenda({
+      generator: new DeterministicMeetingAgendaGenerator(),
+      incidentRepository: createIncidentRepository([]),
+      pendingAgreementRepository: createPendingAgreementRepository([
+        createPendingAgreement({
+          id: 'pending-madrid-start',
+          dueOn: '2026-05-01',
+          createdAt: new Date('2026-05-01T00:00:00.000Z'),
+        }),
+        createPendingAgreement({
+          id: 'pending-madrid-before',
+          dueOn: '2026-04-30',
+          createdAt: new Date('2026-05-01T00:00:00.000Z'),
+        }),
+      ]),
+      proposalRepository: createProposalRepository([]),
+      meetingRepository: createMeetingRepository([
+        createMeeting({
+          reviewPeriod: {
+            startsAt: new Date('2026-04-30T22:30:00.000Z'),
+            endsAt: new Date('2026-05-02T08:30:00.000Z'),
+          },
+        }),
+      ]),
+    });
+
+    const response = await useCase.execute({
+      sessionId: 'session-a',
+      meetingId: 'meeting-ordinary-2026-09-18',
+    });
+
+    expect(response.draft.items.map((item) => item.sourceId)).toEqual(['pending-madrid-start']);
   });
 
   it('anade propuestas al final sin prioridad y en orden de antiguedad', async () => {
@@ -382,6 +539,86 @@ describe('DraftMeetingAgenda', () => {
     expect(response.draft.body).toContain('4. Crear una zona de compostaje comunitario.');
     expect(response.draft.body).not.toContain('[Media] Instalar aparcabicis');
     expect(response.draft.body).not.toContain('Origen: propuesta');
+  });
+
+  it('incluye propuestas anteriores al periodo pero disponibles antes de preparar la junta', async () => {
+    const useCase = new DraftMeetingAgenda({
+      generator: new DeterministicMeetingAgendaGenerator(),
+      incidentRepository: createIncidentRepository([]),
+      pendingAgreementRepository: createPendingAgreementRepository([]),
+      proposalRepository: createProposalRepository([
+        createProposal({
+          id: 'proposal-old-context',
+          createdAt: new Date('2026-01-10T10:00:00.000Z'),
+        }),
+        createProposal({
+          id: 'proposal-future',
+          createdAt: new Date('2026-07-29T08:30:00.001Z'),
+        }),
+      ]),
+      meetingRepository: createMeetingRepository(),
+    });
+
+    const response = await useCase.execute({
+      sessionId: 'session-a',
+      meetingId: 'meeting-ordinary-2026-09-18',
+    });
+
+    expect(response.draft.items.map((item) => item.sourceId)).toEqual(['proposal-old-context']);
+  });
+
+  it('usa ventanas distintas para juntas ordinarias y extraordinarias', async () => {
+    const meetings = [
+      createMeeting({
+        id: 'meeting-ordinary-2026-09-18',
+        kind: 'ordinaria',
+        reviewPeriod: {
+          startsAt: new Date('2026-04-30T08:30:00.000Z'),
+          endsAt: new Date('2026-07-29T08:30:00.000Z'),
+        },
+      }),
+      createMeeting({
+        id: 'meeting-extraordinary-2026-10-15',
+        kind: 'extraordinaria',
+        title: 'Junta extraordinaria',
+        reviewPeriod: {
+          startsAt: new Date('2026-06-29T08:30:00.000Z'),
+          endsAt: new Date('2026-07-29T08:30:00.000Z'),
+        },
+      }),
+    ];
+    const dependencies = {
+      generator: new DeterministicMeetingAgendaGenerator(),
+      incidentRepository: createIncidentRepository([
+        createResolvedIncident({
+          id: 'inc-resolved-ordinary-only',
+          resolvedAt: new Date('2026-06-10T10:00:00.000Z'),
+        }),
+        createResolvedIncident({
+          id: 'inc-resolved-both',
+          resolvedAt: new Date('2026-07-10T10:00:00.000Z'),
+        }),
+      ]),
+      pendingAgreementRepository: createPendingAgreementRepository([]),
+      proposalRepository: createProposalRepository([]),
+      meetingRepository: createMeetingRepository(meetings),
+    };
+    const useCase = new DraftMeetingAgenda(dependencies);
+
+    const ordinary = await useCase.execute({
+      sessionId: 'session-a',
+      meetingId: 'meeting-ordinary-2026-09-18',
+    });
+    const extraordinary = await useCase.execute({
+      sessionId: 'session-a',
+      meetingId: 'meeting-extraordinary-2026-10-15',
+    });
+
+    expect(ordinary.draft.items.map((item) => item.sourceId)).toEqual([
+      'inc-resolved-both',
+      'inc-resolved-ordinary-only',
+    ]);
+    expect(extraordinary.draft.items.map((item) => item.sourceId)).toEqual(['inc-resolved-both']);
   });
 
   it('limita el orden del día a las 100 entradas más prioritarias', async () => {
@@ -632,21 +869,28 @@ function createPendingAgreementRepository(
 }
 
 function createMeetingRepository(
-  meetings: readonly CommunityMeeting[] = [
-    {
-      id: 'meeting-ordinary-2026-09-18',
-      sessionId: 'session-a',
-      kind: 'ordinaria',
-      title: 'Junta ordinaria',
-      scheduledAt: new Date('2026-09-18T17:00:00.000Z'),
-    },
-  ],
+  meetings: readonly CommunityMeeting[] = [createMeeting()],
 ): MeetingRepository {
   return {
     findBySession: async (sessionId, meetingId) =>
       meetings.find((meeting) => meeting.sessionId === sessionId && meeting.id === meetingId),
     listBySession: async (sessionId) =>
       meetings.filter((meeting) => meeting.sessionId === sessionId),
+  };
+}
+
+function createMeeting(overrides: Partial<CommunityMeeting> = {}): CommunityMeeting {
+  return {
+    id: 'meeting-ordinary-2026-09-18',
+    sessionId: 'session-a',
+    kind: 'ordinaria',
+    title: 'Junta ordinaria',
+    scheduledAt: new Date('2026-09-18T17:00:00.000Z'),
+    reviewPeriod: {
+      startsAt: new Date('2026-04-30T08:30:00.000Z'),
+      endsAt: new Date('2026-07-29T08:30:00.000Z'),
+    },
+    ...overrides,
   };
 }
 
@@ -671,7 +915,7 @@ function createIncident(overrides: PendingIncidentOverrides = {}): CommunityInci
 }
 
 function createResolvedIncident(
-  overrides: Partial<Omit<CommunityIncident, 'resolvedAt' | 'status'>> = {},
+  overrides: Partial<Omit<CommunityIncident, 'status'>> = {},
 ): CommunityIncident {
   const description = overrides.description ?? 'Incidencia resuelta';
 
@@ -686,7 +930,7 @@ function createResolvedIncident(
     description,
     suggestedNotice: overrides.suggestedNotice ?? suggestedNoticeFor(description),
     status: 'resuelta',
-    resolvedAt: new Date('2026-06-24T10:00:00.000Z'),
+    resolvedAt: overrides.resolvedAt ?? new Date('2026-06-24T10:00:00.000Z'),
   };
 }
 

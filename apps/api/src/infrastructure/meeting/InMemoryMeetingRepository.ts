@@ -15,8 +15,17 @@ const demoMeetingTemplates = [
     monthOffset: 2,
   },
 ] satisfies ReadonlyArray<
-  Omit<CommunityMeeting, 'scheduledAt' | 'sessionId'> & { readonly monthOffset: number }
+  Omit<CommunityMeeting, 'reviewPeriod' | 'scheduledAt' | 'sessionId'> & {
+    readonly monthOffset: number;
+  }
 >;
+
+const REVIEW_PERIOD_DAYS: Record<CommunityMeeting['kind'], number> = {
+  ordinaria: 90,
+  extraordinaria: 30,
+};
+
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 interface InMemoryMeetingRepositoryOptions {
   readonly now?: () => Date;
@@ -32,16 +41,28 @@ export class InMemoryMeetingRepository implements MeetingRepository {
   async listBySession(sessionId: string): Promise<CommunityMeeting[]> {
     const today = this.now();
 
-    return demoMeetingTemplates.map(({ monthOffset, ...meeting }) => ({
-      ...meeting,
-      scheduledAt: buildFutureMeetingDate(today, monthOffset),
-      sessionId,
-    }));
+    return demoMeetingTemplates.map(({ monthOffset, ...meeting }) => {
+      const reviewPeriod = buildReviewPeriod(today, REVIEW_PERIOD_DAYS[meeting.kind]);
+
+      return {
+        ...meeting,
+        reviewPeriod,
+        scheduledAt: buildFutureMeetingDate(today, monthOffset),
+        sessionId,
+      };
+    });
   }
 
   async findBySession(sessionId: string, meetingId: string): Promise<CommunityMeeting | undefined> {
     return (await this.listBySession(sessionId)).find((meeting) => meeting.id === meetingId);
   }
+}
+
+function buildReviewPeriod(currentDate: Date, days: number): CommunityMeeting['reviewPeriod'] {
+  const endsAt = new Date(currentDate);
+  const startsAt = new Date(endsAt.getTime() - days * MILLISECONDS_PER_DAY);
+
+  return { startsAt, endsAt };
 }
 
 function buildFutureMeetingDate(currentDate: Date, monthOffset: number): Date {

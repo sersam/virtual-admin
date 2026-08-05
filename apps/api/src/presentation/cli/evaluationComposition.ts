@@ -101,17 +101,23 @@ function toCommunityIncident(
     suggestedResponsible: 'Administracion',
   };
 
-  return incident.status === 'resuelta'
-    ? {
-        ...incidentBase,
-        resolvedAt: new Date('2026-08-01T10:00:00.000Z'),
-        status: 'resuelta',
-      }
-    : {
-        ...incidentBase,
-        resolvedAt: null,
-        status: 'pendiente',
-      };
+  if (incident.status === 'resuelta') {
+    if (!incident.resolvedAt) {
+      throw new Error(`La incidencia resuelta ${incident.id} no define resolvedAt.`);
+    }
+
+    return {
+      ...incidentBase,
+      resolvedAt: new Date(incident.resolvedAt),
+      status: 'resuelta',
+    };
+  }
+
+  return {
+    ...incidentBase,
+    resolvedAt: null,
+    status: 'pendiente',
+  };
 }
 
 function toCommunityProposal(

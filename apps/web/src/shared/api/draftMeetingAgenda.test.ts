@@ -64,16 +64,29 @@ function validAgendaResponse(): Response {
             priority: 'urgente',
             sourceType: 'incident',
             sourceId: 'inc-1',
+            status: 'pendiente',
+            resolvedAt: null,
           },
         ],
       },
+      filterExplanations: [
+        'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
+      ],
       meeting: {
         id: 'meeting-ordinary-2026-09-18',
         kind: 'ordinaria',
         title: 'Junta ordinaria',
         scheduledAt: '2026-09-18T17:00:00.000Z',
+        reviewPeriod: {
+          startsAt: '2026-04-30T08:30:00.000Z',
+          endsAt: '2026-07-29T08:30:00.000Z',
+        },
       },
       mode: 'openai',
+      reviewPeriod: {
+        startsAt: '2026-04-30T08:30:00.000Z',
+        endsAt: '2026-07-29T08:30:00.000Z',
+      },
     }),
     { status: 200 },
   );

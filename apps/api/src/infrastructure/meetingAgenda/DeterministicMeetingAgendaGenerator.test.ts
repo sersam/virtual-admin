@@ -13,6 +13,10 @@ describe('DeterministicMeetingAgendaGenerator', () => {
           kind: 'ordinaria',
           title: 'Junta ordinaria',
           scheduledAt: new Date('2026-09-18T17:00:00.000Z'),
+          reviewPeriod: {
+            startsAt: new Date('2026-04-30T08:30:00.000Z'),
+            endsAt: new Date('2026-07-29T08:30:00.000Z'),
+          },
         },
         items: [
           {
@@ -20,6 +24,8 @@ describe('DeterministicMeetingAgendaGenerator', () => {
             priority: 'urgente',
             sourceType: 'incident',
             sourceId: 'inc-urgent',
+            status: 'pendiente',
+            resolvedAt: null,
           },
           {
             description: 'Revisar contrato de limpieza',
@@ -28,6 +34,15 @@ describe('DeterministicMeetingAgendaGenerator', () => {
             sourceId: 'pending-with-date',
             assignee: 'Ana',
             dueDate: '30 de junio',
+            dueOn: '2026-06-30',
+          },
+          {
+            description: 'Fuga de agua ya reparada',
+            priority: 'media',
+            sourceType: 'incident',
+            sourceId: 'inc-resolved',
+            status: 'resuelta',
+            resolvedAt: '2026-06-24T10:00:00.000Z',
           },
           {
             description: 'Instalar aparcabicis en el patio interior.',
@@ -43,8 +58,10 @@ describe('DeterministicMeetingAgendaGenerator', () => {
         '1. [Urgente] Fuga de agua urgente en el garaje',
         '   Origen: incidencia inc-urgent.',
         '2. [Alta] Revisar contrato de limpieza',
-        '   Origen: acuerdo pendiente pending-with-date. Responsable: Ana. Fecha: 30 de junio.',
-        '3. Instalar aparcabicis en el patio interior.',
+        '   Origen: acuerdo pendiente pending-with-date. Responsable: Ana. Fecha: 30 de junio. Fecha límite estructurada: 2026-06-30.',
+        '3. [Media] Fuga de agua ya reparada',
+        '   Origen: incidencia inc-resolved. Resuelta el 24 de junio de 2026.',
+        '4. Instalar aparcabicis en el patio interior.',
       ].join('\n'),
       mode: 'deterministic-demo',
     });
@@ -61,6 +78,10 @@ describe('DeterministicMeetingAgendaGenerator', () => {
         kind: 'ordinaria',
         title: 'Junta ordinaria',
         scheduledAt: new Date('2026-09-18T17:00:00.000Z'),
+        reviewPeriod: {
+          startsAt: new Date('2026-04-30T08:30:00.000Z'),
+          endsAt: new Date('2026-07-29T08:30:00.000Z'),
+        },
       },
       items: Array.from({ length: 5 }, (_, index) => ({
         description: `${longDescription}${index}`,

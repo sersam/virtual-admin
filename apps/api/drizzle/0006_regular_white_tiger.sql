@@ -1,0 +1,1 @@
+ALTER TABLE "pending_agreements" ADD COLUMN "due_on" date;

@@ -54,6 +54,8 @@ describe('MeetingAgendaPanel', () => {
               priority: 'urgente',
               sourceType: 'incident',
               sourceId: 'inc-1',
+              status: 'pendiente',
+              resolvedAt: null,
             },
             {
               description: 'Revisar contrato de limpieza',
@@ -62,6 +64,15 @@ describe('MeetingAgendaPanel', () => {
               sourceId: 'pending-1',
               assignee: 'Ana',
               dueDate: '30 de junio',
+              dueOn: '2026-06-30',
+            },
+            {
+              description: 'Fuga de agua ya reparada',
+              priority: 'media',
+              sourceType: 'incident',
+              sourceId: 'inc-resolved',
+              status: 'resuelta',
+              resolvedAt: '2026-06-24T10:00:00.000Z',
             },
             {
               description: 'Instalar aparcabicis en el patio interior.',
@@ -70,8 +81,13 @@ describe('MeetingAgendaPanel', () => {
             },
           ],
         },
+        filterExplanations: [
+          'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
+          'Acuerdos pendientes: si tienen fecha límite estructurada se usa esa fecha; si no, se usa la fecha de creación.',
+        ],
         meeting: demoMeetings[0]!,
         mode: 'openai',
+        reviewPeriod: demoMeetings[0]!.reviewPeriod,
       },
       status: 'ready',
     });
@@ -82,6 +98,8 @@ describe('MeetingAgendaPanel', () => {
       screen.getByText(/incidencias registradas, tareas detectadas en actas y propuestas/),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Junta demo')).toHaveValue('meeting-ordinary-2026-09-18');
+    expect(screen.getByText('Periodo revisado')).toBeInTheDocument();
+    expect(screen.getAllByText(/30 abr/)).not.toHaveLength(0);
     await user.click(screen.getByRole('button', { name: 'Preparar orden del día' }));
 
     expect(generate).toHaveBeenCalledWith('meeting-ordinary-2026-09-18');
@@ -91,8 +109,15 @@ describe('MeetingAgendaPanel', () => {
     expect(screen.getByText('Entradas utilizadas')).toBeInTheDocument();
     expect(screen.getByText('Hay una fuga de agua urgente')).toBeInTheDocument();
     expect(screen.getByText('Revisar contrato de limpieza')).toBeInTheDocument();
+    expect(screen.getByText('Fuga de agua ya reparada')).toBeInTheDocument();
     expect(screen.getByText('Instalar aparcabicis en el patio interior.')).toBeInTheDocument();
-    expect(screen.getByText('Incidencia')).toBeInTheDocument();
+    expect(screen.getByText(/fecha límite estructurada/i)).toBeInTheDocument();
+    expect(screen.getByText(/Vence: 2026-06-30/)).toBeInTheDocument();
+    expect(screen.getByText(/Resuelta/)).toBeInTheDocument();
+    expect(screen.getByText(/24 jun/)).toBeInTheDocument();
+    expect(screen.getByText('Filtros aplicados')).toBeInTheDocument();
+    expect(screen.getByText(/últimos 90 días/)).toBeInTheDocument();
+    expect(screen.getAllByText('Incidencia')).toHaveLength(2);
     expect(screen.getByText('Acuerdo pendiente')).toBeInTheDocument();
     expect(screen.getByText('Propuesta vecinal')).toBeInTheDocument();
     expect(screen.getByText('proposal-1')).toBeInTheDocument();
@@ -124,11 +149,17 @@ describe('MeetingAgendaPanel', () => {
               priority: 'urgente',
               sourceType: 'incident',
               sourceId: 'inc-1',
+              status: 'pendiente',
+              resolvedAt: null,
             },
           ],
         },
+        filterExplanations: [
+          'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
+        ],
         meeting: demoMeetings[0]!,
         mode: 'deterministic-demo',
+        reviewPeriod: demoMeetings[0]!.reviewPeriod,
       },
       status: 'ready',
     });
@@ -185,8 +216,12 @@ describe('MeetingAgendaPanel', () => {
           body: 'No hay asuntos pendientes para incluir en el orden del día.',
           items: [],
         },
+        filterExplanations: [
+          'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
+        ],
         meeting: demoMeetings[0]!,
         mode: 'deterministic-demo',
+        reviewPeriod: demoMeetings[0]!.reviewPeriod,
       },
       status: 'ready',
     });
@@ -304,8 +339,12 @@ describe('MeetingAgendaPanel', () => {
           body: 'Orden del día\n\n1. [Alta] Revisar contrato.',
           items: [],
         },
+        filterExplanations: [
+          'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
+        ],
         meeting: demoMeetings[0]!,
         mode: 'deterministic-demo',
+        reviewPeriod: demoMeetings[0]!.reviewPeriod,
       },
       status: 'ready',
     });
@@ -394,11 +433,19 @@ const demoMeetings = [
     kind: 'ordinaria' as const,
     title: 'Junta ordinaria',
     scheduledAt: '2026-09-18T17:00:00.000Z',
+    reviewPeriod: {
+      startsAt: '2026-04-30T08:30:00.000Z',
+      endsAt: '2026-07-29T08:30:00.000Z',
+    },
   },
   {
     id: 'meeting-extraordinary-2026-10-15',
     kind: 'extraordinaria' as const,
     title: 'Junta extraordinaria',
     scheduledAt: '2026-10-15T17:00:00.000Z',
+    reviewPeriod: {
+      startsAt: '2026-06-29T08:30:00.000Z',
+      endsAt: '2026-07-29T08:30:00.000Z',
+    },
   },
 ];

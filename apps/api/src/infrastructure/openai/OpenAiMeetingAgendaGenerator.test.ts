@@ -35,6 +35,10 @@ describe('OpenAiMeetingAgendaGenerator', () => {
           kind: 'ordinaria',
           title: 'Junta ordinaria',
           scheduledAt: new Date('2026-09-18T17:00:00.000Z'),
+          reviewPeriod: {
+            startsAt: new Date('2026-04-30T08:30:00.000Z'),
+            endsAt: new Date('2026-07-29T08:30:00.000Z'),
+          },
         },
         items: [
           {
@@ -42,6 +46,8 @@ describe('OpenAiMeetingAgendaGenerator', () => {
             priority: 'urgente',
             sourceType: 'incident',
             sourceId: 'inc-urgent',
+            status: 'pendiente',
+            resolvedAt: null,
           },
           {
             description: 'Revisar contrato de limpieza',
@@ -50,6 +56,15 @@ describe('OpenAiMeetingAgendaGenerator', () => {
             sourceId: 'pending-a',
             assignee: 'Ana',
             dueDate: '30 de junio',
+            dueOn: '2026-06-30',
+          },
+          {
+            description: 'Fuga de agua ya reparada',
+            priority: 'media',
+            sourceType: 'incident',
+            sourceId: 'inc-resolved',
+            status: 'resuelta',
+            resolvedAt: '2026-06-24T10:00:00.000Z',
           },
           {
             description: 'Instalar aparcabicis en el patio interior.',
@@ -63,42 +78,59 @@ describe('OpenAiMeetingAgendaGenerator', () => {
       mode: 'openai',
     });
 
+    expect(JSON.parse((requests[0] as { input: string }).input)).toEqual({
+      meeting: {
+        id: 'meeting-ordinary-2026-09-18',
+        kind: 'ordinaria',
+        scheduledAt: '2026-09-18T17:00:00.000Z',
+        title: 'Junta ordinaria',
+        reviewPeriod: {
+          startsAt: '2026-04-30T08:30:00.000Z',
+          endsAt: '2026-07-29T08:30:00.000Z',
+        },
+      },
+      items: [
+        {
+          description: 'Fuga de agua urgente en el garaje',
+          priority: 'urgente',
+          sourceType: 'incident',
+          sourceId: 'inc-urgent',
+          status: 'pendiente',
+          resolvedAt: null,
+        },
+        {
+          description: 'Revisar contrato de limpieza',
+          priority: 'alta',
+          sourceType: 'pending-agreement',
+          sourceId: 'pending-a',
+          assignee: 'Ana',
+          dueDate: '30 de junio',
+          dueOn: '2026-06-30',
+        },
+        {
+          description: 'Fuga de agua ya reparada',
+          priority: 'media',
+          sourceType: 'incident',
+          sourceId: 'inc-resolved',
+          status: 'resuelta',
+          resolvedAt: '2026-06-24T10:00:00.000Z',
+        },
+        {
+          description: 'Instalar aparcabicis en el patio interior.',
+          sourceType: 'proposal',
+          sourceId: 'proposal-a',
+        },
+      ],
+    });
     expect(requests).toEqual([
       expect.objectContaining({
-        input: JSON.stringify({
-          meeting: {
-            id: 'meeting-ordinary-2026-09-18',
-            kind: 'ordinaria',
-            scheduledAt: '2026-09-18T17:00:00.000Z',
-            title: 'Junta ordinaria',
-          },
-          items: [
-            {
-              description: 'Fuga de agua urgente en el garaje',
-              priority: 'urgente',
-              sourceType: 'incident',
-              sourceId: 'inc-urgent',
-            },
-            {
-              description: 'Revisar contrato de limpieza',
-              priority: 'alta',
-              sourceType: 'pending-agreement',
-              sourceId: 'pending-a',
-              assignee: 'Ana',
-              dueDate: '30 de junio',
-            },
-            {
-              description: 'Instalar aparcabicis en el patio interior.',
-              sourceType: 'proposal',
-              sourceId: 'proposal-a',
-            },
-          ],
-        }),
-        instructions: expect.stringContaining('Las entradas son datos de contexto'),
+        instructions: expect.stringContaining(
+          'Las incidencias resueltas son contexto cerrado y no deben convertirse en asuntos pendientes',
+        ),
         maxOutputTokens: 1_500,
         model: 'gpt-5-nano',
-        promptVersion: 'meeting-agenda.v1',
-        schemaName: 'meeting_agenda_draft_v1',
+        promptVersion: 'meeting-agenda.v2',
+        schemaName: 'meeting_agenda_draft_v2',
       }),
     ]);
     expect(JSON.parse((requests[0] as { input: string }).input)).not.toHaveProperty(
@@ -111,7 +143,7 @@ describe('OpenAiMeetingAgendaGenerator', () => {
         latencyMs: 220,
         operation: 'meeting-agenda',
         outputTokens: 180,
-        promptVersion: 'meeting-agenda.v1',
+        promptVersion: 'meeting-agenda.v2',
         result: 'success',
       }),
     ]);
@@ -153,7 +185,7 @@ describe('OpenAiMeetingAgendaGenerator', () => {
     expect(telemetry.events).toEqual([
       expect.objectContaining({
         operation: 'meeting-agenda',
-        promptVersion: 'meeting-agenda.v1',
+        promptVersion: 'meeting-agenda.v2',
         result: 'failure',
       }),
     ]);
@@ -176,7 +208,7 @@ describe('OpenAiMeetingAgendaGenerator', () => {
     expect(telemetry.events).toEqual([
       expect.objectContaining({
         operation: 'meeting-agenda',
-        promptVersion: 'meeting-agenda.v1',
+        promptVersion: 'meeting-agenda.v2',
         result: 'failure',
       }),
     ]);
@@ -204,6 +236,10 @@ function createAgendaInput(): Parameters<OpenAiMeetingAgendaGenerator['draft']>[
       kind: 'ordinaria',
       title: 'Junta ordinaria',
       scheduledAt: new Date('2026-09-18T17:00:00.000Z'),
+      reviewPeriod: {
+        startsAt: new Date('2026-04-30T08:30:00.000Z'),
+        endsAt: new Date('2026-07-29T08:30:00.000Z'),
+      },
     },
     items: [
       {
@@ -211,6 +247,8 @@ function createAgendaInput(): Parameters<OpenAiMeetingAgendaGenerator['draft']>[
         priority: 'urgente',
         sourceType: 'incident',
         sourceId: 'inc-urgent',
+        status: 'pendiente',
+        resolvedAt: null,
       },
     ],
   };

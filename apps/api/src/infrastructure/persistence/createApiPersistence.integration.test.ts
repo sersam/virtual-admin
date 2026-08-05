@@ -27,21 +27,28 @@ interface RepositoryWithPool {
 describe('createApiPersistence', () => {
   let migratedContainer: Awaited<ReturnType<InstanceType<typeof PostgreSqlContainer>['start']>>;
   let incompleteContainer: Awaited<ReturnType<InstanceType<typeof PostgreSqlContainer>['start']>>;
+  let missingDueOnContainer: Awaited<ReturnType<InstanceType<typeof PostgreSqlContainer>['start']>>;
   let migratedDatabaseUrl: string;
   let incompleteDatabaseUrl: string;
+  let missingDueOnDatabaseUrl: string;
 
   beforeAll(async () => {
     migratedContainer = await new PostgreSqlContainer('pgvector/pgvector:pg16').start();
     incompleteContainer = await new PostgreSqlContainer('pgvector/pgvector:pg16').start();
+    missingDueOnContainer = await new PostgreSqlContainer('pgvector/pgvector:pg16').start();
     migratedDatabaseUrl = migratedContainer.getConnectionUri();
     incompleteDatabaseUrl = incompleteContainer.getConnectionUri();
+    missingDueOnDatabaseUrl = missingDueOnContainer.getConnectionUri();
     await migrateDatabase(migratedDatabaseUrl);
+    await migrateDatabase(missingDueOnDatabaseUrl);
+    await dropDueOnColumn(missingDueOnDatabaseUrl);
     await createOnlySessionSchema(incompleteDatabaseUrl);
   }, 120_000);
 
   afterAll(async () => {
     await migratedContainer?.stop();
     await incompleteContainer?.stop();
+    await missingDueOnContainer?.stop();
   });
 
   it('usa repositorios en memoria cuando DATABASE_URL no existe o esta vacia', async () => {
@@ -127,8 +134,21 @@ describe('createApiPersistence', () => {
     await expect(createApiPersistence({ databaseUrl: incompleteDatabaseUrl })).rejects.toThrow(
       'El esquema PostgreSQL de la API no esta migrado.',
     );
+    await expect(createApiPersistence({ databaseUrl: missingDueOnDatabaseUrl })).rejects.toThrow(
+      'El esquema PostgreSQL de la API no esta migrado.',
+    );
   }, 120_000);
 });
+
+async function dropDueOnColumn(databaseUrl: string): Promise<void> {
+  const pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });
+
+  try {
+    await pool.query('alter table pending_agreements drop column due_on');
+  } finally {
+    await pool.end();
+  }
+}
 
 async function createOnlySessionSchema(databaseUrl: string): Promise<void> {
   const pool = createPostgresPool({ connectionString: databaseUrl, logIdleClientErrors: false });

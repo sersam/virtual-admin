@@ -44,6 +44,8 @@ describe('meeting agenda contracts', () => {
             priority: 'urgente',
             sourceType: 'incident',
             sourceId: 'inc-1',
+            status: 'pendiente',
+            resolvedAt: null,
           },
           {
             description: 'Revisar contrato',
@@ -52,6 +54,7 @@ describe('meeting agenda contracts', () => {
             sourceId: 'pending-1',
             assignee: 'Ana',
             dueDate: '30 de junio',
+            dueOn: '2026-06-30',
           },
         ],
       },
@@ -60,7 +63,18 @@ describe('meeting agenda contracts', () => {
         kind: 'ordinaria',
         title: 'Junta ordinaria',
         scheduledAt: '2026-09-18T17:00:00.000Z',
+        reviewPeriod: {
+          startsAt: '2026-04-30T08:30:00.000Z',
+          endsAt: '2026-07-29T08:30:00.000Z',
+        },
       },
+      reviewPeriod: {
+        startsAt: '2026-04-30T08:30:00.000Z',
+        endsAt: '2026-07-29T08:30:00.000Z',
+      },
+      filterExplanations: [
+        'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
+      ],
       mode: 'deterministic-demo',
     });
 
@@ -70,7 +84,89 @@ describe('meeting agenda contracts', () => {
       kind: 'ordinaria',
       title: 'Junta ordinaria',
       scheduledAt: '2026-09-18T17:00:00.000Z',
+      reviewPeriod: {
+        startsAt: '2026-04-30T08:30:00.000Z',
+        endsAt: '2026-07-29T08:30:00.000Z',
+      },
     });
+  });
+
+  it('valida invariantes de incidencias trazables y dueOn ISO en acuerdos', () => {
+    expect(
+      MeetingAgendaItemSchema.parse({
+        description: 'Incidencia resuelta',
+        priority: 'media',
+        sourceType: 'incident',
+        sourceId: 'inc-2',
+        status: 'resuelta',
+        resolvedAt: '2026-07-10T10:00:00.000Z',
+      }),
+    ).toEqual({
+      description: 'Incidencia resuelta',
+      priority: 'media',
+      sourceType: 'incident',
+      sourceId: 'inc-2',
+      status: 'resuelta',
+      resolvedAt: '2026-07-10T10:00:00.000Z',
+    });
+
+    expect(() =>
+      MeetingAgendaItemSchema.parse({
+        description: 'Incidencia pendiente',
+        priority: 'media',
+        sourceType: 'incident',
+        sourceId: 'inc-3',
+        status: 'pendiente',
+        resolvedAt: '2026-07-10T10:00:00.000Z',
+      }),
+    ).toThrow();
+    expect(() =>
+      MeetingAgendaItemSchema.parse({
+        description: 'Incidencia resuelta',
+        priority: 'media',
+        sourceType: 'incident',
+        sourceId: 'inc-4',
+        status: 'resuelta',
+        resolvedAt: null,
+      }),
+    ).toThrow();
+    expect(() =>
+      MeetingAgendaItemSchema.parse({
+        description: 'Revisar contrato',
+        priority: 'alta',
+        sourceType: 'pending-agreement',
+        sourceId: 'pending-1',
+        dueOn: '30/06/2026',
+      }),
+    ).toThrow();
+  });
+
+  it('rechaza respuestas con periodo diferente al de la junta', () => {
+    expect(() =>
+      MeetingAgendaDraftResponseSchema.parse({
+        draft: {
+          title: 'Orden del día',
+          body: '1. Incidencia urgente',
+          items: [],
+        },
+        meeting: {
+          id: 'meeting-ordinary-2026-09-18',
+          kind: 'ordinaria',
+          title: 'Junta ordinaria',
+          scheduledAt: '2026-09-18T17:00:00.000Z',
+          reviewPeriod: {
+            startsAt: '2026-04-30T08:30:00.000Z',
+            endsAt: '2026-07-29T08:30:00.000Z',
+          },
+        },
+        reviewPeriod: {
+          startsAt: '2026-05-01T08:30:00.000Z',
+          endsAt: '2026-07-29T08:30:00.000Z',
+        },
+        filterExplanations: ['Filtros aplicados.'],
+        mode: 'deterministic-demo',
+      }),
+    ).toThrow();
   });
 
   it('rechaza modos de respuesta no soportados', () => {
@@ -104,6 +200,8 @@ describe('meeting agenda contracts', () => {
               priority: 'urgente',
               sourceType: 'incident',
               sourceId: 'inc-1',
+              status: 'pendiente',
+              resolvedAt: null,
             },
           ],
         },
@@ -112,7 +210,16 @@ describe('meeting agenda contracts', () => {
           kind: 'ordinaria',
           title: 'Junta ordinaria',
           scheduledAt: '2026-09-18T17:00:00.000Z',
+          reviewPeriod: {
+            startsAt: '2026-04-30T08:30:00.000Z',
+            endsAt: '2026-07-29T08:30:00.000Z',
+          },
         },
+        reviewPeriod: {
+          startsAt: '2026-04-30T08:30:00.000Z',
+          endsAt: '2026-07-29T08:30:00.000Z',
+        },
+        filterExplanations: ['Filtros aplicados.'],
         mode: 'openai',
       }).mode,
     ).toBe('openai');

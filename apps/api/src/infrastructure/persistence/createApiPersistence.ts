@@ -109,6 +109,7 @@ async function validatePostgresApiSchema(pool: pg.Pool): Promise<void> {
         agreements.description,
         agreements.assignee,
         agreements.due_date,
+        agreements.due_on,
         agreements.normalized_signature,
         agreements.created_at,
         agreements.inserted_order,

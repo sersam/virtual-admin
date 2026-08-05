@@ -817,12 +817,20 @@ describe('createApiApp', () => {
           kind: 'ordinaria',
           title: 'Junta ordinaria',
           scheduledAt: '2026-07-23T17:00:00.000Z',
+          reviewPeriod: {
+            startsAt: '2026-03-25T08:00:00.000Z',
+            endsAt: '2026-06-23T08:00:00.000Z',
+          },
         },
         {
           id: 'meeting-extraordinary-2026-10-15',
           kind: 'extraordinaria',
           title: 'Junta extraordinaria',
           scheduledAt: '2026-08-23T17:00:00.000Z',
+          reviewPeriod: {
+            startsAt: '2026-05-24T08:00:00.000Z',
+            endsAt: '2026-06-23T08:00:00.000Z',
+          },
         },
       ],
     });
@@ -864,21 +872,29 @@ describe('createApiApp', () => {
           }),
         ]),
       },
+      reviewPeriod: {
+        startsAt: '2026-03-25T08:00:00.000Z',
+        endsAt: '2026-06-23T08:00:00.000Z',
+      },
       mode: 'deterministic-demo',
     });
-    expect(response.body.draft.items).toHaveLength(8);
+    expect(response.body.draft.items).toHaveLength(10);
     expect(response.headers['set-cookie']?.[0]).toContain('va_session=');
   });
 
-  it('genera un orden del día con los asuntos demo iniciales', async () => {
+  it('genera ordenes del dia demo distintos para juntas ordinarias y extraordinarias', async () => {
     const agent = request.agent(buildApp());
 
-    const response = await agent
+    const ordinary = await agent
       .post('/api/meeting-agendas/draft')
       .send({ meetingId: 'meeting-ordinary-2026-09-18' });
+    const extraordinary = await agent
+      .post('/api/meeting-agendas/draft')
+      .send({ meetingId: 'meeting-extraordinary-2026-10-15' });
 
-    expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({
+    expect(ordinary.status).toBe(200);
+    expect(extraordinary.status).toBe(200);
+    expect(ordinary.body).toMatchObject({
       draft: {
         title: 'Orden del día · Junta ordinaria · 23 de julio de 2026',
         body: expect.stringContaining('Fuga de agua urgente'),
@@ -893,9 +909,32 @@ describe('createApiApp', () => {
           }),
         ]),
       },
+      filterExplanations: expect.arrayContaining([
+        'Junta ordinaria: se revisan los últimos 90 días hasta el momento de preparación.',
+      ]),
       mode: 'deterministic-demo',
+      reviewPeriod: {
+        startsAt: '2026-03-25T08:00:00.000Z',
+        endsAt: '2026-06-23T08:00:00.000Z',
+      },
     });
-    expect(response.body.draft.items).toHaveLength(6);
+    expect(extraordinary.body.filterExplanations).toContain(
+      'Junta extraordinaria: se revisan los últimos 30 días hasta el momento de preparación.',
+    );
+    expect(ordinary.body.draft.items).toHaveLength(8);
+    expect(extraordinary.body.draft.items).toHaveLength(6);
+    expect(ordinary.body.draft.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ sourceId: 'demo-ascensor-resuelto-ordinaria' }),
+        expect.objectContaining({ sourceId: 'demo-acuerdo-placas-solares' }),
+      ]),
+    );
+    expect(extraordinary.body.draft.items).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ sourceId: 'demo-ascensor-resuelto-ordinaria' }),
+        expect.objectContaining({ sourceId: 'demo-acuerdo-placas-solares' }),
+      ]),
+    );
   });
 
   it('expone ordenes del dia OpenAI del generador configurado sin alterar trazas', async () => {
@@ -931,7 +970,7 @@ describe('createApiApp', () => {
       },
       mode: 'openai',
     });
-    expect(response.body.draft.items).toHaveLength(6);
+    expect(response.body.draft.items).toHaveLength(8);
   });
 
   it('devuelve AI_PROVIDER_ERROR si falla el generador de ordenes del dia', async () => {
@@ -1102,7 +1141,7 @@ describe('createApiApp', () => {
 
     expect(response.status).toBe(502);
     expect(response.body.error.code).toBe('AI_PROVIDER_ERROR');
-    expect(incidents.body.incidents).toHaveLength(4);
+    expect(incidents.body.incidents).toHaveLength(6);
     expect(incidents.body.incidents).not.toContainEqual(
       expect.objectContaining({
         description: 'Hay una fuga de agua urgente en el garaje.',
@@ -1192,7 +1231,7 @@ describe('createApiApp', () => {
         suggestedNotice: suggestedNoticeFor('Hay una fuga de agua urgente en el garaje.'),
       }),
     );
-    expect(listResponse.body.incidents).toHaveLength(5);
+    expect(listResponse.body.incidents).toHaveLength(7);
   });
 
   it('lista incidencias de la sesión y permite filtrarlas por tipo', async () => {
@@ -1208,12 +1247,17 @@ describe('createApiApp', () => {
     const filtered = await agent.get('/api/incidents').query({ type: 'ascensor' });
 
     expect(list.status).toBe(200);
-    expect(list.body.incidents).toHaveLength(6);
+    expect(list.body.incidents).toHaveLength(8);
     expect(filtered.status).toBe(200);
     expect(filtered.body.incidents).toEqual([
       expect.objectContaining({
         id: 'demo-averia-ascensor',
         type: 'ascensor',
+      }),
+      expect.objectContaining({
+        id: 'demo-ascensor-resuelto-ordinaria',
+        type: 'ascensor',
+        status: 'resuelta',
       }),
       expect.objectContaining({
         id: '00000000-0000-4000-8000-000000000003',

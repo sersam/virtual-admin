@@ -76,6 +76,7 @@ export interface AgendaSeedIncident {
   readonly description: string;
   readonly id: string;
   readonly priority: IncidentPriority;
+  readonly resolvedAt?: string;
   readonly status: 'pendiente' | 'resuelta';
   readonly type: IncidentType;
 }
@@ -85,6 +86,7 @@ export interface AgendaSeedPendingAgreement {
   readonly createdAt: string;
   readonly description: string;
   readonly dueDate?: string;
+  readonly dueOn?: string;
   readonly id: string;
 }
 
