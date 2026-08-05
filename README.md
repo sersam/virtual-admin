@@ -129,6 +129,7 @@ npm run test:coverage    # Pruebas con cobertura
 npm run build            # Compilación de todos los workspaces
 npm run eval:demo        # Evaluación determinista sin servicios externos
 npm run eval:openai      # Evaluación con OpenAI; requiere OPENAI_API_KEY
+npm run study:check      # Valida el protocolo US-025; status: not-conducted
 ```
 
 `npm run quality` ejecuta formato, lint, comprobación de tipos, pruebas, compilación, E2E, evaluación demo, validación del estudio y validación del fragmento de changelog. Consulta [CONTRIBUTING.md](CONTRIBUTING.md) para conocer el flujo de desarrollo completo.

@@ -86,6 +86,67 @@ test('valida privacidad, reparto de perfiles e IDs anonimos', async () => {
   );
 });
 
+test('exige metadatos finales reales sin romper el estado no ejecutado', async () => {
+  const { summarizeStudy } = await loadStudyModule();
+  const notConductedDataset = {
+    ...createBaseDataset(),
+    status: 'not-conducted',
+    study: {
+      ...createBaseDataset().study,
+      publicDemoUrl: 'PENDIENTE_URL_PUBLICA_ESTABLE',
+      collectionStartedAt: 'PENDIENTE',
+      collectionFinishedAt: 'PENDIENTE',
+    },
+    participants: [],
+  };
+
+  assert.equal(summarizeStudy(notConductedDataset).status, 'not-conducted');
+  assert.throws(
+    () =>
+      summarizeStudy({
+        ...createFinalDataset(),
+        study: { ...createBaseDataset().study, publicDemoUrl: 'PENDIENTE_URL_PUBLICA_ESTABLE' },
+      }),
+    /PENDIENTE/,
+  );
+  assert.throws(
+    () =>
+      summarizeStudy({
+        ...createFinalDataset(),
+        study: { ...createBaseDataset().study, publicDemoUrl: 'ftp://demo.example.com' },
+      }),
+    /URL publica/,
+  );
+  assert.throws(
+    () =>
+      summarizeStudy({
+        ...createFinalDataset(),
+        study: { ...createBaseDataset().study, evaluatedCommit: 'commit-final' },
+      }),
+    /commit hexadecimal/,
+  );
+  assert.throws(
+    () =>
+      summarizeStudy({
+        ...createFinalDataset(),
+        study: { ...createBaseDataset().study, collectionStartedAt: '2026/08/05' },
+      }),
+    /fecha ISO/,
+  );
+  assert.throws(
+    () =>
+      summarizeStudy({
+        ...createFinalDataset(),
+        study: {
+          ...createBaseDataset().study,
+          collectionStartedAt: '2026-08-06',
+          collectionFinishedAt: '2026-08-05',
+        },
+      }),
+    /orden cronologico/,
+  );
+});
+
 test('renderiza un informe estable y marca el estudio no ejecutado sin resultados humanos', async () => {
   const { renderStudyReport, summarizeStudy } = await loadStudyModule();
   const notConductedSummary = summarizeStudy({
@@ -99,6 +160,9 @@ test('renderiza un informe estable y marca el estudio no ejecutado sin resultado
   assert.match(finalReport, /# Resultados del estudio de usabilidad/);
   assert.match(finalReport, /SUS medio \| 72,5/);
   assert.match(finalReport, /Tarea 1: Chat y coordinacion/);
+  assert.match(finalReport, /Modo observado/);
+  assert.match(finalReport, /deterministic-demo: 10/);
+  assert.match(finalReport, /provider-error: 10/);
   assert.match(notConductedReport, /Estado: estudio no ejecutado/);
   assert.match(notConductedReport, /no contiene resultados SUS/);
 });

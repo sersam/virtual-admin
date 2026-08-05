@@ -138,15 +138,17 @@ export function renderStudyReport(summary) {
     '',
     '## Tareas',
     '',
-    '| Tarea | Completadas | Parciales | Fallidas | Finalizacion estricta | Sin ayuda | Mediana segundos |',
-    '| --- | ---: | ---: | ---: | ---: | ---: | ---: |',
+    '| Tarea | Completadas | Parciales | Fallidas | Finalizacion estricta | Sin ayuda | Mediana segundos | Modo observado | Fallbacks visibles |',
+    '| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |',
   );
 
   for (const task of summary.tasks) {
     lines.push(
       `| ${task.label} | ${task.completed} | ${task.partial} | ${task.failed} | ${formatPercent(
         task.strictCompletionRate,
-      )} | ${formatPercent(task.withoutAssistanceRate)} | ${task.medianSeconds} |`,
+      )} | ${formatPercent(task.withoutAssistanceRate)} | ${task.medianSeconds} | ${formatCountMap(
+        task.modes,
+      )} | ${formatCountMap(task.fallbacks)} |`,
     );
   }
 
@@ -172,7 +174,7 @@ export function renderStudyReport(summary) {
 
 export function validateStudyDataset(dataset) {
   if (!dataset || typeof dataset !== 'object' || Array.isArray(dataset)) {
-    throw new Error('El dataset del estudio debe ser un objeto JSON.');
+    throw new TypeError('El dataset del estudio debe ser un objeto JSON.');
   }
 
   if (dataset.schemaVersion !== schemaVersion) {
@@ -183,11 +185,11 @@ export function validateStudyDataset(dataset) {
     throw new Error('El estado del estudio debe ser not-conducted o final.');
   }
 
-  validateStudyMetadata(dataset.study);
+  validateStudyMetadata(dataset.study, dataset.status);
   validateTasks(dataset.tasks);
 
   if (!Array.isArray(dataset.participants)) {
-    throw new Error('participants debe ser un array.');
+    throw new TypeError('participants debe ser un array.');
   }
 
   if (dataset.status === 'not-conducted') {
@@ -239,7 +241,7 @@ async function formatStudyReport(report) {
   return format(report, { parser: 'markdown' });
 }
 
-function validateStudyMetadata(study) {
+function validateStudyMetadata(study, status) {
   const required = [
     'community',
     'evaluatedCommit',
@@ -251,7 +253,7 @@ function validateStudyMetadata(study) {
   ];
 
   if (!study || typeof study !== 'object') {
-    throw new Error('study debe ser un objeto.');
+    throw new TypeError('study debe ser un objeto.');
   }
 
   for (const field of required) {
@@ -259,18 +261,67 @@ function validateStudyMetadata(study) {
       throw new Error(`study.${field} es obligatorio.`);
     }
   }
+
+  if (status === 'final') validateFinalStudyMetadata(study);
+}
+
+function validateFinalStudyMetadata(study) {
+  for (const field of ['publicDemoUrl', 'collectionStartedAt', 'collectionFinishedAt']) {
+    if (isPendingPlaceholder(study[field])) {
+      throw new Error(`study.${field} no puede conservar marcadores PENDIENTE en estado final.`);
+    }
+  }
+
+  assertValidPublicUrl(study.publicDemoUrl);
+
+  if (!/^[0-9a-f]{7,40}$/i.test(study.evaluatedCommit)) {
+    throw new Error('study.evaluatedCommit debe ser un identificador de commit hexadecimal.');
+  }
+
+  const startedAt = parseIsoDate(study.collectionStartedAt, 'study.collectionStartedAt');
+  const finishedAt = parseIsoDate(study.collectionFinishedAt, 'study.collectionFinishedAt');
+
+  if (startedAt.getTime() > finishedAt.getTime()) {
+    throw new Error('Las fechas de recogida deben mantener orden cronologico.');
+  }
+}
+
+function assertValidPublicUrl(value) {
+  try {
+    const url = new URL(value);
+    if (!['http:', 'https:'].includes(url.protocol)) throw new Error('protocolo no valido');
+  } catch {
+    throw new Error('study.publicDemoUrl debe ser una URL publica HTTP o HTTPS valida.');
+  }
+}
+
+function parseIsoDate(value, fieldName) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error(`${fieldName} debe ser una fecha ISO yyyy-mm-dd.`);
+  }
+
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+    throw new Error(`${fieldName} debe ser una fecha ISO existente.`);
+  }
+
+  return date;
+}
+
+function isPendingPlaceholder(value) {
+  return /PENDIENTE/i.test(value);
 }
 
 function validateTasks(tasks) {
   if (!Array.isArray(tasks) || tasks.length !== 6) {
-    throw new Error('El protocolo debe declarar exactamente seis tareas.');
+    throw new TypeError('El protocolo debe declarar exactamente seis tareas.');
   }
 
   const ids = new Set();
   for (const task of tasks) {
-    if (!task || typeof task !== 'object') throw new Error('Cada tarea debe ser un objeto.');
+    if (!task || typeof task !== 'object') throw new TypeError('Cada tarea debe ser un objeto.');
     if (typeof task.id !== 'string' || typeof task.label !== 'string') {
-      throw new Error('Cada tarea debe tener id y label.');
+      throw new TypeError('Cada tarea debe tener id y label.');
     }
     if (ids.has(task.id)) throw new Error(`Tarea duplicada: ${task.id}.`);
     ids.add(task.id);
@@ -441,20 +492,77 @@ function plannedTaskRows(summary) {
 
 async function verifyDocumentCoverage() {
   const requiredFiles = [
-    'docs/specs/us-025-estudio-defensa.md',
-    'docs/study/protocol.md',
-    'docs/study/results.md',
-    'docs/defense-traceability.md',
-    'docs/final-metrics-limitations.md',
-    'README.md',
-    'docs/architecture.md',
-    'docs/deployment.md',
+    {
+      file: 'docs/specs/us-025-estudio-defensa.md',
+      checks: [
+        ['contrato not-conducted/final', /status: not-conducted\|final/],
+        ['study:check', /study:check/],
+        ['Definition of Done', /Definition of Done/],
+      ],
+    },
+    {
+      file: 'docs/study/protocol.md',
+      checks: [
+        ['consentimiento', /Consentimiento y privacidad/],
+        ['tarea chat-coordination', /chat-coordination/],
+        ['SUS', /System Usability Scale|SUS/],
+      ],
+    },
+    {
+      file: 'docs/study/results.md',
+      checks: [
+        ['estado no ejecutado', /Estado: estudio no ejecutado/],
+        ['sin resultados SUS', /no contiene resultados SUS/],
+        ['tareas previstas', /Tareas previstas/],
+      ],
+    },
+    {
+      file: 'docs/defense-traceability.md',
+      checks: [
+        ['estado no ejecutado', /status: not-conducted/],
+        ['objetivo RAG', /RAG trazable/],
+        ['objetivo despliegue', /Despliegue publico observable/],
+      ],
+    },
+    {
+      file: 'docs/final-metrics-limitations.md',
+      checks: [
+        ['metricas tecnicas', /Metricas tecnicas/],
+        ['estado not-conducted', /not-conducted/],
+        ['study:check', /study:check/],
+      ],
+    },
+    {
+      file: 'README.md',
+      checks: [
+        ['matriz de trazabilidad', /docs\/defense-traceability\.md/],
+        ['estado not-conducted', /status: not-conducted/],
+        ['study:check', /study:check/],
+      ],
+    },
+    {
+      file: 'docs/architecture.md',
+      checks: [
+        ['evaluacion US24', /evaluacion automatica de US-024/],
+        ['script estudio', /scripts\/study-report\.mjs/],
+        ['matriz defensa', /docs\/defense-traceability\.md/],
+      ],
+    },
+    {
+      file: 'docs/deployment.md',
+      checks: [
+        ['congelacion US25', /Congelacion para US-025/],
+        ['estado not-conducted', /status: not-conducted/],
+        ['smoke publico', /smoke:public/],
+      ],
+    },
   ];
 
-  for (const file of requiredFiles) {
+  for (const { file, checks } of requiredFiles) {
     const content = await readFile(file, 'utf8');
-    if (!/US-025|US25|estudio|defensa/i.test(content)) {
-      throw new Error(`${file} no contiene referencia verificable a US25.`);
+    const missingCheck = checks.find(([, pattern]) => !pattern.test(content));
+    if (missingCheck) {
+      throw new Error(`${file} no contiene referencia esperada: ${missingCheck[0]}.`);
     }
   }
 }
@@ -499,6 +607,12 @@ function round(value, decimals) {
 
 function formatPercent(value) {
   return `${formatNumber(round(value * 100, 2))}%`;
+}
+
+function formatCountMap(counts) {
+  const entries = Object.entries(counts);
+  if (entries.length === 0) return 'ninguno';
+  return entries.map(([key, value]) => `${key}: ${value}`).join(', ');
 }
 
 function formatNumber(value) {
