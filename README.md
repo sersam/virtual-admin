@@ -6,6 +6,8 @@
 
 El sistema ofrece una aplicación web responsive y una API HTTP. Puede ejecutarse completamente en modo demo, sin servicios externos, o conectarse de forma opcional a OpenAI y PostgreSQL con pgvector. No incluye autenticación ni gestión de roles; cada visitante trabaja en una sesión demo aislada mediante una cookie firmada.
 
+Demo pública: [virtual-admin-web-two.vercel.app](https://virtual-admin-web-two.vercel.app/).
+
 Documentación relacionada:
 
 - [Backlog del MVP](docs/backlog.md)
