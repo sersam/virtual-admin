@@ -3,14 +3,18 @@ export interface PendingAgreement {
   readonly createdAt: Date;
   readonly description: string;
   readonly dueDate?: string;
+  readonly dueOn?: string;
   readonly id: string;
   readonly sessionId: string;
 }
 
 export function createPendingAgreementSignature(agreement: PendingAgreement): string {
   return JSON.stringify(
-    [agreement.description, agreement.assignee ?? '', agreement.dueDate ?? ''].map((value) =>
-      value.trim().toLocaleLowerCase('es'),
-    ),
+    [
+      agreement.description,
+      agreement.assignee ?? '',
+      agreement.dueDate ?? '',
+      agreement.dueOn ?? '',
+    ].map((value) => value.trim().toLocaleLowerCase('es')),
   );
 }

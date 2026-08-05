@@ -817,12 +817,20 @@ describe('createApiApp', () => {
           kind: 'ordinaria',
           title: 'Junta ordinaria',
           scheduledAt: '2026-07-23T17:00:00.000Z',
+          reviewPeriod: {
+            startsAt: '2026-03-25T08:00:00.000Z',
+            endsAt: '2026-06-23T08:00:00.000Z',
+          },
         },
         {
           id: 'meeting-extraordinary-2026-10-15',
           kind: 'extraordinaria',
           title: 'Junta extraordinaria',
           scheduledAt: '2026-08-23T17:00:00.000Z',
+          reviewPeriod: {
+            startsAt: '2026-05-24T08:00:00.000Z',
+            endsAt: '2026-06-23T08:00:00.000Z',
+          },
         },
       ],
     });

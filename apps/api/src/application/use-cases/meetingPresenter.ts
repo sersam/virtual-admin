@@ -7,5 +7,9 @@ export function presentMeeting(meeting: CommunityMeeting): Meeting {
     kind: meeting.kind,
     title: meeting.title,
     scheduledAt: meeting.scheduledAt.toISOString(),
+    reviewPeriod: {
+      startsAt: meeting.reviewPeriod.startsAt.toISOString(),
+      endsAt: meeting.reviewPeriod.endsAt.toISOString(),
+    },
   };
 }

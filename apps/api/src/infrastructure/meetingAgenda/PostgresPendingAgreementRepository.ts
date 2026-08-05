@@ -11,6 +11,7 @@ interface PendingAgreementRow {
   readonly description: string;
   readonly assignee: string | null;
   readonly due_date: string | null;
+  readonly due_on: string | null;
   readonly created_at: Date;
 }
 
@@ -20,7 +21,7 @@ export class PostgresPendingAgreementRepository implements PendingAgreementRepos
   async listBySession(sessionId: string): Promise<PendingAgreement[]> {
     const result = await this.pool.query<PendingAgreementRow>(
       `
-        select id, session_id::text as session_id, description, assignee, due_date, created_at
+        select id, session_id::text as session_id, description, assignee, due_date, due_on::text as due_on, created_at
         from pending_agreements
         where session_id = $1
         order by inserted_order asc
@@ -83,9 +84,9 @@ export class PostgresPendingAgreementRepository implements PendingAgreementRepos
 
 const insertPendingAgreementSql = `
   insert into pending_agreements (
-    session_id, id, description, assignee, due_date, created_at, normalized_signature
+    session_id, id, description, assignee, due_date, due_on, created_at, normalized_signature
   )
-  values ($1, $2, $3, $4, $5, $6, $7)
+  values ($1, $2, $3, $4, $5, $6, $7, $8)
   on conflict (session_id, id) do nothing
 `;
 
@@ -96,6 +97,7 @@ function toPendingAgreementValues(pendingAgreement: PendingAgreement): unknown[]
     pendingAgreement.description,
     pendingAgreement.assignee ?? null,
     pendingAgreement.dueDate ?? null,
+    pendingAgreement.dueOn ?? null,
     pendingAgreement.createdAt,
   ];
 }
@@ -107,6 +109,7 @@ function mapPendingAgreementRow(row: PendingAgreementRow): PendingAgreement {
     description: row.description,
     assignee: row.assignee ?? undefined,
     dueDate: row.due_date ?? undefined,
+    dueOn: row.due_on ?? undefined,
     createdAt: row.created_at,
   };
 }

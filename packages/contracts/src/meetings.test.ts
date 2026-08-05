@@ -7,6 +7,10 @@ describe('meeting contracts', () => {
     kind: 'ordinaria',
     title: 'Junta ordinaria',
     scheduledAt: '2026-09-18T17:00:00.000Z',
+    reviewPeriod: {
+      startsAt: '2026-04-30T08:30:00.000Z',
+      endsAt: '2026-07-29T08:30:00.000Z',
+    },
   };
 
   it('valida juntas demo seleccionables', () => {
@@ -20,6 +24,24 @@ describe('meeting contracts', () => {
     expect(() => MeetingSchema.parse({ ...validMeeting, title: '   ' })).toThrow();
     expect(() => MeetingSchema.parse({ ...validMeeting, id: 'a'.repeat(81) })).toThrow();
     expect(() => MeetingSchema.parse({ ...validMeeting, title: 'a'.repeat(121) })).toThrow();
+  });
+
+  it('rechaza periodos de revision no ISO o invertidos', () => {
+    expect(() =>
+      MeetingSchema.parse({
+        ...validMeeting,
+        reviewPeriod: { startsAt: '30/04/2026', endsAt: '2026-07-29T08:30:00.000Z' },
+      }),
+    ).toThrow();
+    expect(() =>
+      MeetingSchema.parse({
+        ...validMeeting,
+        reviewPeriod: {
+          startsAt: '2026-07-29T08:30:00.001Z',
+          endsAt: '2026-07-29T08:30:00.000Z',
+        },
+      }),
+    ).toThrow();
   });
 
   it('valida el listado de juntas', () => {

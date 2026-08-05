@@ -2,17 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { createPendingAgreementSignature } from './PendingAgreement.js';
 
 describe('PendingAgreement', () => {
-  it('normaliza descripcion, responsable y fecha para detectar acuerdos equivalentes', () => {
+  it('normaliza descripcion, responsable y fechas para detectar acuerdos equivalentes', () => {
     const signature = createPendingAgreementSignature({
       id: 'pending-1',
       sessionId: 'session-a',
       description: ' Revisar contrato ',
       assignee: 'ANA',
       dueDate: '30 DE JUNIO',
+      dueOn: '2026-06-30',
       createdAt: new Date('2026-06-23T08:00:00.000Z'),
     });
 
-    expect(signature).toBe('["revisar contrato","ana","30 de junio"]');
+    expect(signature).toBe('["revisar contrato","ana","30 de junio","2026-06-30"]');
   });
 
   it('usa campos vacios para responsable y fecha ausentes', () => {
@@ -23,7 +24,7 @@ describe('PendingAgreement', () => {
       createdAt: new Date('2026-06-23T08:00:00.000Z'),
     });
 
-    expect(signature).toBe('["revisar contrato","",""]');
+    expect(signature).toBe('["revisar contrato","","",""]');
   });
 
   it('mantiene equivalencias normalizadas y separa valores distintos', () => {
@@ -33,6 +34,7 @@ describe('PendingAgreement', () => {
       description: ' Revisar contrato ',
       assignee: 'ANA',
       dueDate: '30 DE JUNIO',
+      dueOn: '2026-06-30',
       createdAt: new Date('2026-06-23T08:00:00.000Z'),
     });
     const equivalent = createPendingAgreementSignature({
@@ -41,6 +43,7 @@ describe('PendingAgreement', () => {
       description: 'revisar contrato',
       assignee: 'ana',
       dueDate: '30 de junio',
+      dueOn: '2026-06-30',
       createdAt: new Date('2026-06-23T08:05:00.000Z'),
     });
     const different = createPendingAgreementSignature({
@@ -49,6 +52,7 @@ describe('PendingAgreement', () => {
       description: 'Revisar contrato de limpieza',
       assignee: 'Ana',
       dueDate: '30 de junio',
+      dueOn: '2026-06-30',
       createdAt: new Date('2026-06-23T08:10:00.000Z'),
     });
 

@@ -26,6 +26,15 @@ function suggestedNoticeFor(description: string): string {
   ].join('\n');
 }
 
+const reviewPeriod = {
+  startsAt: '2026-04-30T08:30:00.000Z',
+  endsAt: '2026-07-29T08:30:00.000Z',
+};
+
+const filterExplanations = [
+  'Junta ordinaria: se revisan los ultimos 90 dias hasta el momento de preparacion.',
+];
+
 describe('DraftMeetingAgenda', () => {
   it('combina incidencias y acuerdos pendientes priorizados para la sesión', async () => {
     const useCase = new DraftMeetingAgenda({
@@ -116,6 +125,8 @@ describe('DraftMeetingAgenda', () => {
             priority: 'urgente',
             sourceType: 'incident',
             sourceId: 'inc-urgent',
+            status: 'pendiente',
+            resolvedAt: null,
           },
           {
             description: 'Revisar contrato de limpieza',
@@ -136,16 +147,21 @@ describe('DraftMeetingAgenda', () => {
             priority: 'baja',
             sourceType: 'incident',
             sourceId: 'inc-low',
+            status: 'pendiente',
+            resolvedAt: null,
           },
         ],
       },
+      filterExplanations,
       meeting: {
         id: 'meeting-ordinary-2026-09-18',
         kind: 'ordinaria',
         title: 'Junta ordinaria',
         scheduledAt: '2026-09-18T17:00:00.000Z',
+        reviewPeriod,
       },
       mode: 'deterministic-demo',
+      reviewPeriod,
     });
   });
 
@@ -187,10 +203,12 @@ describe('DraftMeetingAgenda', () => {
         body: 'No hay asuntos pendientes para incluir en el orden del día.',
         items: [],
       },
+      filterExplanations,
       meeting: expect.objectContaining({
         id: 'meeting-ordinary-2026-09-18',
       }),
       mode: 'deterministic-demo',
+      reviewPeriod,
     });
     expect(generator.inputs).toEqual([]);
   });
@@ -246,6 +264,8 @@ describe('DraftMeetingAgenda', () => {
             priority: 'urgente',
             sourceType: 'incident',
             sourceId: 'inc-urgent',
+            status: 'pendiente',
+            resolvedAt: null,
           },
           {
             description: 'Revisar contrato de limpieza',
@@ -269,13 +289,16 @@ describe('DraftMeetingAgenda', () => {
         body: 'Texto redactado por OpenAI sin capacidad de alterar fuentes.',
         items: generator.inputs[0]!.items,
       },
+      filterExplanations,
       meeting: {
         id: 'meeting-ordinary-2026-09-18',
         kind: 'ordinaria',
         title: 'Junta ordinaria',
         scheduledAt: '2026-09-18T17:00:00.000Z',
+        reviewPeriod,
       },
       mode: 'openai',
+      reviewPeriod,
     });
   });
 
@@ -639,6 +662,10 @@ function createMeetingRepository(
       kind: 'ordinaria',
       title: 'Junta ordinaria',
       scheduledAt: new Date('2026-09-18T17:00:00.000Z'),
+      reviewPeriod: {
+        startsAt: new Date('2026-04-30T08:30:00.000Z'),
+        endsAt: new Date('2026-07-29T08:30:00.000Z'),
+      },
     },
   ],
 ): MeetingRepository {

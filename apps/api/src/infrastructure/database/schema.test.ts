@@ -63,11 +63,13 @@ describe('database schema', () => {
       'description',
       'assignee',
       'dueDate',
+      'dueOn',
       'normalizedSignature',
       'createdAt',
       'insertedOrder',
     ]);
     expect(agreementColumns.dueDate.name).toBe('due_date');
+    expect(agreementColumns.dueOn.name).toBe('due_on');
     expect(agreementColumns.normalizedSignature.name).toBe('normalized_signature');
     expect(agreementColumns.insertedOrder.name).toBe('inserted_order');
 

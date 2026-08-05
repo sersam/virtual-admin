@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { AiFallbackReasonSchema } from './ai.js';
 import { AiProviderModeSchema } from './communications.js';
-import { IncidentPrioritySchema } from './incidents.js';
-import { MeetingSchema } from './meetings.js';
+import { IncidentPrioritySchema, IncidentStatusSchema } from './incidents.js';
+import { MeetingReviewPeriodSchema, MeetingSchema } from './meetings.js';
 
 export const MeetingAgendaDraftRequestSchema = z
   .object({
@@ -21,16 +21,31 @@ const MeetingAgendaBaseItemSchema = z.object({
   sourceId: z.string().trim().min(1).max(80),
 });
 
-export const MeetingAgendaItemSchema = z.discriminatedUnion('sourceType', [
-  MeetingAgendaBaseItemSchema.extend({
-    priority: IncidentPrioritySchema,
-    sourceType: z.literal('incident'),
-  }).strict(),
+const IncidentMeetingAgendaItemSchema = MeetingAgendaBaseItemSchema.extend({
+  priority: IncidentPrioritySchema,
+  sourceType: z.literal('incident'),
+  status: IncidentStatusSchema,
+  resolvedAt: z.iso.datetime().nullable(),
+})
+  .strict()
+  .refine(
+    (item) =>
+      (item.status === 'pendiente' && item.resolvedAt === null) ||
+      (item.status === 'resuelta' && item.resolvedAt !== null),
+    {
+      message: 'El estado de la incidencia debe ser coherente con su fecha de resolucion.',
+      path: ['resolvedAt'],
+    },
+  );
+
+export const MeetingAgendaItemSchema = z.union([
+  IncidentMeetingAgendaItemSchema,
   MeetingAgendaBaseItemSchema.extend({
     priority: IncidentPrioritySchema,
     sourceType: z.literal('pending-agreement'),
     assignee: z.string().trim().min(1).max(120).optional(),
     dueDate: z.string().trim().min(1).max(80).optional(),
+    dueOn: z.iso.date().optional(),
   }).strict(),
   MeetingAgendaBaseItemSchema.extend({
     sourceType: z.literal('proposal'),
@@ -46,8 +61,10 @@ export const MeetingAgendaDraftSchema = z.object({
 export const MeetingAgendaDraftResponseSchema = z.object({
   draft: MeetingAgendaDraftSchema,
   fallbackReason: AiFallbackReasonSchema.optional(),
+  filterExplanations: z.array(z.string().trim().min(1).max(240)).min(1).max(10),
   meeting: MeetingSchema,
   mode: AiProviderModeSchema,
+  reviewPeriod: MeetingReviewPeriodSchema,
 });
 
 export type MeetingAgendaDraftRequest = z.infer<typeof MeetingAgendaDraftRequestSchema>;

@@ -89,10 +89,24 @@ export class DraftMeetingAgenda {
         body: generatedDraft.body,
         items,
       },
+      filterExplanations: buildFilterExplanations(meeting),
       meeting: presentMeeting(meeting),
       mode: generatedDraft.mode,
+      reviewPeriod: {
+        startsAt: meeting.reviewPeriod.startsAt.toISOString(),
+        endsAt: meeting.reviewPeriod.endsAt.toISOString(),
+      },
     };
   }
+}
+
+function buildFilterExplanations(meeting: CommunityMeeting): string[] {
+  const days = meeting.kind === 'ordinaria' ? 90 : 30;
+  const meetingKind = meeting.kind === 'ordinaria' ? 'ordinaria' : 'extraordinaria';
+
+  return [
+    `Junta ${meetingKind}: se revisan los ultimos ${days} dias hasta el momento de preparacion.`,
+  ];
 }
 
 function buildTitle(meeting: CommunityMeeting): string {
@@ -114,6 +128,8 @@ function presentIncidentItem(incident: CommunityIncident): PrioritizedAgendaItem
     priority: incident.priority,
     sourceType: 'incident',
     sourceId: incident.id,
+    status: incident.status,
+    resolvedAt: incident.resolvedAt ? incident.resolvedAt.toISOString() : null,
     createdAt: incident.createdAt,
   };
 }
@@ -126,6 +142,7 @@ function presentPendingAgreementItem(agreement: PendingAgreement): PrioritizedAg
     sourceId: agreement.id,
     ...(agreement.assignee ? { assignee: agreement.assignee } : {}),
     ...(agreement.dueDate ? { dueDate: agreement.dueDate } : {}),
+    ...(agreement.dueOn ? { dueOn: agreement.dueOn } : {}),
     createdAt: agreement.createdAt,
   };
 }
@@ -176,11 +193,14 @@ function presentTransportItem(item: AgendaItemWithCreatedAt): MeetingAgendaItem 
         sourceId: item.sourceId,
         ...(item.assignee ? { assignee: item.assignee } : {}),
         ...(item.dueDate ? { dueDate: item.dueDate } : {}),
+        ...(item.dueOn ? { dueOn: item.dueOn } : {}),
       }
     : {
         description: item.description,
         priority: item.priority,
         sourceType: item.sourceType,
         sourceId: item.sourceId,
+        status: item.status,
+        resolvedAt: item.resolvedAt,
       };
 }

@@ -43,6 +43,13 @@
       "when": 1785489120191,
       "tag": "0005_high_ted_forrester",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785912205421,
+      "tag": "0006_regular_white_tiger",
+      "breakpoints": true
     }
   ]
 }

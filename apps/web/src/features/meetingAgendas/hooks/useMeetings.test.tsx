@@ -17,6 +17,10 @@ describe('useMeetings', () => {
               kind: 'ordinaria',
               title: 'Junta ordinaria',
               scheduledAt: '2026-09-18T17:00:00.000Z',
+              reviewPeriod: {
+                startsAt: '2026-04-30T08:30:00.000Z',
+                endsAt: '2026-07-29T08:30:00.000Z',
+              },
             },
           ],
         }),
