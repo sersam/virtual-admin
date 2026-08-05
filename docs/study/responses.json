@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "study-responses/v1",
+  "status": "not-conducted",
+  "study": {
+    "community": "Residencial Sierra Nevada",
+    "evaluatedCommit": "026d8ea",
+    "publicDemoUrl": "PENDIENTE_URL_PUBLICA_ESTABLE",
+    "browser": "Chrome estable de escritorio",
+    "collectionStartedAt": "PENDIENTE",
+    "collectionFinishedAt": "PENDIENTE",
+    "protocolVersion": "us-025-study-protocol/v1"
+  },
+  "tasks": [
+    {
+      "id": "chat-coordination",
+      "label": "Tarea 1: Chat y coordinacion"
+    },
+    {
+      "id": "notice-draft",
+      "label": "Tarea 2: Comunicado editable"
+    },
+    {
+      "id": "rag-source",
+      "label": "Tarea 3: Consulta documental trazable"
+    },
+    {
+      "id": "incident-notice",
+      "label": "Tarea 4: Incidencia y comunicado sugerido"
+    },
+    {
+      "id": "minutes-pdf",
+      "label": "Tarea 5: Acta estructurada"
+    },
+    {
+      "id": "agenda-traceability",
+      "label": "Tarea 6: Orden del dia trazable"
+    }
+  ],
+  "qualitativeThemeCatalog": {
+    "positive": [
+      {
+        "id": "traceable-sources",
+        "label": "Fuentes y trazabilidad utiles"
+      },
+      {
+        "id": "useful-drafts",
+        "label": "Borradores reutilizables"
+      },
+      {
+        "id": "workflow-centralization",
+        "label": "Centralizacion del flujo"
+      },
+      {
+        "id": "clear-agent-feedback",
+        "label": "Traza de agente comprensible"
+      }
+    ],
+    "improvement": [
+      {
+        "id": "clearer-fallbacks",
+        "label": "Fallbacks mas faciles de entender"
+      },
+      {
+        "id": "more-guidance",
+        "label": "Mas guia dentro de tareas complejas"
+      },
+      {
+        "id": "mobile-validation",
+        "label": "Validacion movil futura"
+      },
+      {
+        "id": "authentication-needed",
+        "label": "Autenticacion necesaria para uso real"
+      }
+    ]
+  },
+  "participants": []
+}
