@@ -21,6 +21,10 @@ Las acciones IA visibles se ejecutan mediante un orquestador HTTP de aplicacion:
 
 La observabilidad IA usa `AiTelemetryReporter` y `AiTelemetryEventRepository`. Los adaptadores OpenAI emiten eventos tecnicos de exito o fallo; el fallback determinista emite otro evento con proveedor `deterministic-demo`, tokens y coste cero. La tabla de eventos contiene fecha, operacion, proveedor/modelo, version de prompt, tokens, coste, latencia, resultado y motivo de fallback. No existen columnas para prompts, respuestas, documentos, IP ni sesiones. `GET /api/observability` consulta agregados del dia UTC sin crear sesion.
 
+La evaluacion automatica de US-024 se mantiene fuera del trafico HTTP y reutiliza casos de uso reales desde la capa de aplicacion. `eval:demo` compone proveedores deterministas y aplica gates bloqueantes; `eval:openai` compone proveedores OpenAI reales cuando existe configuracion y genera evidencia descriptiva. Los reportes tecnicos quedan en `artifacts/evaluations`, fuera de Git.
+
+La US-025 no anade una nueva capa de negocio. Incorpora tooling documental en `scripts/study-report.mjs` para validar un dataset anonimo, calcular SUS, agregar tareas humanas y regenerar `docs/study/results.md`. La matriz `docs/defense-traceability.md` enlaza objetivos del TFM con implementacion, pruebas automatizadas, benchmark y tareas humanas sin introducir dependencias de runtime.
+
 Las juntas demo proceden de `InMemoryMeetingRepository` y se calculan con el reloj del backend: la junta ordinaria queda a un mes de la fecha actual y la extraordinaria a dos meses, manteniendo las 17:00 UTC y ajustando fin de mes al ultimo dia disponible cuando sea necesario.
 
 ## Despliegue publico
@@ -33,6 +37,7 @@ La topologia publica separa responsabilidades por proveedor:
 - El navegador consume la API por rutas relativas same-origin; por tanto `VITE_API_BASE_URL` queda sin definir en Vercel.
 - OpenAI solo vive en Railway. Las cuotas, fallbacks y observabilidad de US-022 protegen el coste y hacen visible cualquier degradacion determinista.
 - El estado demo persistente sigue aislado por sesion. El smoke postdespliegue crea una sesion canario, comprueba idempotencia del seed y no imprime cookies, sesiones ni contenido generado.
+- El estudio US-025 debe ejecutarse sobre una URL publica y commit estables. Si cambia el codigo funcional o la configuracion visible durante la recogida, las sesiones afectadas no son comparables y deben repetirse.
 
 ## Frontend
 

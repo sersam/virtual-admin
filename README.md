@@ -16,10 +16,12 @@ Será una demo pública sin autenticación, con datos precargados y un modo loca
 
 ## Estado del proyecto
 
-Actualmente están implementadas las historias de la **US-001** a la **US-022**. La aplicación incluye shell responsive, API Express con sesiones demo aisladas, estado persistente opcional en PostgreSQL, documentos PDF subidos por sesión, consulta documental RAG con respuestas generadas desde fuentes trazables, recuperación semántica con pgvector cuando el backend está configurado para ello, un coordinador IA que enruta el chat hacia agentes especializados con traza visible, generación de actas con acuerdos y tareas estructurados, preparación de órdenes del día con redacción OpenAI o demo determinista, límites diarios para acciones IA y observabilidad pública agregada.
+Actualmente están implementadas las historias de la **US-001** a la **US-025**. La aplicación incluye shell responsive, API Express con sesiones demo aisladas, estado persistente opcional en PostgreSQL, documentos PDF subidos por sesión, consulta documental RAG con respuestas generadas desde fuentes trazables, recuperación semántica con pgvector cuando el backend está configurado para ello, un coordinador IA que enruta el chat hacia agentes especializados con traza visible, generación de actas con acuerdos y tareas estructurados, preparación de órdenes del día con redacción OpenAI o demo determinista, límites diarios para acciones IA, observabilidad pública agregada, benchmark técnico reproducible y protocolo de estudio anónimo para la defensa.
 
 - [Backlog del MVP](docs/backlog.md)
 - [Arquitectura detallada](docs/architecture.md)
+- [Matriz de trazabilidad para la defensa](docs/defense-traceability.md)
+- [Métricas y limitaciones finales](docs/final-metrics-limitations.md)
 - [Guía de contribución](CONTRIBUTING.md)
 
 ## Cómo arrancar el proyecto
@@ -87,6 +89,33 @@ PUBLIC_WEB_URL=https://<frontend>.vercel.app PUBLIC_API_URL=https://<api>.up.rai
 ```
 
 La guía operativa completa está en [docs/deployment.md](docs/deployment.md). Incluye aprovisionamiento, variables, rotación de secretos, rollback, evidencia de PR y limitaciones.
+
+### Evaluación, estudio y defensa
+
+La US-024 aporta benchmarks reproducibles para RAG, coordinación, incidencias, comunicados, actas y juntas:
+
+```bash
+npm run eval:demo
+npm run eval:openai
+```
+
+`eval:demo` es bloqueante y no realiza llamadas externas. `eval:openai` requiere `OPENAI_API_KEY`, genera evidencia descriptiva y puede variar por disponibilidad, latencia o salida del proveedor.
+
+La US-025 añade el protocolo de estudio de usabilidad y la matriz de defensa:
+
+- [Protocolo del estudio](docs/study/protocol.md)
+- [Dataset anónimo planificado](docs/study/responses.json)
+- [Resultados agregados generados](docs/study/results.md)
+- [Matriz objetivo-implementación-prueba](docs/defense-traceability.md)
+
+El dataset está preparado para 10 participantes reales `P01`-`P10`, con reparto 5/5 entre perfiles con experiencia administrativa y propietarios o usuarios finales. Mientras `docs/study/responses.json` siga en `status: planned`, el repositorio no contiene resultados humanos ni cifras inventadas. Al incorporar las 10 sesiones reales, ejecuta:
+
+```bash
+npm run study:report
+npm run study:check
+```
+
+`study:check` valida anonimato, reparto de perfiles, seis tareas por persona, respuestas SUS, resultados agregados y sincronización del informe.
 
 ### Actas con OpenAI
 
@@ -187,6 +216,8 @@ npm run typecheck     # Comprueba TypeScript
 npm test              # Ejecuta las pruebas
 npm run build         # Verifica la compilación
 npm run smoke:public  # Ejecuta el smoke contra la demo publica desplegada
+npm run study:report  # Regenera resultados agregados del estudio US25
+npm run study:check   # Valida anonimato, SUS, matriz e informe del estudio
 npm run test:e2e      # Ejecuta los flujos end-to-end en Chromium
 npm run quality       # Ejecuta el conjunto completo de controles
 ```

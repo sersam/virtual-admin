@@ -1,6 +1,6 @@
 # Despliegue publico de la demo
 
-Esta guia cubre el despliegue de la US-023: API Express en Railway, PostgreSQL con pgvector en Railway, frontend Vite en Vercel y smoke postdespliegue desde GitHub Actions.
+Esta guia cubre el despliegue publico usado desde la US-023 y las evidencias de defensa de US-025: API Express en Railway, PostgreSQL con pgvector en Railway, frontend Vite en Vercel, smoke postdespliegue y condiciones para ejecutar el estudio humano sobre una version estable.
 
 ## Topologia
 
@@ -79,6 +79,19 @@ El script verifica:
 
 La salida solo imprime conteos, estados, URLs publicas y modos. No imprime cookies, IDs de sesion, secretos ni contenido generado.
 
+## Congelacion para US-025
+
+Antes de reclutar participantes del estudio:
+
+1. Confirmar el commit que se va a evaluar.
+2. Desplegar API y frontend desde ese mismo codigo.
+3. Ejecutar `npm run smoke:public` contra las URLs publicas.
+4. Ejecutar `npm run eval:demo` y conservar el reporte local generado en `artifacts/evaluations` como evidencia tecnica saneada.
+5. Ejecutar `npm run eval:openai` solo si existe `OPENAI_API_KEY`; si no existe, documentar su ausencia como limitacion.
+6. Registrar URL, commit, navegador y fechas en `docs/study/responses.json`.
+
+Durante la recogida no se debe cambiar codigo funcional, configuracion visible, prompt versionado ni datos demo. Si ocurre un cambio, las sesiones afectadas deben repetirse o separarse en otro bloque de evaluacion.
+
 ## Rollback
 
 - Railway: volver a desplegar una version anterior desde el historial del servicio. Si el esquema ya fue migrado, verificar compatibilidad antes de promover una version antigua.
@@ -100,6 +113,7 @@ La salida solo imprime conteos, estados, URLs publicas y modos. No imprime cooki
 - Log Railway de migraciones predeploy.
 - Evidencia del healthcheck Railway.
 - Log saneado del workflow `Public smoke`.
+- Para US-025, protocolo del estudio, `docs/study/results.md`, `docs/defense-traceability.md` y `docs/final-metrics-limitations.md`.
 
 ## Limitaciones
 
